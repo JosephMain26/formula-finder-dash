@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatsCards } from "@/components/StatsCards";
 import { JobFilters } from "@/components/JobFilters";
 import { JobsTable } from "@/components/JobsTable";
 import { AddJobDialog } from "@/components/AddJobDialog";
+import { Button } from "@/components/ui/button";
+import { Building2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Job = Tables<"jobs">;
@@ -82,7 +84,12 @@ function Dashboard() {
             <h1 className="text-2xl font-bold tracking-tight">Jobs Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Track and manage all service jobs</p>
           </div>
-          <AddJobDialog onJobAdded={fetchJobs} />
+          <div className="flex items-center gap-3">
+            <Link to="/companies">
+              <Button variant="outline"><Building2 className="h-4 w-4 mr-2" /> Companies</Button>
+            </Link>
+            <AddJobDialog onJobAdded={fetchJobs} />
+          </div>
         </div>
       </header>
 
