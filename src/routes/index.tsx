@@ -1,19 +1,121 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { StatsCards } from "@/components/StatsCards";
+import { JobFilters } from "@/components/JobFilters";
+import { JobsTable } from "@/components/JobsTable";
+import { AddJobDialog } from "@/components/AddJobDialog";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Job = Tables<"jobs">;
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: Dashboard,
+  head: () => ({
+    meta: [
+      { title: "Jobs Dashboard" },
+      { name: "description", content: "Track and manage service jobs with real-time calculations" },
+    ],
+  }),
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
+function Dashboard() {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [techFilter, setTechFilter] = useState("");
+  const [companyFilter, setCompanyFilter] = useState("");
+  const [jobTypeFilter, setJobTypeFilter] = useState("");
+  const [paidFilter, setPaidFilter] = useState("");
+
+  async function fetchJobs() {
+    setLoading(true);
+    const { data } = await supabase.from("jobs").select("*").order("job_date", { ascending: false });
+    setJobs(data || []);
+    setLoading(false);
+  }
+
+  useEffect(() => { fetchJobs(); }, []);
+
+  const uniqueValues = useMemo(() => {
+    const get = (key: keyof Job) => [...new Set(jobs.map(j => j[key]).filter(Boolean) as string[])].sort();
+    return {
+      techs: get("tech_name"),
+      companies: [...new Set(jobs.flatMap(j => [j.company_1, j.company]).filter(Boolean) as string[])].sort(),
+      jobTypes: get("job_type"),
+      statuses: get("status"),
+    };
+  }, [jobs]);
+
+  const filtered = useMemo(() => {
+    return jobs.filter((job) => {
+      if (search) {
+        const s = search.toLowerCase();
+        const searchable = [job.company_1, job.company, job.tech_name, job.po_number, job.address, job.notes, job.phone_no].join(" ").toLowerCase();
+        if (!searchable.includes(s)) return false;
+      }
+      if (statusFilter && statusFilter !== "all" && job.status !== statusFilter) return false;
+      if (techFilter && techFilter !== "all" && job.tech_name !== techFilter) return false;
+      if (companyFilter && companyFilter !== "all" && job.company_1 !== companyFilter && job.company !== companyFilter) return false;
+      if (jobTypeFilter && jobTypeFilter !== "all" && job.job_type !== jobTypeFilter) return false;
+      if (paidFilter === "yes" && !job.paid) return false;
+      if (paidFilter === "no" && job.paid) return false;
+      return true;
+    });
+  }, [jobs, search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter]);
+
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("");
+    setTechFilter("");
+    setCompanyFilter("");
+    setJobTypeFilter("");
+    setPaidFilter("");
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-card">
+        <div className="max-w-[1400px] mx-auto px-6 py-5 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Jobs Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">Track and manage all service jobs</p>
+          </div>
+          <AddJobDialog onJobAdded={fetchJobs} />
+        </div>
+      </header>
+
+      <main className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
+        <StatsCards jobs={filtered} />
+
+        <div className="bg-card rounded-xl border p-5 space-y-5">
+          <JobFilters
+            search={search} onSearchChange={setSearch}
+            statusFilter={statusFilter} onStatusChange={setStatusFilter}
+            techFilter={techFilter} onTechChange={setTechFilter}
+            companyFilter={companyFilter} onCompanyChange={setCompanyFilter}
+            jobTypeFilter={jobTypeFilter} onJobTypeChange={setJobTypeFilter}
+            paidFilter={paidFilter} onPaidChange={setPaidFilter}
+            onClear={clearFilters}
+            techs={uniqueValues.techs}
+            companies={uniqueValues.companies}
+            jobTypes={uniqueValues.jobTypes}
+            statuses={uniqueValues.statuses}
+          />
+
+          {loading ? (
+            <div className="text-center py-12 text-muted-foreground">Loading jobs...</div>
+          ) : (
+            <>
+              <div className="text-xs text-muted-foreground">
+                Showing {filtered.length} of {jobs.length} jobs
+              </div>
+              <JobsTable jobs={filtered} />
+            </>
+          )}
+        </div>
+      </main>
     </div>
   );
-}
-
-function Index() {
-  return <PlaceholderIndex />;
 }
