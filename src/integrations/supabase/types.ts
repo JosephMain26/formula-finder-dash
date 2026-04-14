@@ -14,7 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      jobs: {
+        Row: {
+          address: string | null
+          cc_fee: number | null
+          check_no: string | null
+          co_parts: number | null
+          comp_type: string | null
+          company: string | null
+          company_1: string | null
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          job_date: string | null
+          job_type: string | null
+          manual_percentage: number | null
+          maps: string | null
+          notes: string | null
+          paid: boolean | null
+          parts: number | null
+          payment: string | null
+          phone_no: string | null
+          po_number: string | null
+          price: number | null
+          status: string | null
+          tech_name: string | null
+          tip: number | null
+          total_office: number | null
+          total_tech: number | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          cc_fee?: number | null
+          check_no?: string | null
+          co_parts?: number | null
+          comp_type?: string | null
+          company?: string | null
+          company_1?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_date?: string | null
+          job_type?: string | null
+          manual_percentage?: number | null
+          maps?: string | null
+          notes?: string | null
+          paid?: boolean | null
+          parts?: number | null
+          payment?: string | null
+          phone_no?: string | null
+          po_number?: string | null
+          price?: number | null
+          status?: string | null
+          tech_name?: string | null
+          tip?: number | null
+          total_office?: number | null
+          total_tech?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          cc_fee?: number | null
+          check_no?: string | null
+          co_parts?: number | null
+          comp_type?: string | null
+          company?: string | null
+          company_1?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_date?: string | null
+          job_type?: string | null
+          manual_percentage?: number | null
+          maps?: string | null
+          notes?: string | null
+          paid?: boolean | null
+          parts?: number | null
+          payment?: string | null
+          phone_no?: string | null
+          po_number?: string | null
+          price?: number | null
+          status?: string | null
+          tech_name?: string | null
+          tip?: number | null
+          total_office?: number | null
+          total_tech?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
