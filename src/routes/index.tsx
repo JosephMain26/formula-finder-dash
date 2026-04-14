@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatsCards } from "@/components/StatsCards";
 import { JobFilters } from "@/components/JobFilters";
 import { JobsTable } from "@/components/JobsTable";
 import { AddJobDialog } from "@/components/AddJobDialog";
+import { Button } from "@/components/ui/button";
+import { Building2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Job = Tables<"jobs">;
