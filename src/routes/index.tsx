@@ -84,9 +84,12 @@ function Dashboard() {
             <h1 className="text-2xl font-bold tracking-tight">Jobs Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Track and manage all service jobs</p>
           </div>
-          <AddJobDialog onJobAdded={fetchJobs} />
-        </div>
-      </header>
+          <div className="flex items-center gap-3">
+            <Link to="/companies">
+              <Button variant="outline"><Building2 className="h-4 w-4 mr-2" /> Companies</Button>
+            </Link>
+            <AddJobDialog onJobAdded={fetchJobs} />
+          </div>
 
       <main className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
         <StatsCards jobs={filtered} />
