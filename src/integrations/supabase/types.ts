@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          company_name: string
+          company_type: string | null
+          contact_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          percentage: number | null
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          company_type?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          percentage?: number | null
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          company_type?: string | null
+          contact_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          percentage?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           address: string | null
@@ -23,6 +56,7 @@ export type Database = {
           comp_type: string | null
           company: string | null
           company_1: string | null
+          company_id: string | null
           cost: number | null
           created_at: string
           created_by: string | null
@@ -53,6 +87,7 @@ export type Database = {
           comp_type?: string | null
           company?: string | null
           company_1?: string | null
+          company_id?: string | null
           cost?: number | null
           created_at?: string
           created_by?: string | null
@@ -83,6 +118,7 @@ export type Database = {
           comp_type?: string | null
           company?: string | null
           company_1?: string | null
+          company_id?: string | null
           cost?: number | null
           created_at?: string
           created_by?: string | null
@@ -105,7 +141,15 @@ export type Database = {
           total_tech?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
