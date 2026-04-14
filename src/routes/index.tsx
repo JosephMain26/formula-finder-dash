@@ -90,8 +90,9 @@ function Dashboard() {
             </Link>
             <AddJobDialog onJobAdded={fetchJobs} />
           </div>
+        </div>
+      </header>
 
-      <main className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
         <StatsCards jobs={filtered} />
 
         <div className="bg-card rounded-xl border p-5 space-y-5">
