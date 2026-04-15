@@ -120,10 +120,11 @@ function Dashboard() {
             <div className="text-center py-12 text-muted-foreground">Loading jobs...</div>
           ) : (
             <>
-              <div className="text-xs text-muted-foreground">
-                Showing {filtered.length} of {jobs.length} jobs
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Showing {filtered.length} of {jobs.length} jobs</span>
+                <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} />
               </div>
-              <JobsTable jobs={filtered} onJobsChanged={fetchJobs} />
+              <JobsTable jobs={filtered} onJobsChanged={fetchJobs} visibleColumns={visibleColumns} />
             </>
           )}
         </div>
