@@ -1,11 +1,16 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Pencil, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { JobDialog } from "@/components/AddJobDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Job = Tables<"jobs">;
 
 interface JobsTableProps {
   jobs: Job[];
+  onJobsChanged: () => void;
 }
 
 function StatusBadge({ status }: { status: string | null }) {
@@ -23,7 +28,13 @@ function currency(val: number | null) {
   return `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function JobsTable({ jobs }: JobsTableProps) {
+export function JobsTable({ jobs, onJobsChanged }: JobsTableProps) {
+  async function deleteJob(id: string) {
+    if (!confirm("Are you sure you want to delete this job?")) return;
+    await supabase.from("jobs").delete().eq("id", id);
+    onJobsChanged();
+  }
+
   if (jobs.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -38,6 +49,7 @@ export function JobsTable({ jobs }: JobsTableProps) {
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
+            <TableHead className="w-[80px]">Actions</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Company</TableHead>
             <TableHead>Tech</TableHead>
@@ -58,6 +70,18 @@ export function JobsTable({ jobs }: JobsTableProps) {
         <TableBody>
           {jobs.map((job) => (
             <TableRow key={job.id}>
+              <TableCell>
+                <div className="flex gap-1">
+                  <JobDialog
+                    job={job}
+                    onJobSaved={onJobsChanged}
+                    trigger={<Button variant="ghost" size="icon" className="h-7 w-7"><Pencil className="h-3.5 w-3.5" /></Button>}
+                  />
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteJob(job.id)}>
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
+              </TableCell>
               <TableCell className="whitespace-nowrap text-sm">
                 {job.job_date ? new Date(job.job_date).toLocaleDateString() : "—"}
               </TableCell>

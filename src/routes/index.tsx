@@ -121,7 +121,7 @@ function Dashboard() {
               <div className="text-xs text-muted-foreground">
                 Showing {filtered.length} of {jobs.length} jobs
               </div>
-              <JobsTable jobs={filtered} />
+              <JobsTable jobs={filtered} onJobsChanged={fetchJobs} />
             </>
           )}
         </div>
