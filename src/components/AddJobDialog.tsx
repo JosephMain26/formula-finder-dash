@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -16,54 +16,83 @@ type Technician = {
   city: string | null;
   percentage: number | null;
 };
+type JobType = { id: string; name: string };
 
-interface AddJobDialogProps {
-  onJobAdded: () => void;
+const emptyForm = {
+  job_date: "", company_id: "", technician_id: "", tech_name: "",
+  po_number: "", phone_no: "", address: "", comp_type: "", job_type: "",
+  status: "Pending", price: "", co_parts: "", parts: "", payment: "",
+  check_no: "", tip: "", cost: "", notes: "", cc_fee: "",
+  manual_percentage: "", created_by: "", maps: "", paid: false,
+};
+
+interface JobDialogProps {
+  onJobSaved: () => void;
+  job?: Tables<"jobs"> | null;
+  trigger?: React.ReactNode;
 }
 
-export function AddJobDialog({ onJobAdded }: AddJobDialogProps) {
+export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
+  const isEdit = !!job;
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [useManualPercentage, setUseManualPercentage] = useState(false);
-  const [form, setForm] = useState({
-    job_date: "",
-    company_id: "",
-    technician_id: "",
-    tech_name: "",
-    po_number: "",
-    phone_no: "",
-    address: "",
-    comp_type: "",
-    job_type: "",
-    status: "Pending",
-    price: "",
-    co_parts: "",
-    parts: "",
-    payment: "",
-    check_no: "",
-    tip: "",
-    cost: "",
-    notes: "",
-    cc_fee: "",
-    manual_percentage: "",
-    created_by: "",
-    maps: "",
-  });
+  const [newJobType, setNewJobType] = useState("");
+  const [editingJobType, setEditingJobType] = useState<JobType | null>(null);
+  const [editJobTypeName, setEditJobTypeName] = useState("");
+  const [managingJobTypes, setManagingJobTypes] = useState(false);
+
+  const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
     if (open) {
-      supabase.from("companies").select("*").order("company_name").then(({ data }) => {
-        setCompanies(data || []);
-      });
-      supabase.from("technicians").select("*").order("tech_name").then(({ data }) => {
-        setTechnicians((data as Technician[]) || []);
-      });
+      supabase.from("companies").select("*").order("company_name").then(({ data }) => setCompanies(data || []));
+      supabase.from("technicians").select("*").order("tech_name").then(({ data }) => setTechnicians((data as Technician[]) || []));
+      fetchJobTypes();
+
+      if (isEdit && job) {
+        setForm({
+          job_date: job.job_date || "",
+          company_id: job.company_id || "",
+          technician_id: "",
+          tech_name: job.tech_name || "",
+          po_number: job.po_number || "",
+          phone_no: job.phone_no || "",
+          address: job.address || "",
+          comp_type: job.comp_type || "",
+          job_type: job.job_type || "",
+          status: job.status || "Pending",
+          price: job.price?.toString() || "",
+          co_parts: job.co_parts?.toString() || "",
+          parts: job.parts?.toString() || "",
+          payment: job.payment || "",
+          check_no: job.check_no || "",
+          tip: job.tip?.toString() || "",
+          cost: job.cost?.toString() || "",
+          notes: job.notes || "",
+          cc_fee: job.cc_fee?.toString() || "",
+          manual_percentage: job.manual_percentage?.toString() || "",
+          created_by: job.created_by || "",
+          maps: job.maps || "",
+          paid: job.paid || false,
+        });
+        setUseManualPercentage(!!job.manual_percentage);
+      } else {
+        setForm(emptyForm);
+        setUseManualPercentage(false);
+      }
     }
   }, [open]);
 
-  function update(field: string, value: string) {
+  async function fetchJobTypes() {
+    const { data } = await supabase.from("job_types").select("*").order("name");
+    setJobTypes((data as JobType[]) || []);
+  }
+
+  function update(field: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -71,10 +100,27 @@ export function AddJobDialog({ onJobAdded }: AddJobDialogProps) {
     update("company_id", companyId);
     if (!useManualPercentage && companyId) {
       const company = companies.find(c => c.id === companyId);
-      if (company?.percentage != null) {
-        update("manual_percentage", company.percentage.toString());
-      }
+      if (company?.percentage != null) update("manual_percentage", company.percentage.toString());
     }
+  }
+
+  async function addJobType() {
+    if (!newJobType.trim()) return;
+    await supabase.from("job_types").insert({ name: newJobType.trim() } as any);
+    setNewJobType("");
+    fetchJobTypes();
+  }
+
+  async function updateJobType(id: string, name: string) {
+    if (!name.trim()) return;
+    await supabase.from("job_types").update({ name: name.trim() } as any).eq("id", id);
+    setEditingJobType(null);
+    fetchJobTypes();
+  }
+
+  async function deleteJobType(id: string) {
+    await supabase.from("job_types").delete().eq("id", id);
+    fetchJobTypes();
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -82,11 +128,9 @@ export function AddJobDialog({ onJobAdded }: AddJobDialogProps) {
     setLoading(true);
 
     const selectedCompany = companies.find(c => c.id === form.company_id);
-    const percentage = form.manual_percentage
-      ? parseFloat(form.manual_percentage)
-      : selectedCompany?.percentage ?? 50;
+    const percentage = form.manual_percentage ? parseFloat(form.manual_percentage) : selectedCompany?.percentage ?? 50;
 
-    const { error } = await supabase.from("jobs").insert({
+    const payload = {
       job_date: form.job_date || null,
       company_id: form.company_id || null,
       company_1: selectedCompany?.company_name || null,
@@ -109,18 +153,20 @@ export function AddJobDialog({ onJobAdded }: AddJobDialogProps) {
       manual_percentage: percentage,
       created_by: form.created_by || null,
       maps: form.maps || null,
-    });
+      paid: form.paid,
+    };
+
+    let error;
+    if (isEdit && job) {
+      ({ error } = await supabase.from("jobs").update(payload).eq("id", job.id));
+    } else {
+      ({ error } = await supabase.from("jobs").insert(payload));
+    }
+
     setLoading(false);
     if (!error) {
       setOpen(false);
-      onJobAdded();
-      setForm({
-        job_date: "", company_id: "", technician_id: "", tech_name: "", po_number: "", phone_no: "",
-        address: "", comp_type: "", job_type: "", status: "Pending", price: "",
-        co_parts: "", parts: "", payment: "", check_no: "", tip: "", cost: "",
-        notes: "", cc_fee: "", manual_percentage: "", created_by: "", maps: "",
-      });
-      setUseManualPercentage(false);
+      onJobSaved();
     }
   }
 
@@ -129,11 +175,11 @@ export function AddJobDialog({ onJobAdded }: AddJobDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button><Plus className="h-4 w-4 mr-2" /> Add Job</Button>
+        {trigger || <Button><Plus className="h-4 w-4 mr-2" /> Add Job</Button>}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Job</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit Job" : "Add New Job"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 mt-4">
           <div>
@@ -146,38 +192,19 @@ export function AddJobDialog({ onJobAdded }: AddJobDialogProps) {
               <SelectTrigger><SelectValue placeholder="Select company" /></SelectTrigger>
               <SelectContent>
                 {companies.map(c => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.company_name} ({c.percentage}%)
-                  </SelectItem>
+                  <SelectItem key={c.id} value={c.id}>{c.company_name} ({c.percentage}%)</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
-            <Checkbox
-              id="manual-pct"
-              checked={useManualPercentage}
-              onCheckedChange={(v) => setUseManualPercentage(!!v)}
-            />
-            <label htmlFor="manual-pct" className="text-sm cursor-pointer">
-              Override company percentage for this job
-            </label>
+            <Checkbox id="manual-pct" checked={useManualPercentage} onCheckedChange={(v) => setUseManualPercentage(!!v)} />
+            <label htmlFor="manual-pct" className="text-sm cursor-pointer">Override percentage for this job</label>
             {useManualPercentage && (
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                className="w-24 ml-auto"
-                placeholder="%"
-                value={form.manual_percentage}
-                onChange={(e) => update("manual_percentage", e.target.value)}
-              />
+              <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="%" value={form.manual_percentage} onChange={(e) => update("manual_percentage", e.target.value)} />
             )}
             {!useManualPercentage && selectedCompany && (
-              <span className="ml-auto text-sm text-muted-foreground">
-                Using {selectedCompany.percentage}% from {selectedCompany.company_name}
-              </span>
+              <span className="ml-auto text-sm text-muted-foreground">Using {selectedCompany.percentage}% from {selectedCompany.company_name}</span>
             )}
           </div>
           <div>
@@ -187,17 +214,13 @@ export function AddJobDialog({ onJobAdded }: AddJobDialogProps) {
               const tech = technicians.find(t => t.id === id);
               if (tech) {
                 update("tech_name", tech.tech_name);
-                if (!useManualPercentage) {
-                  update("manual_percentage", (tech.percentage ?? 50).toString());
-                }
+                if (!useManualPercentage) update("manual_percentage", (tech.percentage ?? 50).toString());
               }
             }}>
               <SelectTrigger><SelectValue placeholder="Select technician" /></SelectTrigger>
               <SelectContent>
                 {technicians.map(t => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.tech_name} ({t.percentage ?? 50}%)
-                  </SelectItem>
+                  <SelectItem key={t.id} value={t.id}>{t.tech_name} ({t.percentage ?? 50}%)</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -219,8 +242,45 @@ export function AddJobDialog({ onJobAdded }: AddJobDialogProps) {
             <Input value={form.comp_type} onChange={(e) => update("comp_type", e.target.value)} />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Job Type</label>
-            <Input value={form.job_type} onChange={(e) => update("job_type", e.target.value)} />
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-muted-foreground">Job Type</label>
+              <button type="button" className="text-xs text-primary hover:underline" onClick={() => setManagingJobTypes(!managingJobTypes)}>
+                {managingJobTypes ? "Done" : "Manage"}
+              </button>
+            </div>
+            <Select value={form.job_type} onValueChange={(v) => update("job_type", v)}>
+              <SelectTrigger><SelectValue placeholder="Select job type" /></SelectTrigger>
+              <SelectContent>
+                {jobTypes.map(jt => (
+                  <SelectItem key={jt.id} value={jt.name}>{jt.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {managingJobTypes && (
+              <div className="mt-2 space-y-2 rounded-lg border p-3 bg-muted/30">
+                <div className="flex gap-2">
+                  <Input placeholder="New job type" value={newJobType} onChange={(e) => setNewJobType(e.target.value)} className="h-8 text-sm" />
+                  <Button type="button" size="sm" variant="outline" onClick={addJobType} className="h-8"><Plus className="h-3 w-3" /></Button>
+                </div>
+                {jobTypes.map(jt => (
+                  <div key={jt.id} className="flex items-center gap-2">
+                    {editingJobType?.id === jt.id ? (
+                      <>
+                        <Input value={editJobTypeName} onChange={(e) => setEditJobTypeName(e.target.value)} className="h-7 text-sm flex-1" />
+                        <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={() => updateJobType(jt.id, editJobTypeName)}>Save</Button>
+                        <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingJobType(null)}><X className="h-3 w-3" /></Button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm flex-1">{jt.name}</span>
+                        <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setEditingJobType(jt); setEditJobTypeName(jt.name); }}><Pencil className="h-3 w-3" /></Button>
+                        <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => deleteJobType(jt.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Status</label>
@@ -274,12 +334,21 @@ export function AddJobDialog({ onJobAdded }: AddJobDialogProps) {
             <label className="text-xs font-medium text-muted-foreground">Notes</label>
             <Input value={form.notes} onChange={(e) => update("notes", e.target.value)} />
           </div>
+          <div className="col-span-2 flex items-center gap-3">
+            <Checkbox id="paid-check" checked={form.paid} onCheckedChange={(v) => update("paid", !!v)} />
+            <label htmlFor="paid-check" className="text-sm cursor-pointer">Paid</label>
+          </div>
           <div className="col-span-2 flex justify-end gap-2 mt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Adding..." : "Add Job"}</Button>
+            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Job"}</Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
   );
+}
+
+// Keep backward-compatible export
+export function AddJobDialog({ onJobAdded }: { onJobAdded: () => void }) {
+  return <JobDialog onJobSaved={onJobAdded} />;
 }
