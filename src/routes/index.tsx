@@ -5,6 +5,7 @@ import { StatsCards } from "@/components/StatsCards";
 import { JobFilters } from "@/components/JobFilters";
 import { JobsTable } from "@/components/JobsTable";
 import { AddJobDialog } from "@/components/AddJobDialog";
+import { ColumnToggle, useColumnVisibility } from "@/components/ColumnToggle";
 import { Button } from "@/components/ui/button";
 import { Building2, Wrench } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const { visibleColumns, toggle: toggleColumn, showAll: showAllColumns } = useColumnVisibility();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -118,10 +120,11 @@ function Dashboard() {
             <div className="text-center py-12 text-muted-foreground">Loading jobs...</div>
           ) : (
             <>
-              <div className="text-xs text-muted-foreground">
-                Showing {filtered.length} of {jobs.length} jobs
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Showing {filtered.length} of {jobs.length} jobs</span>
+                <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} />
               </div>
-              <JobsTable jobs={filtered} onJobsChanged={fetchJobs} />
+              <JobsTable jobs={filtered} onJobsChanged={fetchJobs} visibleColumns={visibleColumns} />
             </>
           )}
         </div>
