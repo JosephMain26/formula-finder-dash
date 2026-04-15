@@ -151,6 +151,36 @@ export type Database = {
           },
         ]
       }
+      technicians: {
+        Row: {
+          city: string | null
+          created_at: string
+          id: string
+          percentage: number | null
+          phone_number: string | null
+          tech_name: string
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          id?: string
+          percentage?: number | null
+          phone_number?: string | null
+          tech_name: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          id?: string
+          percentage?: number | null
+          phone_number?: string | null
+          tech_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
