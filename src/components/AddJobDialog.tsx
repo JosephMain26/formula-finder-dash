@@ -9,6 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Company = Tables<"companies">;
+type Technician = {
+  id: string;
+  tech_name: string;
+  phone_number: string | null;
+  city: string | null;
+  percentage: number | null;
+};
 
 interface AddJobDialogProps {
   onJobAdded: () => void;
@@ -18,10 +25,12 @@ export function AddJobDialog({ onJobAdded }: AddJobDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [useManualPercentage, setUseManualPercentage] = useState(false);
   const [form, setForm] = useState({
     job_date: "",
     company_id: "",
+    technician_id: "",
     tech_name: "",
     po_number: "",
     phone_no: "",
@@ -47,6 +56,9 @@ export function AddJobDialog({ onJobAdded }: AddJobDialogProps) {
     if (open) {
       supabase.from("companies").select("*").order("company_name").then(({ data }) => {
         setCompanies(data || []);
+      });
+      supabase.from("technicians").select("*").order("tech_name").then(({ data }) => {
+        setTechnicians((data as Technician[]) || []);
       });
     }
   }, [open]);
@@ -169,8 +181,26 @@ export function AddJobDialog({ onJobAdded }: AddJobDialogProps) {
             )}
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Tech Name</label>
-            <Input value={form.tech_name} onChange={(e) => update("tech_name", e.target.value)} />
+            <label className="text-xs font-medium text-muted-foreground">Technician</label>
+            <Select value={form.technician_id} onValueChange={(id) => {
+              update("technician_id", id);
+              const tech = technicians.find(t => t.id === id);
+              if (tech) {
+                update("tech_name", tech.tech_name);
+                if (!useManualPercentage) {
+                  update("manual_percentage", (tech.percentage ?? 50).toString());
+                }
+              }
+            }}>
+              <SelectTrigger><SelectValue placeholder="Select technician" /></SelectTrigger>
+              <SelectContent>
+                {technicians.map(t => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.tech_name} ({t.percentage ?? 50}%)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">PO Number</label>
