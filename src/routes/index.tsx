@@ -5,6 +5,7 @@ import { StatsCards } from "@/components/StatsCards";
 import { JobFilters } from "@/components/JobFilters";
 import { JobsTable } from "@/components/JobsTable";
 import { AddJobDialog } from "@/components/AddJobDialog";
+import { ColumnToggle, useColumnVisibility } from "@/components/ColumnToggle";
 import { Button } from "@/components/ui/button";
 import { Building2, Wrench } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
