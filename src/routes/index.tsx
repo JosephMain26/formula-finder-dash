@@ -24,6 +24,7 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const { visibleColumns, toggle: toggleColumn, showAll: showAllColumns } = useColumnVisibility();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
