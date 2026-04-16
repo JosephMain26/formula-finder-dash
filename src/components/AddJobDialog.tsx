@@ -130,6 +130,24 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
     const selectedCompany = companies.find(c => c.id === form.company_id);
     const percentage = form.manual_percentage ? parseFloat(form.manual_percentage) : selectedCompany?.percentage ?? 50;
 
+    const price = form.price ? parseFloat(form.price) : 0;
+    const coParts = form.co_parts ? parseFloat(form.co_parts) : 0;
+    const parts = form.parts ? parseFloat(form.parts) : 0;
+    const tip = form.tip ? parseFloat(form.tip) : 0;
+    const ccFee = form.cc_fee ? parseFloat(form.cc_fee) : 0;
+    const cost = form.cost ? parseFloat(form.cost) : 0;
+    const isCard = form.payment?.toLowerCase() === "card" || form.payment?.toLowerCase() === "credit card";
+
+    // Revenue = Price - Co Parts - Parts - Tip (- CC Fee if card)
+    const revenue = price - coParts - parts - tip - (isCard ? ccFee : 0);
+    const techPct = percentage / 100;
+    const officePct = 1 - techPct;
+
+    // Total Office = Revenue × company% + Co Parts
+    const totalOffice = Math.round((revenue * officePct + coParts) * 100) / 100;
+    // Total Tech = Revenue × tech% + Parts + Tip
+    const totalTech = Math.round((revenue * techPct + parts + tip) * 100) / 100;
+
     const payload = {
       job_date: form.job_date || null,
       company_id: form.company_id || null,
@@ -141,19 +159,21 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
       comp_type: form.comp_type || null,
       job_type: form.job_type || null,
       status: form.status || "Pending",
-      price: form.price ? parseFloat(form.price) : 0,
-      co_parts: form.co_parts ? parseFloat(form.co_parts) : 0,
-      parts: form.parts ? parseFloat(form.parts) : 0,
+      price,
+      co_parts: coParts,
+      parts,
       payment: form.payment || null,
       check_no: form.check_no || null,
-      tip: form.tip ? parseFloat(form.tip) : 0,
-      cost: form.cost ? parseFloat(form.cost) : 0,
+      tip,
+      cost,
       notes: form.notes || null,
-      cc_fee: form.cc_fee ? parseFloat(form.cc_fee) : 0,
+      cc_fee: ccFee,
       manual_percentage: percentage,
       created_by: form.created_by || null,
       maps: form.maps || null,
       paid: form.paid,
+      total_tech: totalTech,
+      total_office: totalOffice,
     };
 
     let error;
