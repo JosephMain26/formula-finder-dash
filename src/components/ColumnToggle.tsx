@@ -14,6 +14,7 @@ export const ALL_COLUMNS = [
   { key: "status", label: "Status" },
   { key: "price", label: "Price" },
   { key: "co_parts", label: "Co Parts" },
+  { key: "parts", label: "Parts" },
   { key: "manual_percentage", label: "Tech %" },
   { key: "total_tech", label: "Total Tech" },
   { key: "total_office", label: "Total Office" },
