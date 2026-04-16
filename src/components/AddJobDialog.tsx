@@ -130,21 +130,6 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
     const selectedCompany = companies.find(c => c.id === form.company_id);
     const percentage = form.manual_percentage ? parseFloat(form.manual_percentage) : selectedCompany?.percentage ?? 50;
 
-    const price = form.price ? parseFloat(form.price) : 0;
-    const coParts = form.co_parts ? parseFloat(form.co_parts) : 0;
-    const parts = form.parts ? parseFloat(form.parts) : 0;
-    const tip = form.tip ? parseFloat(form.tip) : 0;
-    const ccFee = form.cc_fee ? parseFloat(form.cc_fee) : 0;
-    const cost = form.cost ? parseFloat(form.cost) : 0;
-
-    // Subtract co_parts from revenue before splitting
-    const netRevenue = price - coParts;
-    const techShare = netRevenue * (percentage / 100);
-    // Tech gets their share + parts + tip
-    const totalTech = techShare + parts + tip;
-    // Office gets remainder + co_parts back - cc_fee
-    const totalOffice = (netRevenue - techShare) + coParts - ccFee;
-
     const payload = {
       job_date: form.job_date || null,
       company_id: form.company_id || null,
@@ -156,21 +141,19 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
       comp_type: form.comp_type || null,
       job_type: form.job_type || null,
       status: form.status || "Pending",
-      price,
-      co_parts: coParts,
-      parts,
+      price: form.price ? parseFloat(form.price) : 0,
+      co_parts: form.co_parts ? parseFloat(form.co_parts) : 0,
+      parts: form.parts ? parseFloat(form.parts) : 0,
       payment: form.payment || null,
       check_no: form.check_no || null,
-      tip,
-      cost,
+      tip: form.tip ? parseFloat(form.tip) : 0,
+      cost: form.cost ? parseFloat(form.cost) : 0,
       notes: form.notes || null,
-      cc_fee: ccFee,
+      cc_fee: form.cc_fee ? parseFloat(form.cc_fee) : 0,
       manual_percentage: percentage,
       created_by: form.created_by || null,
       maps: form.maps || null,
       paid: form.paid,
-      total_tech: Math.round(totalTech * 100) / 100,
-      total_office: Math.round(totalOffice * 100) / 100,
     };
 
     let error;
