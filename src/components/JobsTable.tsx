@@ -62,6 +62,7 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns }: JobsTableProp
             {show("status") && <TableHead>Status</TableHead>}
             {show("price") && <TableHead className="text-right">Price</TableHead>}
             {show("co_parts") && <TableHead className="text-right">Co Parts</TableHead>}
+            {show("parts") && <TableHead className="text-right">Parts</TableHead>}
             {show("manual_percentage") && <TableHead className="text-right">Tech %</TableHead>}
             {show("total_tech") && <TableHead className="text-right">Total Tech</TableHead>}
             {show("total_office") && <TableHead className="text-right">Total Office</TableHead>}
@@ -96,6 +97,7 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns }: JobsTableProp
               {show("status") && <TableCell><StatusBadge status={job.status} /></TableCell>}
               {show("price") && <TableCell className="text-right text-sm font-medium">{currency(job.price)}</TableCell>}
               {show("co_parts") && <TableCell className="text-right text-sm">{currency(job.co_parts)}</TableCell>}
+              {show("parts") && <TableCell className="text-right text-sm">{currency(job.parts)}</TableCell>}
               {show("manual_percentage") && <TableCell className="text-right text-sm">{job.manual_percentage != null ? `${job.manual_percentage}%` : "—"}</TableCell>}
               {show("total_tech") && <TableCell className="text-right text-sm font-medium text-primary">{currency(job.total_tech)}</TableCell>}
               {show("total_office") && <TableCell className="text-right text-sm font-medium">{currency(job.total_office)}</TableCell>}
