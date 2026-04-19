@@ -61,9 +61,9 @@ function SettingsPage() {
 
   async function save() {
     setSaving(true);
-    await supabase
-      .from("app_settings" as any)
-      .upsert({ key: "payment_options", value: settings as any, updated_at: new Date().toISOString() });
+    await (supabase as any)
+      .from("app_settings")
+      .upsert({ key: "payment_options", value: settings, updated_at: new Date().toISOString() });
     setSaving(false);
     setSavedAt(Date.now());
     setTimeout(() => setSavedAt(null), 2000);
