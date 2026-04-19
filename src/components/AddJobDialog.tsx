@@ -332,7 +332,17 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Price ($)</label>
-            <Input type="number" step="0.01" value={form.price} onChange={(e) => update("price", e.target.value)} />
+            <Input type="number" step="0.01" value={form.price} onChange={(e) => {
+              const newPrice = e.target.value;
+              const isCard = form.payment.toLowerCase().includes("card");
+              setForm((prev) => ({
+                ...prev,
+                price: newPrice,
+                cc_fee: isCard && ccFeePercent > 0
+                  ? (Math.round((parseFloat(newPrice) || 0) * (ccFeePercent / 100) * 100) / 100).toString()
+                  : prev.cc_fee,
+              }));
+            }} />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Co Parts ($) — to Marketer</label>
