@@ -69,7 +69,7 @@ export function JobFilters({
       </div>
 
       <div className="min-w-[150px]">
-        <label className="text-xs font-medium text-muted-foreground mb-1 block">Company</label>
+        <label className="text-xs font-medium text-muted-foreground mb-1 block">Marketer</label>
         <Select value={companyFilter} onValueChange={onCompanyChange}>
           <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
           <SelectContent>

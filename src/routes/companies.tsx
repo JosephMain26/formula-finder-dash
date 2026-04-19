@@ -15,8 +15,8 @@ export const Route = createFileRoute("/companies")({
   component: CompaniesPage,
   head: () => ({
     meta: [
-      { title: "Companies - Jobs Dashboard" },
-      { name: "description", content: "Manage companies and their revenue percentages" },
+      { title: "Marketers - Jobs Dashboard" },
+      { name: "description", content: "Manage marketers and their revenue percentages" },
     ],
   }),
 });
@@ -49,8 +49,8 @@ function CompaniesPage() {
               <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Companies</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">Manage companies and revenue percentages</p>
+              <h1 className="text-2xl font-bold tracking-tight">Marketers</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">Manage marketers and revenue percentages</p>
             </div>
           </div>
           <CompanyDialog onSaved={fetchCompanies} />
@@ -60,22 +60,22 @@ function CompaniesPage() {
       <main className="max-w-[1200px] mx-auto px-6 py-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">All Companies</CardTitle>
+            <CardTitle className="text-lg">All Marketers</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-12 text-muted-foreground">Loading...</div>
             ) : companies.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                <p className="text-lg font-medium">No companies yet</p>
-                <p className="text-sm mt-1">Add your first company to get started.</p>
+                <p className="text-lg font-medium">No marketers yet</p>
+                <p className="text-sm mt-1">Add your first marketer to get started.</p>
               </div>
             ) : (
               <div className="rounded-lg border overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead>Company Name</TableHead>
+                      <TableHead>Marketer Name</TableHead>
                       <TableHead>Contact</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Type</TableHead>
@@ -160,16 +160,16 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
         {isEdit ? (
           <Button variant="ghost" size="icon"><Pencil className="h-4 w-4" /></Button>
         ) : (
-          <Button><Plus className="h-4 w-4 mr-2" /> Add Company</Button>
+          <Button><Plus className="h-4 w-4 mr-2" /> Add Marketer</Button>
         )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Company" : "Add Company"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit Marketer" : "Add Marketer"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Company Name *</label>
+            <label className="text-xs font-medium text-muted-foreground">Marketer Name *</label>
             <Input value={form.company_name} onChange={(e) => update("company_name", e.target.value)} required />
           </div>
           <div>
@@ -185,9 +185,9 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
             <Input value={form.company_type} onChange={(e) => update("company_type", e.target.value)} placeholder="e.g. HVAC, Plumbing, General" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Default Percentage (%)</label>
+            <label className="text-xs font-medium text-muted-foreground">Marketer Percentage (%)</label>
             <Input type="number" step="0.01" min="0" max="100" value={form.percentage} onChange={(e) => update("percentage", e.target.value)} />
-            <p className="text-xs text-muted-foreground mt-1">Revenue share % applied to jobs by default</p>
+            <p className="text-xs text-muted-foreground mt-1">Marketer's share of job revenue</p>
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>

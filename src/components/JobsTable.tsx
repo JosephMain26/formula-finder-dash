@@ -55,17 +55,19 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns }: JobsTableProp
           <TableRow className="bg-muted/50">
             {show("actions") && <TableHead className="w-[80px]">Actions</TableHead>}
             {show("job_date") && <TableHead>Date</TableHead>}
-            {show("company") && <TableHead>Company</TableHead>}
+            {show("company") && <TableHead>Marketer</TableHead>}
             {show("tech_name") && <TableHead>Tech</TableHead>}
             {show("po_number") && <TableHead>PO #</TableHead>}
             {show("job_type") && <TableHead>Job Type</TableHead>}
             {show("status") && <TableHead>Status</TableHead>}
             {show("price") && <TableHead className="text-right">Price</TableHead>}
             {show("co_parts") && <TableHead className="text-right">Co Parts</TableHead>}
+            {show("office_parts") && <TableHead className="text-right">Office Parts</TableHead>}
             {show("parts") && <TableHead className="text-right">Parts</TableHead>}
             {show("manual_percentage") && <TableHead className="text-right">Tech %</TableHead>}
-            {show("total_tech") && <TableHead className="text-right">Total Tech</TableHead>}
+            {show("total_marketer") && <TableHead className="text-right">Total Marketer</TableHead>}
             {show("total_office") && <TableHead className="text-right">Total Office</TableHead>}
+            {show("total_tech") && <TableHead className="text-right">Total Tech</TableHead>}
             {show("tip") && <TableHead className="text-right">Tip</TableHead>}
             {show("cc_fee") && <TableHead className="text-right">CC Fee</TableHead>}
             {show("payment") && <TableHead>Payment</TableHead>}
@@ -97,10 +99,12 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns }: JobsTableProp
               {show("status") && <TableCell><StatusBadge status={job.status} /></TableCell>}
               {show("price") && <TableCell className="text-right text-sm font-medium">{currency(job.price)}</TableCell>}
               {show("co_parts") && <TableCell className="text-right text-sm">{currency(job.co_parts)}</TableCell>}
+              {show("office_parts") && <TableCell className="text-right text-sm">{currency((job as any).office_parts ?? 0)}</TableCell>}
               {show("parts") && <TableCell className="text-right text-sm">{currency(job.parts)}</TableCell>}
               {show("manual_percentage") && <TableCell className="text-right text-sm">{job.manual_percentage != null ? `${job.manual_percentage}%` : "—"}</TableCell>}
-              {show("total_tech") && <TableCell className="text-right text-sm font-medium text-primary">{currency(job.total_tech)}</TableCell>}
+              {show("total_marketer") && <TableCell className="text-right text-sm font-medium">{currency((job as any).total_marketer ?? 0)}</TableCell>}
               {show("total_office") && <TableCell className="text-right text-sm font-medium">{currency(job.total_office)}</TableCell>}
+              {show("total_tech") && <TableCell className="text-right text-sm font-medium text-primary">{currency(job.total_tech)}</TableCell>}
               {show("tip") && <TableCell className="text-right text-sm">{currency(job.tip)}</TableCell>}
               {show("cc_fee") && <TableCell className="text-right text-sm">{currency(job.cc_fee)}</TableCell>}
               {show("payment") && <TableCell className="text-sm">{job.payment || "—"}</TableCell>}
