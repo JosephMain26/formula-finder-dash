@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TechniciansRouteImport } from './routes/technicians'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TechniciansRoute = TechniciansRouteImport.update({
   id: '/technicians',
   path: '/technicians',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CompaniesRoute = CompaniesRouteImport.update({
@@ -32,30 +38,34 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/companies': typeof CompaniesRoute
+  '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/companies': typeof CompaniesRoute
+  '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/companies': typeof CompaniesRoute
+  '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/companies' | '/technicians'
+  fullPaths: '/' | '/companies' | '/settings' | '/technicians'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/companies' | '/technicians'
-  id: '__root__' | '/' | '/companies' | '/technicians'
+  to: '/' | '/companies' | '/settings' | '/technicians'
+  id: '__root__' | '/' | '/companies' | '/settings' | '/technicians'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CompaniesRoute: typeof CompaniesRoute
+  SettingsRoute: typeof SettingsRoute
   TechniciansRoute: typeof TechniciansRoute
 }
 
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/technicians'
       fullPath: '/technicians'
       preLoaderRoute: typeof TechniciansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/companies': {
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CompaniesRoute: CompaniesRoute,
+  SettingsRoute: SettingsRoute,
   TechniciansRoute: TechniciansRoute,
 }
 export const routeTree = rootRouteImport
