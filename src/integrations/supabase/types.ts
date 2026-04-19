@@ -84,6 +84,7 @@ export type Database = {
           manual_percentage: number | null
           maps: string | null
           notes: string | null
+          office_parts: number | null
           paid: boolean | null
           parts: number | null
           payment: string | null
@@ -93,6 +94,7 @@ export type Database = {
           status: string | null
           tech_name: string | null
           tip: number | null
+          total_marketer: number | null
           total_office: number | null
           total_tech: number | null
           updated_at: string
@@ -115,6 +117,7 @@ export type Database = {
           manual_percentage?: number | null
           maps?: string | null
           notes?: string | null
+          office_parts?: number | null
           paid?: boolean | null
           parts?: number | null
           payment?: string | null
@@ -124,6 +127,7 @@ export type Database = {
           status?: string | null
           tech_name?: string | null
           tip?: number | null
+          total_marketer?: number | null
           total_office?: number | null
           total_tech?: number | null
           updated_at?: string
@@ -146,6 +150,7 @@ export type Database = {
           manual_percentage?: number | null
           maps?: string | null
           notes?: string | null
+          office_parts?: number | null
           paid?: boolean | null
           parts?: number | null
           payment?: string | null
@@ -155,6 +160,7 @@ export type Database = {
           status?: string | null
           tech_name?: string | null
           tip?: number | null
+          total_marketer?: number | null
           total_office?: number | null
           total_tech?: number | null
           updated_at?: string
