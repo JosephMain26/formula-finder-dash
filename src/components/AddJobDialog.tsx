@@ -21,7 +21,7 @@ type JobType = { id: string; name: string };
 const emptyForm = {
   job_date: "", company_id: "", technician_id: "", tech_name: "",
   po_number: "", phone_no: "", address: "", comp_type: "", job_type: "",
-  status: "Pending", price: "", co_parts: "", parts: "", payment: "",
+  status: "Pending", price: "", co_parts: "", office_parts: "", parts: "", payment: "",
   check_no: "", tip: "", cost: "", notes: "", cc_fee: "",
   manual_percentage: "", created_by: "", maps: "", paid: false,
 };
