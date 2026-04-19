@@ -34,8 +34,8 @@ function SettingsPage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("app_settings" as any)
+      const { data } = await (supabase as any)
+        .from("app_settings")
         .select("value")
         .eq("key", "payment_options")
         .maybeSingle();
