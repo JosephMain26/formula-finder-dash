@@ -54,6 +54,11 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
       supabase.from("companies").select("*").order("company_name").then(({ data }) => setCompanies(data || []));
       supabase.from("technicians").select("*").order("tech_name").then(({ data }) => setTechnicians((data as Technician[]) || []));
       fetchJobTypes();
+      (supabase as any).from("app_settings").select("value").eq("key", "payment_options").maybeSingle().then(({ data }: any) => {
+        const v = data?.value;
+        setPaymentOptions(Array.isArray(v?.enabled) ? v.enabled : []);
+        setCcFeePercent(typeof v?.ccFeePercent === "number" ? v.ccFeePercent : 0);
+      });
 
       if (isEdit && job) {
         setForm({
