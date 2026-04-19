@@ -44,6 +44,8 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
   const [editingJobType, setEditingJobType] = useState<JobType | null>(null);
   const [editJobTypeName, setEditJobTypeName] = useState("");
   const [managingJobTypes, setManagingJobTypes] = useState(false);
+  const [paymentOptions, setPaymentOptions] = useState<string[]>([]);
+  const [ccFeePercent, setCcFeePercent] = useState(0);
 
   const [form, setForm] = useState(emptyForm);
 
@@ -52,6 +54,11 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
       supabase.from("companies").select("*").order("company_name").then(({ data }) => setCompanies(data || []));
       supabase.from("technicians").select("*").order("tech_name").then(({ data }) => setTechnicians((data as Technician[]) || []));
       fetchJobTypes();
+      (supabase as any).from("app_settings").select("value").eq("key", "payment_options").maybeSingle().then(({ data }: any) => {
+        const v = data?.value;
+        setPaymentOptions(Array.isArray(v?.enabled) ? v.enabled : []);
+        setCcFeePercent(typeof v?.ccFeePercent === "number" ? v.ccFeePercent : 0);
+      });
 
       if (isEdit && job) {
         setForm({
@@ -325,7 +332,17 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Price ($)</label>
-            <Input type="number" step="0.01" value={form.price} onChange={(e) => update("price", e.target.value)} />
+            <Input type="number" step="0.01" value={form.price} onChange={(e) => {
+              const newPrice = e.target.value;
+              const isCard = form.payment.toLowerCase().includes("card");
+              setForm((prev) => ({
+                ...prev,
+                price: newPrice,
+                cc_fee: isCard && ccFeePercent > 0
+                  ? (Math.round((parseFloat(newPrice) || 0) * (ccFeePercent / 100) * 100) / 100).toString()
+                  : prev.cc_fee,
+              }));
+            }} />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Co Parts ($) — to Marketer</label>
@@ -341,7 +358,29 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Payment Method</label>
-            <Input value={form.payment} onChange={(e) => update("payment", e.target.value)} />
+            <Select
+              value={form.payment}
+              onValueChange={(v) => {
+                const isCard = v.toLowerCase().includes("card");
+                const price = parseFloat(form.price) || 0;
+                setForm((prev) => ({
+                  ...prev,
+                  payment: v,
+                  cc_fee: isCard && ccFeePercent > 0
+                    ? (Math.round(price * (ccFeePercent / 100) * 100) / 100).toString()
+                    : "0",
+                }));
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={paymentOptions.length ? "Select payment method" : "Enable methods in Settings"} />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentOptions.map((opt) => (
+                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Check #</label>
@@ -356,7 +395,9 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
             <Input type="number" step="0.01" value={form.cost} onChange={(e) => update("cost", e.target.value)} />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">CC Fee ($)</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              CC Fee ($) {form.payment.toLowerCase().includes("card") && ccFeePercent > 0 && `— auto ${ccFeePercent}%`}
+            </label>
             <Input type="number" step="0.01" value={form.cc_fee} onChange={(e) => update("cc_fee", e.target.value)} />
           </div>
           <div>
