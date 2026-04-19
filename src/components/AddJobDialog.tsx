@@ -98,11 +98,15 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
   }
 
   function handleCompanyChange(companyId: string) {
-    update("company_id", companyId);
-    if (!useManualPercentage && companyId) {
-      const company = companies.find(c => c.id === companyId);
-      if (company?.percentage != null) update("manual_percentage", company.percentage.toString());
-    }
+    const company = companies.find(c => c.id === companyId);
+    setForm((prev) => ({
+      ...prev,
+      company_id: companyId,
+      comp_type: company?.company_type || prev.comp_type,
+      manual_percentage: !useManualPercentage && company?.percentage != null
+        ? company.percentage.toString()
+        : prev.manual_percentage,
+    }));
   }
 
   async function addJobType() {
