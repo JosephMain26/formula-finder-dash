@@ -88,7 +88,7 @@ function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             <Link to="/companies">
-              <Button variant="outline"><Building2 className="h-4 w-4 mr-2" /> Companies</Button>
+              <Button variant="outline"><Building2 className="h-4 w-4 mr-2" /> Marketers</Button>
             </Link>
             <Link to="/technicians">
               <Button variant="outline"><Wrench className="h-4 w-4 mr-2" /> Technicians</Button>

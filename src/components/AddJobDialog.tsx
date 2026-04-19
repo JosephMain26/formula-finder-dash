@@ -21,7 +21,7 @@ type JobType = { id: string; name: string };
 const emptyForm = {
   job_date: "", company_id: "", technician_id: "", tech_name: "",
   po_number: "", phone_no: "", address: "", comp_type: "", job_type: "",
-  status: "Pending", price: "", co_parts: "", parts: "", payment: "",
+  status: "Pending", price: "", co_parts: "", office_parts: "", parts: "", payment: "",
   check_no: "", tip: "", cost: "", notes: "", cc_fee: "",
   manual_percentage: "", created_by: "", maps: "", paid: false,
 };
@@ -67,6 +67,7 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
           status: job.status || "Pending",
           price: job.price?.toString() || "",
           co_parts: job.co_parts?.toString() || "",
+          office_parts: (job as any).office_parts?.toString() || "",
           parts: job.parts?.toString() || "",
           payment: job.payment || "",
           check_no: job.check_no || "",
@@ -128,27 +129,29 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
     setLoading(true);
 
     const selectedCompany = companies.find(c => c.id === form.company_id);
-    const percentage = form.manual_percentage ? parseFloat(form.manual_percentage) : selectedCompany?.percentage ?? 50;
+    const marketerPctRaw = selectedCompany?.percentage ?? 50;
+    const techPctRaw = form.manual_percentage ? parseFloat(form.manual_percentage) : 50;
 
     const price = form.price ? parseFloat(form.price) : 0;
     const coParts = form.co_parts ? parseFloat(form.co_parts) : 0;
+    const officeParts = form.office_parts ? parseFloat(form.office_parts) : 0;
     const parts = form.parts ? parseFloat(form.parts) : 0;
     const tip = form.tip ? parseFloat(form.tip) : 0;
     const ccFee = form.cc_fee ? parseFloat(form.cc_fee) : 0;
     const cost = form.cost ? parseFloat(form.cost) : 0;
     const isCard = form.payment?.toLowerCase() === "card" || form.payment?.toLowerCase() === "credit card";
 
-    // Revenue = Price - Co Parts - Parts - Tip (- CC Fee if card)
-    const revenue = price - coParts - parts - tip - (isCard ? ccFee : 0);
-    const techPct = percentage / 100;
-    const officePct = 1 - techPct;
+    // Revenue = Price - all parts - Tip (- CC Fee if card)
+    const revenue = price - coParts - officeParts - parts - tip - (isCard ? ccFee : 0);
+    const marketerPct = marketerPctRaw / 100;
+    const techPct = techPctRaw / 100;
+    const officePct = Math.max(0, 1 - marketerPct - techPct);
 
-    // Total Office = Revenue × company% + Co Parts
-    const totalOffice = Math.round((revenue * officePct + coParts) * 100) / 100;
-    // Total Tech = Revenue × tech% + Parts + Tip
+    const totalMarketer = Math.round((revenue * marketerPct + coParts) * 100) / 100;
+    const totalOffice = Math.round((revenue * officePct + officeParts) * 100) / 100;
     const totalTech = Math.round((revenue * techPct + parts + tip) * 100) / 100;
 
-    const payload = {
+    const payload: any = {
       job_date: form.job_date || null,
       company_id: form.company_id || null,
       company_1: selectedCompany?.company_name || null,
@@ -161,6 +164,7 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
       status: form.status || "Pending",
       price,
       co_parts: coParts,
+      office_parts: officeParts,
       parts,
       payment: form.payment || null,
       check_no: form.check_no || null,
@@ -168,12 +172,13 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
       cost,
       notes: form.notes || null,
       cc_fee: ccFee,
-      manual_percentage: percentage,
+      manual_percentage: techPctRaw,
       created_by: form.created_by || null,
       maps: form.maps || null,
       paid: form.paid,
       total_tech: totalTech,
       total_office: totalOffice,
+      total_marketer: totalMarketer,
     };
 
     let error;
@@ -207,9 +212,9 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
             <Input type="date" value={form.job_date} onChange={(e) => update("job_date", e.target.value)} />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Company</label>
+            <label className="text-xs font-medium text-muted-foreground">Marketer</label>
             <Select value={form.company_id} onValueChange={handleCompanyChange}>
-              <SelectTrigger><SelectValue placeholder="Select company" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select marketer" /></SelectTrigger>
               <SelectContent>
                 {companies.map(c => (
                   <SelectItem key={c.id} value={c.id}>{c.company_name} ({c.percentage}%)</SelectItem>
@@ -219,12 +224,12 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
           </div>
           <div className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
             <Checkbox id="manual-pct" checked={useManualPercentage} onCheckedChange={(v) => setUseManualPercentage(!!v)} />
-            <label htmlFor="manual-pct" className="text-sm cursor-pointer">Override percentage for this job</label>
+            <label htmlFor="manual-pct" className="text-sm cursor-pointer">Override tech percentage for this job</label>
             {useManualPercentage && (
-              <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="%" value={form.manual_percentage} onChange={(e) => update("manual_percentage", e.target.value)} />
+              <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="Tech %" value={form.manual_percentage} onChange={(e) => update("manual_percentage", e.target.value)} />
             )}
-            {!useManualPercentage && selectedCompany && (
-              <span className="ml-auto text-sm text-muted-foreground">Using {selectedCompany.percentage}% from {selectedCompany.company_name}</span>
+            {!useManualPercentage && (
+              <span className="ml-auto text-sm text-muted-foreground">Using tech default %</span>
             )}
           </div>
           <div>
@@ -319,11 +324,15 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
             <Input type="number" step="0.01" value={form.price} onChange={(e) => update("price", e.target.value)} />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Co Parts ($)</label>
+            <label className="text-xs font-medium text-muted-foreground">Co Parts ($) — to Marketer</label>
             <Input type="number" step="0.01" value={form.co_parts} onChange={(e) => update("co_parts", e.target.value)} />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Parts ($)</label>
+            <label className="text-xs font-medium text-muted-foreground">Office Parts ($) — to Office</label>
+            <Input type="number" step="0.01" value={form.office_parts} onChange={(e) => update("office_parts", e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Parts ($) — to Tech</label>
             <Input type="number" step="0.01" value={form.parts} onChange={(e) => update("parts", e.target.value)} />
           </div>
           <div>
