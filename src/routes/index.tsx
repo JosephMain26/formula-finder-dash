@@ -6,6 +6,7 @@ import { JobFilters } from "@/components/JobFilters";
 import { JobsTable } from "@/components/JobsTable";
 import { AddJobDialog } from "@/components/AddJobDialog";
 import { ColumnToggle, useColumnVisibility } from "@/components/ColumnToggle";
+import { ExportReportDialog } from "@/components/ExportReportDialog";
 import { Button } from "@/components/ui/button";
 import { Building2, Wrench, Settings } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
@@ -125,7 +126,10 @@ function Dashboard() {
             <>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Showing {filtered.length} of {jobs.length} jobs</span>
-                <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} />
+                <div className="flex items-center gap-2">
+                  <ExportReportDialog jobs={jobs} companies={uniqueValues.companies} />
+                  <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} />
+                </div>
               </div>
               <JobsTable jobs={filtered} onJobsChanged={fetchJobs} visibleColumns={visibleColumns} />
             </>
