@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { FileDown, GripVertical } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileDown, GripVertical, Save } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ALL_COLUMNS, type ColumnKey } from "@/components/ColumnToggle";
@@ -24,6 +25,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { loadTemplates, saveTemplates, makeId, type ExportTemplate, type TemplatesSetting } from "@/lib/settings";
 
 type Job = Tables<"jobs">;
 
@@ -91,7 +93,16 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
     new Set(["title", "range", "totals", "table"])
   );
 
+  // Templates
+  const [templates, setTemplates] = useState<TemplatesSetting>({ dashboardViews: [], exportTemplates: [] });
+  const [activeTemplateId, setActiveTemplateId] = useState<string>("");
+  const [newTemplateName, setNewTemplateName] = useState("");
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  useEffect(() => {
+    if (open) loadTemplates().then(setTemplates);
+  }, [open]);
 
   useMemo(() => {
     setSelectedCompanies(prev => prev.size === 0 ? new Set(companies) : prev);
@@ -131,6 +142,41 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
     });
   }
 
+  function applyTemplate(id: string) {
+    setActiveTemplateId(id);
+    if (!id) return;
+    const tpl = templates.exportTemplates.find(t => t.id === id);
+    if (!tpl) return;
+    setSelectedColumns(new Set(tpl.columns as ColumnKey[]));
+    if (tpl.marketers && tpl.marketers.length > 0) setSelectedCompanies(new Set(tpl.marketers));
+    // Restore section order + enabled state
+    const known = new Set<SectionId>(["title", "range", "totals", "table"]);
+    const orderedFromTpl = tpl.sections
+      .filter(s => known.has(s.id as SectionId))
+      .map(s => DEFAULT_SECTIONS.find(d => d.id === s.id)!) as { id: SectionId; label: string }[];
+    // Append any missing (in case schema grew)
+    const missing = DEFAULT_SECTIONS.filter(d => !orderedFromTpl.find(o => o.id === d.id));
+    setSections([...orderedFromTpl, ...missing]);
+    setEnabledSections(new Set(tpl.sections.filter(s => s.enabled).map(s => s.id as SectionId)));
+  }
+
+  async function saveAsTemplate() {
+    const name = newTemplateName.trim();
+    if (!name) return;
+    const tpl: ExportTemplate = {
+      id: makeId(),
+      name,
+      columns: Array.from(selectedColumns),
+      marketers: Array.from(selectedCompanies),
+      sections: sections.map(s => ({ id: s.id, enabled: enabledSections.has(s.id) })),
+    };
+    const next = { ...templates, exportTemplates: [...templates.exportTemplates, tpl] };
+    setTemplates(next);
+    await saveTemplates(next);
+    setActiveTemplateId(tpl.id);
+    setNewTemplateName("");
+  }
+
   function generatePdf() {
     const filtered = jobs.filter(j => {
       if (dateFrom && (!j.job_date || j.job_date < dateFrom)) return false;
@@ -142,9 +188,7 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
 
     const cols = EXPORTABLE_COLUMNS.filter(c => selectedColumns.has(c.key));
     const doc = new jsPDF({ orientation: "landscape" });
-    const pageW = doc.internal.pageSize.getWidth();
 
-    // Compute totals
     const totals = filtered.reduce((acc, j) => {
       acc.price += Number(j.price || 0);
       acc.tech += Number(j.total_tech || 0);
@@ -168,7 +212,6 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
         doc.text("Jobs Report", 14, y);
         y += 7;
       }
-
       if (section.id === "range") {
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
@@ -178,7 +221,6 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
         doc.text(`Total jobs: ${filtered.length}`, 14, y);
         y += 6;
       }
-
       if (section.id === "totals") {
         doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
@@ -189,7 +231,6 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
         doc.setFont("helvetica", "normal");
         y += 6;
       }
-
       if (section.id === "table") {
         autoTable(doc, {
           startY: y,
@@ -202,14 +243,12 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
         y = (doc as any).lastAutoTable.finalY + 6;
       }
 
-      // page break safety
       if (y > doc.internal.pageSize.getHeight() - 20 && section.id !== "table") {
         doc.addPage();
         y = 14;
       }
     }
 
-    void pageW;
     doc.save(`jobs-report-${new Date().toISOString().slice(0, 10)}.pdf`);
     setOpen(false);
   }
@@ -227,6 +266,35 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
         </DialogHeader>
 
         <div className="space-y-5 py-2">
+          {/* Template picker */}
+          <div className="rounded-md border p-3 bg-muted/30 space-y-2">
+            <Label className="text-xs font-medium">Template</Label>
+            <div className="flex gap-2">
+              <Select value={activeTemplateId || "none"} onValueChange={(v) => applyTemplate(v === "none" ? "" : v)}>
+                <SelectTrigger className="h-9 flex-1">
+                  <SelectValue placeholder="Load a template…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— None —</SelectItem>
+                  {templates.exportTemplates.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Save current as template…"
+                value={newTemplateName}
+                onChange={(e) => setNewTemplateName(e.target.value)}
+                className="h-9 flex-1"
+              />
+              <Button variant="outline" size="sm" onClick={saveAsTemplate} disabled={!newTemplateName.trim()} className="h-9">
+                <Save className="h-4 w-4 mr-2" /> Save
+              </Button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">From date</Label>

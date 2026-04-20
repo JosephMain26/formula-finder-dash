@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
-  const { visibleColumns, toggle: toggleColumn, showAll: showAllColumns } = useColumnVisibility();
+  const { visibleColumns, toggle: toggleColumn, showAll: showAllColumns, setVisible: setVisibleColumns } = useColumnVisibility();
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -128,7 +128,7 @@ function Dashboard() {
                 <span className="text-xs text-muted-foreground">Showing {filtered.length} of {jobs.length} jobs</span>
                 <div className="flex items-center gap-2">
                   <ExportReportDialog jobs={jobs} companies={uniqueValues.companies} />
-                  <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} />
+                  <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} onSetVisible={setVisibleColumns} />
                 </div>
               </div>
               <JobsTable jobs={filtered} onJobsChanged={fetchJobs} visibleColumns={visibleColumns} />
