@@ -39,6 +39,11 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns }: JobsTableProp
     onJobsChanged();
   }
 
+  async function togglePaid(job: Job) {
+    await supabase.from("jobs").update({ paid: !job.paid }).eq("id", job.id);
+    onJobsChanged();
+  }
+
   if (jobs.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -110,7 +115,12 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns }: JobsTableProp
               {show("payment") && <TableCell className="text-sm">{job.payment || "—"}</TableCell>}
               {show("paid") && (
                 <TableCell>
-                  <span className={`inline-flex h-2 w-2 rounded-full ${job.paid ? "bg-success" : "bg-muted-foreground/30"}`} />
+                  <button
+                    onClick={() => togglePaid(job)}
+                    title={job.paid ? "Mark as unpaid" : "Mark as paid"}
+                    className={`inline-flex h-4 w-4 rounded-full border-2 transition-colors ${job.paid ? "bg-success border-success" : "border-muted-foreground/40 hover:border-muted-foreground"}`}
+                    aria-label={job.paid ? "Paid" : "Not paid"}
+                  />
                 </TableCell>
               )}
             </TableRow>
