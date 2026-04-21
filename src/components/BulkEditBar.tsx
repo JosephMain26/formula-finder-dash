@@ -19,7 +19,7 @@ export function BulkEditBar({ selectedIds, onClear, onChanged, statuses }: BulkE
 
   async function applyUpdate(patch: Record<string, any>) {
     setBusy(true);
-    await supabase.from("jobs").update(patch).in("id", selectedIds);
+    await (supabase as any).from("jobs").update(patch).in("id", selectedIds);
     setBusy(false);
     onChanged();
   }
