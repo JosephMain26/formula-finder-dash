@@ -84,14 +84,17 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
           notes: job.notes || "",
           cc_fee: job.cc_fee?.toString() || "",
           manual_percentage: job.manual_percentage?.toString() || "",
+          marketer_percentage: "",
           created_by: job.created_by || "",
           maps: job.maps || "",
           paid: job.paid || false,
         });
         setUseManualPercentage(!!job.manual_percentage);
+        setUseManualMarketerPercentage(false);
       } else {
         setForm(emptyForm);
         setUseManualPercentage(false);
+        setUseManualMarketerPercentage(false);
       }
     }
   }, [open]);
@@ -141,7 +144,9 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
     setLoading(true);
 
     const selectedCompany = companies.find(c => c.id === form.company_id);
-    const marketerPctRaw = selectedCompany?.percentage ?? 50;
+    const marketerPctRaw = useManualMarketerPercentage && form.marketer_percentage
+      ? parseFloat(form.marketer_percentage)
+      : (selectedCompany?.percentage ?? 50);
     const techPctRaw = form.manual_percentage ? parseFloat(form.manual_percentage) : 50;
 
     const price = form.price ? parseFloat(form.price) : 0;
