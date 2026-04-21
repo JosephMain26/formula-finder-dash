@@ -8,6 +8,7 @@ import { AddJobDialog } from "@/components/AddJobDialog";
 import { ColumnToggle, useColumnVisibility } from "@/components/ColumnToggle";
 import { ExportReportDialog } from "@/components/ExportReportDialog";
 import { BulkEditBar } from "@/components/BulkEditBar";
+import { DateRangePresets, type DateRange } from "@/components/DateRangePresets";
 import { Button } from "@/components/ui/button";
 import { Building2, Wrench, Settings } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
