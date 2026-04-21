@@ -132,6 +132,9 @@ function Dashboard() {
         <StatsCards jobs={filtered} />
 
         <div className="bg-card rounded-xl border p-5 space-y-5">
+          <div className="flex flex-wrap gap-3 items-end">
+            <DateRangePresets range={dateRange} onChange={setDateRange} />
+          </div>
           <JobFilters
             search={search} onSearchChange={setSearch}
             statusFilter={statusFilter} onStatusChange={setStatusFilter}
