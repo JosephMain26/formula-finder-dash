@@ -30,11 +30,16 @@ interface JobDialogProps {
   onJobSaved: () => void;
   job?: Tables<"jobs"> | null;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  prefill?: Partial<typeof emptyForm> & { _companyName?: string; _techName?: string };
 }
 
-export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
+export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOpenChange, prefill }: JobDialogProps) {
   const isEdit = !!job;
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (v: boolean) => { onOpenChange ? onOpenChange(v) : setInternalOpen(v); };
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
