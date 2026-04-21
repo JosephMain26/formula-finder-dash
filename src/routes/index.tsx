@@ -35,6 +35,7 @@ function Dashboard() {
   const [companyFilter, setCompanyFilter] = useState("");
   const [jobTypeFilter, setJobTypeFilter] = useState("");
   const [paidFilter, setPaidFilter] = useState("");
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   function toggleSelect(id: string) {
@@ -85,9 +86,14 @@ function Dashboard() {
       if (jobTypeFilter && jobTypeFilter !== "all" && job.job_type !== jobTypeFilter) return false;
       if (paidFilter === "yes" && !job.paid) return false;
       if (paidFilter === "no" && job.paid) return false;
+      if (dateRange && job.job_date) {
+        if (job.job_date < dateRange.from || job.job_date > dateRange.to) return false;
+      } else if (dateRange && !job.job_date) {
+        return false;
+      }
       return true;
     });
-  }, [jobs, search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter]);
+  }, [jobs, search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter, dateRange]);
 
   function clearFilters() {
     setSearch("");
@@ -96,6 +102,7 @@ function Dashboard() {
     setCompanyFilter("");
     setJobTypeFilter("");
     setPaidFilter("");
+    setDateRange(null);
   }
 
   return (
