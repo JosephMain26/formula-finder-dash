@@ -249,6 +249,17 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
               <span className="ml-auto text-sm text-muted-foreground">Using tech default %</span>
             )}
           </div>
+          <div className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
+            <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
+            <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer">Override marketer percentage for this job</label>
+            {useManualMarketerPercentage ? (
+              <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
+            ) : (
+              <span className="ml-auto text-sm text-muted-foreground">
+                Using marketer default {selectedCompany?.percentage != null ? `(${selectedCompany.percentage}%)` : "%"}
+              </span>
+            )}
+          </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Technician</label>
             <Select value={form.technician_id} onValueChange={(id) => {
