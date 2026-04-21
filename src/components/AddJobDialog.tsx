@@ -30,11 +30,16 @@ interface JobDialogProps {
   onJobSaved: () => void;
   job?: Tables<"jobs"> | null;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  prefill?: Partial<typeof emptyForm> & { _companyName?: string; _techName?: string };
 }
 
-export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
+export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOpenChange, prefill }: JobDialogProps) {
   const isEdit = !!job;
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (v: boolean) => { onOpenChange ? onOpenChange(v) : setInternalOpen(v); };
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
@@ -92,9 +97,25 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
         setUseManualPercentage(!!job.manual_percentage);
         setUseManualMarketerPercentage(false);
       } else {
-        setForm(emptyForm);
+        setForm({ ...emptyForm, ...(prefill || {}) } as typeof emptyForm);
         setUseManualPercentage(false);
         setUseManualMarketerPercentage(false);
+        // Resolve company by name from prefill if id not provided
+        if (prefill?._companyName && !prefill.company_id) {
+          supabase.from("companies").select("*").then(({ data }) => {
+            const match = (data || []).find((c) =>
+              c.company_name?.toLowerCase() === prefill._companyName!.toLowerCase()
+            );
+            if (match) {
+              setForm((prev) => ({
+                ...prev,
+                company_id: match.id,
+                comp_type: match.company_type || prev.comp_type,
+                manual_percentage: prev.manual_percentage || (match.percentage?.toString() ?? "50"),
+              }));
+            }
+          });
+        }
       }
     }
   }, [open]);
