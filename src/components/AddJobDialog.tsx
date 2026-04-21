@@ -23,7 +23,7 @@ const emptyForm = {
   po_number: "", phone_no: "", address: "", comp_type: "", job_type: "",
   status: "Pending", price: "", co_parts: "", office_parts: "", parts: "", payment: "",
   check_no: "", tip: "", cost: "", notes: "", cc_fee: "",
-  manual_percentage: "", created_by: "", maps: "", paid: false,
+  manual_percentage: "", marketer_percentage: "", created_by: "", maps: "", paid: false,
 };
 
 interface JobDialogProps {
@@ -40,6 +40,7 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [useManualPercentage, setUseManualPercentage] = useState(false);
+  const [useManualMarketerPercentage, setUseManualMarketerPercentage] = useState(false);
   const [newJobType, setNewJobType] = useState("");
   const [editingJobType, setEditingJobType] = useState<JobType | null>(null);
   const [editJobTypeName, setEditJobTypeName] = useState("");
@@ -83,14 +84,17 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
           notes: job.notes || "",
           cc_fee: job.cc_fee?.toString() || "",
           manual_percentage: job.manual_percentage?.toString() || "",
+          marketer_percentage: "",
           created_by: job.created_by || "",
           maps: job.maps || "",
           paid: job.paid || false,
         });
         setUseManualPercentage(!!job.manual_percentage);
+        setUseManualMarketerPercentage(false);
       } else {
         setForm(emptyForm);
         setUseManualPercentage(false);
+        setUseManualMarketerPercentage(false);
       }
     }
   }, [open]);
@@ -140,7 +144,9 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
     setLoading(true);
 
     const selectedCompany = companies.find(c => c.id === form.company_id);
-    const marketerPctRaw = selectedCompany?.percentage ?? 50;
+    const marketerPctRaw = useManualMarketerPercentage && form.marketer_percentage
+      ? parseFloat(form.marketer_percentage)
+      : (selectedCompany?.percentage ?? 50);
     const techPctRaw = form.manual_percentage ? parseFloat(form.manual_percentage) : 50;
 
     const price = form.price ? parseFloat(form.price) : 0;
@@ -241,6 +247,17 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
             )}
             {!useManualPercentage && (
               <span className="ml-auto text-sm text-muted-foreground">Using tech default %</span>
+            )}
+          </div>
+          <div className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
+            <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
+            <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer">Override marketer percentage for this job</label>
+            {useManualMarketerPercentage ? (
+              <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
+            ) : (
+              <span className="ml-auto text-sm text-muted-foreground">
+                Using marketer default {selectedCompany?.percentage != null ? `(${selectedCompany.percentage}%)` : "%"}
+              </span>
             )}
           </div>
           <div>
