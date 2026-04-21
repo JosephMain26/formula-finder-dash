@@ -8,6 +8,7 @@ import { AddJobDialog } from "@/components/AddJobDialog";
 import { ColumnToggle, useColumnVisibility } from "@/components/ColumnToggle";
 import { ExportReportDialog } from "@/components/ExportReportDialog";
 import { BulkEditBar } from "@/components/BulkEditBar";
+import { ParseMessageDialog } from "@/components/ParseMessageDialog";
 import { DateRangePresets, type DateRange } from "@/components/DateRangePresets";
 import { Button } from "@/components/ui/button";
 import { Building2, Wrench, Settings } from "lucide-react";
@@ -123,6 +124,7 @@ function Dashboard() {
             <Link to="/settings">
               <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Settings</Button>
             </Link>
+            <ParseMessageDialog onJobSaved={fetchJobs} />
             <AddJobDialog onJobAdded={fetchJobs} />
           </div>
         </div>
