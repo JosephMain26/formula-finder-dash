@@ -7,6 +7,7 @@ import { JobsTable } from "@/components/JobsTable";
 import { AddJobDialog } from "@/components/AddJobDialog";
 import { ColumnToggle, useColumnVisibility } from "@/components/ColumnToggle";
 import { ExportReportDialog } from "@/components/ExportReportDialog";
+import { BulkEditBar } from "@/components/BulkEditBar";
 import { Button } from "@/components/ui/button";
 import { Building2, Wrench, Settings } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
@@ -33,6 +34,23 @@ function Dashboard() {
   const [companyFilter, setCompanyFilter] = useState("");
   const [jobTypeFilter, setJobTypeFilter] = useState("");
   const [paidFilter, setPaidFilter] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function toggleSelectAll(ids: string[], select: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => { if (select) next.add(id); else next.delete(id); });
+      return next;
+    });
+  }
+  function clearSelection() { setSelectedIds(new Set()); }
 
   async function fetchJobs() {
     setLoading(true);
@@ -131,7 +149,20 @@ function Dashboard() {
                   <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} onSetVisible={setVisibleColumns} />
                 </div>
               </div>
-              <JobsTable jobs={filtered} onJobsChanged={fetchJobs} visibleColumns={visibleColumns} />
+              <BulkEditBar
+                selectedIds={[...selectedIds].filter((id) => filtered.some((j) => j.id === id))}
+                onClear={clearSelection}
+                onChanged={() => { clearSelection(); fetchJobs(); }}
+                statuses={uniqueValues.statuses}
+              />
+              <JobsTable
+                jobs={filtered}
+                onJobsChanged={fetchJobs}
+                visibleColumns={visibleColumns}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
+                onToggleSelectAll={toggleSelectAll}
+              />
             </>
           )}
         </div>

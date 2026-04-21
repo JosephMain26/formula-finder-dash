@@ -1,6 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { JobDialog } from "@/components/AddJobDialog";
@@ -13,6 +14,9 @@ interface JobsTableProps {
   jobs: Job[];
   onJobsChanged: () => void;
   visibleColumns: Set<ColumnKey>;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onToggleSelectAll?: (ids: string[], select: boolean) => void;
 }
 
 function StatusBadge({ status }: { status: string | null }) {
@@ -30,8 +34,11 @@ function currency(val: number | null) {
   return `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function JobsTable({ jobs, onJobsChanged, visibleColumns }: JobsTableProps) {
+export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, onToggleSelect, onToggleSelectAll }: JobsTableProps) {
   const show = (key: ColumnKey) => visibleColumns.has(key);
+  const selectionEnabled = !!selectedIds && !!onToggleSelect;
+  const allSelected = selectionEnabled && jobs.length > 0 && jobs.every((j) => selectedIds!.has(j.id));
+  const someSelected = selectionEnabled && jobs.some((j) => selectedIds!.has(j.id));
 
   async function deleteJob(id: string) {
     if (!confirm("Are you sure you want to delete this job?")) return;
@@ -58,6 +65,15 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns }: JobsTableProp
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
+            {selectionEnabled && (
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={(v) => onToggleSelectAll?.(jobs.map((j) => j.id), !!v)}
+                  aria-label="Select all"
+                />
+              </TableHead>
+            )}
             {show("actions") && <TableHead className="w-[80px]">Actions</TableHead>}
             {show("job_date") && <TableHead>Date</TableHead>}
             {show("company") && <TableHead>Marketer</TableHead>}
@@ -81,7 +97,16 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns }: JobsTableProp
         </TableHeader>
         <TableBody>
           {jobs.map((job) => (
-            <TableRow key={job.id}>
+            <TableRow key={job.id} data-state={selectionEnabled && selectedIds!.has(job.id) ? "selected" : undefined}>
+              {selectionEnabled && (
+                <TableCell>
+                  <Checkbox
+                    checked={selectedIds!.has(job.id)}
+                    onCheckedChange={() => onToggleSelect!(job.id)}
+                    aria-label="Select row"
+                  />
+                </TableCell>
+              )}
               {show("actions") && (
                 <TableCell>
                   <div className="flex gap-1">
