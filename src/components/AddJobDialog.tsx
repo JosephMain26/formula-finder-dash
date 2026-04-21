@@ -23,7 +23,7 @@ const emptyForm = {
   po_number: "", phone_no: "", address: "", comp_type: "", job_type: "",
   status: "Pending", price: "", co_parts: "", office_parts: "", parts: "", payment: "",
   check_no: "", tip: "", cost: "", notes: "", cc_fee: "",
-  manual_percentage: "", created_by: "", maps: "", paid: false,
+  manual_percentage: "", marketer_percentage: "", created_by: "", maps: "", paid: false,
 };
 
 interface JobDialogProps {
@@ -40,6 +40,7 @@ export function JobDialog({ onJobSaved, job, trigger }: JobDialogProps) {
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [useManualPercentage, setUseManualPercentage] = useState(false);
+  const [useManualMarketerPercentage, setUseManualMarketerPercentage] = useState(false);
   const [newJobType, setNewJobType] = useState("");
   const [editingJobType, setEditingJobType] = useState<JobType | null>(null);
   const [editJobTypeName, setEditJobTypeName] = useState("");
