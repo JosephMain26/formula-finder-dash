@@ -97,9 +97,25 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         setUseManualPercentage(!!job.manual_percentage);
         setUseManualMarketerPercentage(false);
       } else {
-        setForm(emptyForm);
+        setForm({ ...emptyForm, ...(prefill || {}) } as typeof emptyForm);
         setUseManualPercentage(false);
         setUseManualMarketerPercentage(false);
+        // Resolve company by name from prefill if id not provided
+        if (prefill?._companyName && !prefill.company_id) {
+          supabase.from("companies").select("*").then(({ data }) => {
+            const match = (data || []).find((c) =>
+              c.company_name?.toLowerCase() === prefill._companyName!.toLowerCase()
+            );
+            if (match) {
+              setForm((prev) => ({
+                ...prev,
+                company_id: match.id,
+                comp_type: match.company_type || prev.comp_type,
+                manual_percentage: prev.manual_percentage || (match.percentage?.toString() ?? "50"),
+              }));
+            }
+          });
+        }
       }
     }
   }, [open]);
