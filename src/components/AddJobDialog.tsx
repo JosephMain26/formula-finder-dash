@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
 
 type Company = Tables<"companies">;
 type Technician = {
@@ -50,8 +51,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [editingJobType, setEditingJobType] = useState<JobType | null>(null);
   const [editJobTypeName, setEditJobTypeName] = useState("");
   const [managingJobTypes, setManagingJobTypes] = useState(false);
-  const [paymentOptions, setPaymentOptions] = useState<string[]>([]);
-  const [ccFeePercent, setCcFeePercent] = useState(0);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   const [form, setForm] = useState(emptyForm);
 
@@ -60,11 +60,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       supabase.from("companies").select("*").order("company_name").then(({ data }) => setCompanies(data || []));
       supabase.from("technicians").select("*").order("tech_name").then(({ data }) => setTechnicians((data as Technician[]) || []));
       fetchJobTypes();
-      (supabase as any).from("app_settings").select("value").eq("key", "payment_options").maybeSingle().then(({ data }: any) => {
-        const v = data?.value;
-        setPaymentOptions(Array.isArray(v?.enabled) ? v.enabled : []);
-        setCcFeePercent(typeof v?.ccFeePercent === "number" ? v.ccFeePercent : 0);
-      });
+      loadPaymentMethods().then((m) => setPaymentMethods(m));
 
       if (isEdit && job) {
         setForm({
@@ -127,6 +123,11 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
   function update(field: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function feePercentFor(methodName: string): number {
+    const m = paymentMethods.find((p) => p.name === methodName);
+    return typeof m?.feePercent === "number" ? m.feePercent : 0;
   }
 
   function handleCompanyChange(companyId: string) {
@@ -372,12 +373,12 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             <label className="text-xs font-medium text-muted-foreground">Price ($)</label>
             <Input type="number" step="0.01" value={form.price} onChange={(e) => {
               const newPrice = e.target.value;
-              const isCard = form.payment.toLowerCase().includes("card");
+              const pct = feePercentFor(form.payment);
               setForm((prev) => ({
                 ...prev,
                 price: newPrice,
-                cc_fee: isCard && ccFeePercent > 0
-                  ? (Math.round((parseFloat(newPrice) || 0) * (ccFeePercent / 100) * 100) / 100).toString()
+                cc_fee: pct > 0
+                  ? (Math.round((parseFloat(newPrice) || 0) * (pct / 100) * 100) / 100).toString()
                   : prev.cc_fee,
               }));
             }} />
@@ -399,23 +400,25 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             <Select
               value={form.payment}
               onValueChange={(v) => {
-                const isCard = v.toLowerCase().includes("card");
+                const pct = feePercentFor(v);
                 const price = parseFloat(form.price) || 0;
                 setForm((prev) => ({
                   ...prev,
                   payment: v,
-                  cc_fee: isCard && ccFeePercent > 0
-                    ? (Math.round(price * (ccFeePercent / 100) * 100) / 100).toString()
+                  cc_fee: pct > 0
+                    ? (Math.round(price * (pct / 100) * 100) / 100).toString()
                     : "0",
                 }));
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder={paymentOptions.length ? "Select payment method" : "Enable methods in Settings"} />
+                <SelectValue placeholder={paymentMethods.length ? "Select payment method" : "Add methods in Settings"} />
               </SelectTrigger>
               <SelectContent>
-                {paymentOptions.map((opt) => (
-                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                {paymentMethods.map((m) => (
+                  <SelectItem key={m.id} value={m.name}>
+                    {m.name}{typeof m.feePercent === "number" && m.feePercent > 0 ? ` (${m.feePercent}% fee)` : ""}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -434,7 +437,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              CC Fee ($) {form.payment.toLowerCase().includes("card") && ccFeePercent > 0 && `— auto ${ccFeePercent}%`}
+              CC Fee ($) {feePercentFor(form.payment) > 0 && `— auto ${feePercentFor(form.payment)}%`}
             </label>
             <Input type="number" step="0.01" value={form.cc_fee} onChange={(e) => update("cc_fee", e.target.value)} />
           </div>
