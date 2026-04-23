@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { DollarSign, Briefcase, Users, Wrench, Megaphone, TrendingUp, Package, Trophy, Star, ListOrdered, Settings2, GripVertical } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { AutoFitText } from "@/components/AutoFitText";
 
 type Job = Tables<"jobs">;
 
@@ -212,8 +213,10 @@ export function StatsCards({ jobs }: StatsCardsProps) {
       const r = resizing!;
       const dx = e.clientX - r.startX;
       const dy = e.clientY - r.startY;
-      const stepW = r.colPx + 16; // approx col + gap
-      const newW = Math.max(MIN_W, Math.min(MAX_W, r.startW + Math.round(dx / stepW)));
+      const stepW = r.colPx + 16;
+      // Use floor with a small bias so width changes feel responsive in both directions
+      const deltaCols = Math.round(dx / stepW);
+      const newW = Math.max(MIN_W, Math.min(MAX_W, r.startW + deltaCols));
       const newH = Math.max(MIN_H, Math.min(MAX_H, r.startH + dy));
       setConfig((prev) => {
         const next = [...prev];
@@ -273,17 +276,23 @@ export function StatsCards({ jobs }: StatsCardsProps) {
               style={{ height: `${c.h}px` }}
               className={`${colSpanClass(c.w)} ${overIndex === i ? "ring-2 ring-primary" : ""} relative cursor-move transition-shadow`}
             >
-              <CardContent className="p-4 h-full">
-                <div className="flex items-center justify-between gap-2 h-full">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-muted-foreground truncate">{stat.label}</p>
-                      <p className="text-xl font-bold mt-1 truncate" title={stat.value}>{stat.value}</p>
-                      {stat.sub && <p className="text-[11px] text-muted-foreground mt-0.5 truncate" title={stat.sub}>{stat.sub}</p>}
+              <CardContent className="p-3 h-full">
+                <div className="flex items-stretch gap-2 h-full">
+                  <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-1" />
+                  <div className="min-w-0 flex-1 flex flex-col" style={{ minWidth: 0 }}>
+                    <div style={{ height: "22%", minHeight: 12 }}>
+                      <AutoFitText text={stat.label} max={13} min={9} className="font-medium text-muted-foreground" />
                     </div>
+                    <div style={{ height: stat.sub ? "48%" : "78%" }}>
+                      <AutoFitText text={stat.value} max={36} min={11} className="font-bold" />
+                    </div>
+                    {stat.sub && (
+                      <div style={{ height: "30%", minHeight: 12 }}>
+                        <AutoFitText text={stat.sub} max={12} min={8} className="text-muted-foreground" />
+                      </div>
+                    )}
                   </div>
-                  <stat.icon className={`h-7 w-7 ${stat.color} opacity-80 shrink-0`} />
+                  <stat.icon className={`h-6 w-6 ${stat.color} opacity-80 shrink-0 mt-1`} />
                 </div>
               </CardContent>
               <div
