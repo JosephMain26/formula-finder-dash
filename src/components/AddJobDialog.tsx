@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
 
 type Company = Tables<"companies">;
 type Technician = {
