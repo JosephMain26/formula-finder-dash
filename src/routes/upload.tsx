@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -59,26 +60,55 @@ function SuccessCard({ onAnother }: { onAnother: () => void }) {
   );
 }
 
+type DraftForm = {
+  job_date: string;
+  company_1: string;
+  company_id: string | null;
+  tech_name: string;
+  phone_no: string;
+  address: string;
+  job_type: string;
+  price: string;
+  parts: string;
+  co_parts: string;
+  office_parts: string;
+  payment: string;
+  notes: string;
+};
+
+const emptyDraft: DraftForm = {
+  job_date: "", company_1: "", company_id: null, tech_name: "", phone_no: "",
+  address: "", job_type: "", price: "", parts: "", co_parts: "", office_parts: "",
+  payment: "", notes: "",
+};
+
 function ParseTab() {
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [draft, setDraft] = useState<DraftForm>(emptyDraft);
 
-  async function submit() {
+  function updateDraft(k: keyof DraftForm, v: string) {
+    setDraft((p) => ({ ...p, [k]: v }));
+  }
+
+  async function parse() {
     const trimmed = message.trim();
     if (!trimmed) { toast.error("Please paste a message first"); return; }
     if (trimmed.length > 5000) { toast.error("Message too long (max 5000 chars)"); return; }
-    setLoading(true);
+    setParsing(true);
     try {
       const [companiesRes, techsRes, jobTypesRes] = await Promise.all([
-        supabase.from("companies").select("company_name"),
+        supabase.from("companies").select("id, company_name"),
         supabase.from("technicians").select("tech_name"),
         supabase.from("job_types").select("name"),
       ]);
       const { data, error } = await supabase.functions.invoke("parse-job-message", {
         body: {
           message: trimmed,
-          companies: (companiesRes.data || []).map((c) => c.company_name),
+          companies: (companiesRes.data || []).map((c: any) => c.company_name),
           technicians: (techsRes.data || []).map((t) => t.tech_name),
           jobTypes: (jobTypesRes.data || []).map((j) => j.name),
         },
@@ -92,57 +122,79 @@ function ParseTab() {
       if (ex.customer_name) noteParts.push(`Customer: ${ex.customer_name}`);
       if (ex.notes) noteParts.push(ex.notes);
 
-      // Resolve company id by name (best-effort)
       let company_id: string | null = null;
-      let company_1: string | null = ex.company || null;
+      let company_1 = ex.company || "";
       if (ex.company) {
         const match = (companiesRes.data || []).find(
           (c: any) => c.company_name?.toLowerCase() === String(ex.company).toLowerCase()
         );
-        if (match) {
-          const full = await supabase.from("companies").select("id, company_name").eq("company_name", match.company_name).maybeSingle();
-          company_id = full.data?.id || null;
-          company_1 = full.data?.company_name || ex.company;
-        }
+        if (match) { company_id = (match as any).id; company_1 = (match as any).company_name; }
       }
 
-      const payload: any = {
-        job_date: ex.job_date || null,
-        company_id,
+      setDraft({
+        job_date: ex.job_date || "",
         company_1,
-        tech_name: ex.tech_name || null,
-        phone_no: ex.phone_no || null,
-        address: ex.address || null,
-        job_type: ex.job_type || null,
-        status: "Pending",
-        price: ex.price != null ? Number(ex.price) : 0,
-        parts: ex.parts != null ? Number(ex.parts) : 0,
-        co_parts: ex.co_parts != null ? Number(ex.co_parts) : 0,
-        office_parts: ex.office_parts != null ? Number(ex.office_parts) : 0,
-        payment: ex.payment || null,
-        notes: noteParts.join(" • ") || null,
-        created_by: REMOTE_MARKER,
-      };
-      const { error: insErr } = await supabase.from("jobs").insert(payload);
-      if (insErr) { toast.error("Failed to save job"); return; }
-      setDone(true);
-      setMessage("");
+        company_id,
+        tech_name: ex.tech_name || "",
+        phone_no: ex.phone_no || "",
+        address: ex.address || "",
+        job_type: ex.job_type || "",
+        price: ex.price != null ? String(ex.price) : "",
+        parts: ex.parts != null ? String(ex.parts) : "",
+        co_parts: ex.co_parts != null ? String(ex.co_parts) : "",
+        office_parts: ex.office_parts != null ? String(ex.office_parts) : "",
+        payment: ex.payment || "",
+        notes: noteParts.join(" • "),
+      });
+      setReviewOpen(true);
     } catch (e) {
       console.error(e);
-      toast.error("Failed to submit");
+      toast.error("Failed to parse");
     } finally {
-      setLoading(false);
+      setParsing(false);
+    }
+  }
+
+  async function confirmSubmit() {
+    setSubmitting(true);
+    try {
+      const payload: any = {
+        job_date: draft.job_date || null,
+        company_id: draft.company_id,
+        company_1: draft.company_1 || null,
+        tech_name: draft.tech_name || null,
+        phone_no: draft.phone_no || null,
+        address: draft.address || null,
+        job_type: draft.job_type || null,
+        status: "Pending",
+        price: draft.price ? parseFloat(draft.price) : 0,
+        parts: draft.parts ? parseFloat(draft.parts) : 0,
+        co_parts: draft.co_parts ? parseFloat(draft.co_parts) : 0,
+        office_parts: draft.office_parts ? parseFloat(draft.office_parts) : 0,
+        payment: draft.payment || null,
+        notes: draft.notes || null,
+        created_by: REMOTE_MARKER,
+      };
+      const { error } = await supabase.from("jobs").insert(payload);
+      if (error) { toast.error("Failed to save job"); return; }
+      setReviewOpen(false);
+      setDone(true);
+      setMessage("");
+      setDraft(emptyDraft);
+    } finally {
+      setSubmitting(false);
     }
   }
 
   if (done) return <SuccessCard onAnother={() => setDone(false)} />;
 
   return (
-    <div className="rounded-xl border bg-card p-5 space-y-3">
-      <Textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder={`Customer: John Smith\nPhone: +1 555-1234\nAddress: 123 Main St\nGarage Door Repair\nClosed 350$\nParts 40$`}
+    <>
+      <div className="rounded-xl border bg-card p-5 space-y-3">
+        <Textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder={`Customer: John Smith\nPhone: +1 555-1234\nAddress: 123 Main St\nGarage Door Repair\nClosed 350$\nParts 40$`}
         rows={10}
         maxLength={5000}
         className="font-mono text-sm"
