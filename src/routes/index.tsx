@@ -10,6 +10,7 @@ import { ExportReportDialog } from "@/components/ExportReportDialog";
 import { BulkEditBar } from "@/components/BulkEditBar";
 import { ParseMessageDialog } from "@/components/ParseMessageDialog";
 import { DateRangePresets, type DateRange } from "@/components/DateRangePresets";
+import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { Button } from "@/components/ui/button";
 import { Building2, Wrench, Settings } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
