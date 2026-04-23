@@ -4,12 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Trash2, Plus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Trash2, Plus, Send, RotateCw, X, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { inviteUser, resendInvite, cancelInvite } from "@/lib/invites.functions";
 import type { AppRole } from "@/lib/auth-context";
 
 type Profile = { id: string; email: string | null; display_name: string | null; created_at: string };
 type RoleRow = { user_id: string; role: AppRole };
+type PendingInvite = { id: string; email: string; role: string; created_at: string; expires_at: string };
+type Permission = { key: string; label: string };
+
+const BUILT_IN_ROLES = ["admin", "manager", "user"];
 
 export function UsersManager() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -18,36 +25,87 @@ export function UsersManager() {
   const [seeds, setSeeds] = useState<{ email: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Invites
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("user");
+  const [inviteSending, setInviteSending] = useState(false);
+  const [pending, setPending] = useState<PendingInvite[]>([]);
+
+  // Roles & permissions
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [customRoles, setCustomRoles] = useState<{ name: string }[]>([]);
+  const [rolePerms, setRolePerms] = useState<Record<string, Set<string>>>({});
+  const [newRoleName, setNewRoleName] = useState("");
+
+  const inviteFn = useServerFn(inviteUser);
+  const resendFn = useServerFn(resendInvite);
+  const cancelFn = useServerFn(cancelInvite);
+
+  const allRoles = [...BUILT_IN_ROLES, ...customRoles.map((c) => c.name)];
+
   async function load() {
     setLoading(true);
-    const [{ data: p }, { data: r }, { data: s }] = await Promise.all([
+    const [
+      { data: p },
+      { data: r },
+      { data: s },
+      { data: inv },
+      { data: perms },
+      { data: cust },
+      { data: rp },
+    ] = await Promise.all([
       (supabase as any).from("profiles").select("*").order("created_at", { ascending: false }),
       (supabase as any).from("user_roles").select("user_id, role"),
       (supabase as any).from("admin_seed").select("email"),
+      (supabase as any)
+        .from("pending_invites")
+        .select("id, email, role, created_at, expires_at")
+        .is("accepted_at", null)
+        .order("created_at", { ascending: false }),
+      (supabase as any).from("permissions").select("key, label").order("key"),
+      (supabase as any).from("custom_roles").select("name").order("name"),
+      (supabase as any).from("role_permissions").select("role_name, permission_key"),
     ]);
+
     setProfiles(p || []);
     const map: Record<string, AppRole> = {};
     (r || []).forEach((row: RoleRow) => {
       const cur = map[row.user_id];
-      // priority admin > manager > user
       if (!cur || row.role === "admin" || (row.role === "manager" && cur === "user")) map[row.user_id] = row.role;
     });
     setRoles(map);
     setSeeds(s || []);
+    setPending(inv || []);
+    setPermissions(perms || []);
+    setCustomRoles(cust || []);
+
+    const rpMap: Record<string, Set<string>> = {};
+    (rp || []).forEach((row: any) => {
+      if (!rpMap[row.role_name]) rpMap[row.role_name] = new Set();
+      rpMap[row.role_name].add(row.permission_key);
+    });
+    setRolePerms(rpMap);
+
     setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
 
-  async function changeRole(userId: string, newRole: AppRole) {
-    // delete existing roles for user, then insert new one
+  // ------------- Users -------------
+  async function changeRole(userId: string, newRole: string) {
     await (supabase as any).from("user_roles").delete().eq("user_id", userId);
+    // Built-in roles use the enum; custom roles can't be inserted into user_roles (enum-constrained).
+    if (!BUILT_IN_ROLES.includes(newRole)) {
+      toast.error("Custom roles cannot yet be assigned directly to existing users (enum limitation). Use built-in roles.");
+      return;
+    }
     const { error } = await (supabase as any).from("user_roles").insert({ user_id: userId, role: newRole });
     if (error) { toast.error(error.message); return; }
     toast.success(`Role updated to ${newRole}`);
     setRoles((prev) => ({ ...prev, [userId]: newRole }));
   }
 
+  // ------------- Seeds -------------
   async function addSeed() {
     const email = seedEmail.trim().toLowerCase();
     if (!email) return;
@@ -57,7 +115,6 @@ export function UsersManager() {
     toast.success("Pre-seeded admin email added");
     load();
   }
-
   async function removeSeed(email: string) {
     const { error } = await (supabase as any).from("admin_seed").delete().eq("email", email);
     if (error) { toast.error(error.message); return; }
@@ -65,8 +122,160 @@ export function UsersManager() {
     load();
   }
 
+  // ------------- Invites -------------
+  async function sendInvite() {
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email) return;
+    setInviteSending(true);
+    try {
+      await inviteFn({ data: { email, role: inviteRole } });
+      toast.success(`Invite sent to ${email}`);
+      setInviteEmail("");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to send invite");
+    } finally {
+      setInviteSending(false);
+    }
+  }
+
+  async function resend(email: string) {
+    try {
+      await resendFn({ data: { email } });
+      toast.success("Invite resent");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to resend");
+    }
+  }
+
+  async function cancel(email: string) {
+    try {
+      await cancelFn({ data: { email } });
+      toast.success("Invite cancelled");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to cancel");
+    }
+  }
+
+  // ------------- Custom roles -------------
+  async function addCustomRole() {
+    const name = newRoleName.trim().toLowerCase().replace(/\s+/g, "_");
+    if (!name) return;
+    if (allRoles.includes(name)) {
+      toast.error("Role already exists");
+      return;
+    }
+    if (!/^[a-z0-9_-]+$/.test(name)) {
+      toast.error("Role name: lowercase letters, numbers, _ or - only");
+      return;
+    }
+    const { error } = await (supabase as any).from("custom_roles").insert({ name });
+    if (error) { toast.error(error.message); return; }
+    setNewRoleName("");
+    toast.success(`Role "${name}" added`);
+    load();
+  }
+
+  async function removeCustomRole(name: string) {
+    const { error } = await (supabase as any).from("custom_roles").delete().eq("name", name);
+    if (error) { toast.error(error.message); return; }
+    // Also clear its permissions
+    await (supabase as any).from("role_permissions").delete().eq("role_name", name);
+    toast.success("Role removed");
+    load();
+  }
+
+  // ------------- Permissions matrix -------------
+  async function togglePerm(roleName: string, permKey: string, checked: boolean) {
+    if (roleName === "admin") return; // locked
+    if (checked) {
+      const { error } = await (supabase as any)
+        .from("role_permissions")
+        .insert({ role_name: roleName, permission_key: permKey });
+      if (error) { toast.error(error.message); return; }
+    } else {
+      const { error } = await (supabase as any)
+        .from("role_permissions")
+        .delete()
+        .eq("role_name", roleName)
+        .eq("permission_key", permKey);
+      if (error) { toast.error(error.message); return; }
+    }
+    setRolePerms((prev) => {
+      const next = { ...prev };
+      const set = new Set(next[roleName] || []);
+      if (checked) set.add(permKey);
+      else set.delete(permKey);
+      next[roleName] = set;
+      return next;
+    });
+  }
+
+  function timeAgo(iso: string) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  }
+
   return (
     <div className="space-y-6">
+      {/* INVITES */}
+      <Card>
+        <CardHeader><CardTitle>Invite Users</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              type="email"
+              placeholder="email@example.com"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="flex-1 min-w-[220px] h-9"
+            />
+            <Select value={inviteRole} onValueChange={setInviteRole}>
+              <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {BUILT_IN_ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={sendInvite} disabled={inviteSending || !inviteEmail.trim()} size="sm">
+              <Send className="h-4 w-4 mr-1" /> {inviteSending ? "Sending…" : "Send invite"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            They'll get a magic-link email. Clicking it signs them in and assigns the chosen role automatically.
+          </p>
+
+          {pending.length > 0 && (
+            <div className="border rounded-md divide-y">
+              {pending.map((inv) => (
+                <div key={inv.id} className="flex flex-wrap items-center gap-2 p-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{inv.email}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {inv.role} · sent {timeAgo(inv.created_at)} · expires {new Date(inv.expires_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => resend(inv.email)} className="h-8">
+                    <RotateCw className="h-3 w-3 mr-1" /> Resend
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => cancel(inv.email)} className="h-8 text-destructive">
+                    <X className="h-3 w-3 mr-1" /> Cancel
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* USERS */}
       <Card>
         <CardHeader><CardTitle>Users</CardTitle></CardHeader>
         <CardContent>
@@ -82,24 +291,94 @@ export function UsersManager() {
                     <div className="text-sm font-medium truncate">{p.display_name || p.email}</div>
                     <div className="text-xs text-muted-foreground truncate">{p.email}</div>
                   </div>
-                  <Select value={roles[p.id] || "user"} onValueChange={(v) => changeRole(p.id, v as AppRole)}>
+                  <Select value={roles[p.id] || "user"} onValueChange={(v) => changeRole(p.id, v)}>
                     <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
+                      {BUILT_IN_ROLES.map((r) => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               ))}
             </div>
           )}
-          <p className="text-xs text-muted-foreground pt-3">
-            Roles: <strong>Admin</strong> = full control · <strong>Manager</strong> = edit/delete jobs · <strong>User</strong> = view + add jobs.
+        </CardContent>
+      </Card>
+
+      {/* ROLES & PERMISSIONS */}
+      <Card>
+        <CardHeader><CardTitle>Roles & Permissions</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="New role name (e.g. accountant)"
+              value={newRoleName}
+              onChange={(e) => setNewRoleName(e.target.value)}
+              className="flex-1 h-9"
+            />
+            <Button size="sm" onClick={addCustomRole}><Plus className="h-4 w-4 mr-1" /> Add role</Button>
+          </div>
+
+          <div className="overflow-x-auto border rounded-md">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left p-2 font-medium">Permission</th>
+                  {allRoles.map((r) => (
+                    <th key={r} className="text-center p-2 font-medium capitalize">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="flex items-center gap-1">
+                          {r}
+                          {r === "admin" && <Lock className="h-3 w-3 text-muted-foreground" />}
+                        </span>
+                        {!BUILT_IN_ROLES.includes(r) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5"
+                            onClick={() => removeCustomRole(r)}
+                            title="Delete role"
+                          >
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {permissions.map((perm) => (
+                  <tr key={perm.key} className="border-t">
+                    <td className="p-2">{perm.label}</td>
+                    {allRoles.map((r) => {
+                      const checked = r === "admin" || (rolePerms[r]?.has(perm.key) ?? false);
+                      const locked = r === "admin";
+                      return (
+                        <td key={r} className="p-2 text-center">
+                          <div className="flex justify-center">
+                            <Checkbox
+                              checked={checked}
+                              disabled={locked}
+                              onCheckedChange={(v) => togglePerm(r, perm.key, !!v)}
+                            />
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Admin always has every permission (locked). Toggle checkboxes to grant/revoke for other roles.
           </p>
         </CardContent>
       </Card>
 
+      {/* PRE-SEEDED ADMINS */}
       <Card>
         <CardHeader><CardTitle>Pre-seeded Admin Emails</CardTitle></CardHeader>
         <CardContent className="space-y-3">

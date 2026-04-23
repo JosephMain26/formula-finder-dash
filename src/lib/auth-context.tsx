@@ -2,14 +2,17 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "admin" | "manager" | "user";
+export type AppRole = "admin" | "manager" | "user" | string;
 
 type AuthCtx = {
   user: User | null;
   session: Session | null;
   role: AppRole | null;
+  roles: AppRole[];
+  permissions: Set<string>;
   isAdmin: boolean;
   isManager: boolean;
+  can: (key: string) => boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshRole: () => Promise<void>;
@@ -21,21 +24,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [roles, setRoles] = useState<AppRole[]>([]);
+  const [permissions, setPermissions] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
-  async function loadRole(userId: string) {
-    const { data } = await (supabase as any)
+  async function loadRoleAndPerms(userId: string) {
+    const { data: roleRows } = await (supabase as any)
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
-    if (!data || data.length === 0) {
-      setRole("user");
-      return;
+
+    const userRoles: AppRole[] = (roleRows || []).map((r: any) => r.role as AppRole);
+    if (userRoles.length === 0) userRoles.push("user");
+    setRoles(userRoles);
+
+    // Priority for primary role display
+    if (userRoles.includes("admin")) setRole("admin");
+    else if (userRoles.includes("manager")) setRole("manager");
+    else setRole(userRoles[0] || "user");
+
+    // Load permissions for these roles
+    if (userRoles.includes("admin")) {
+      // Admin: load all permission keys (so can() returns true for everything)
+      const { data: allPerms } = await (supabase as any).from("permissions").select("key");
+      const set = new Set<string>((allPerms || []).map((p: any) => p.key));
+      setPermissions(set);
+    } else {
+      const { data: rp } = await (supabase as any)
+        .from("role_permissions")
+        .select("permission_key")
+        .in("role_name", userRoles);
+      setPermissions(new Set<string>((rp || []).map((r: any) => r.permission_key)));
     }
-    const roles = data.map((r: any) => r.role as AppRole);
-    if (roles.includes("admin")) setRole("admin");
-    else if (roles.includes("manager")) setRole("manager");
-    else setRole("user");
   }
 
   useEffect(() => {
@@ -43,16 +63,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(sess);
       setUser(sess?.user ?? null);
       if (sess?.user) {
-        setTimeout(() => loadRole(sess.user.id), 0);
+        setTimeout(() => loadRoleAndPerms(sess.user.id), 0);
       } else {
         setRole(null);
+        setRoles([]);
+        setPermissions(new Set());
       }
     });
 
     supabase.auth.getSession().then(({ data: { session: sess } }) => {
       setSession(sess);
       setUser(sess?.user ?? null);
-      if (sess?.user) loadRole(sess.user.id).finally(() => setLoading(false));
+      if (sess?.user) loadRoleAndPerms(sess.user.id).finally(() => setLoading(false));
       else setLoading(false);
     });
 
@@ -62,10 +84,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     await supabase.auth.signOut();
     setRole(null);
+    setRoles([]);
+    setPermissions(new Set());
   }
 
   async function refreshRole() {
-    if (user) await loadRole(user.id);
+    if (user) await loadRoleAndPerms(user.id);
+  }
+
+  const isAdmin = role === "admin" || roles.includes("admin");
+
+  function can(key: string) {
+    if (isAdmin) return true;
+    return permissions.has(key);
   }
 
   return (
@@ -74,8 +105,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         role,
-        isAdmin: role === "admin",
-        isManager: role === "manager" || role === "admin",
+        roles,
+        permissions,
+        isAdmin,
+        isManager: isAdmin || roles.includes("manager"),
+        can,
         loading,
         signOut,
         refreshRole,
