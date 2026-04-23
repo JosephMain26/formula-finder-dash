@@ -80,10 +80,10 @@ export function EditableCell({
   if (type === "select" && options) {
     return (
       <Select
-        defaultValue={draft}
-        onValueChange={(v) => commit(v)}
-        open
-        onOpenChange={(o) => { if (!o) setEditing(false); }}
+        defaultOpen
+        value={draft}
+        onValueChange={(v) => { setDraft(v); commit(v); }}
+        onOpenChange={(o) => { if (!o && !saving) setEditing(false); }}
       >
         <SelectTrigger className="h-7 text-sm"><SelectValue /></SelectTrigger>
         <SelectContent>
