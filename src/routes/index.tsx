@@ -14,7 +14,7 @@ import { DateRangePresets, type DateRange } from "@/components/DateRangePresets"
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { Building2, Wrench, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Job = Tables<"jobs">;
@@ -118,19 +118,9 @@ function Dashboard() {
             <p className="text-sm text-muted-foreground mt-0.5">Track and manage all service jobs</p>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/companies">
-              <Button variant="outline"><Building2 className="h-4 w-4 mr-2" /> Marketers</Button>
-            </Link>
-            <Link to="/technicians">
-              <Button variant="outline"><Wrench className="h-4 w-4 mr-2" /> Technicians</Button>
-            </Link>
-            <Link to="/installers">
-              <Button variant="outline"><Wrench className="h-4 w-4 mr-2" /> Installers</Button>
-            </Link>
             <Link to="/settings">
               <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Settings</Button>
             </Link>
-            <RemoteLinkButton />
             <ParseMessageDialog onJobSaved={fetchJobs} />
             <AddJobDialog onJobAdded={fetchJobs} />
           </div>

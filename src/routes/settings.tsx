@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain } from "lucide-react";
+import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import {
   loadPaymentMethods,
   savePaymentMethods,
@@ -14,13 +16,21 @@ import {
   type PaymentMethod,
   type TemplatesSetting,
 } from "@/lib/settings";
+import {
+  loadAITraining,
+  saveAITraining,
+  newMarketerRule,
+  emptyTraining,
+  type AITrainingSetting,
+} from "@/lib/aiTraining";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
   head: () => ({
     meta: [
       { title: "Settings - Jobs Dashboard" },
-      { name: "description", content: "Configure payment methods and templates" },
+      { name: "description", content: "Configure payment methods, templates, and AI training" },
     ],
   }),
 });
@@ -28,14 +38,16 @@ export const Route = createFileRoute("/settings")({
 function SettingsPage() {
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [templates, setTemplates] = useState<TemplatesSetting>({ dashboardViews: [], exportTemplates: [] });
+  const [training, setTraining] = useState<AITrainingSetting>(emptyTraining);
   const [loading, setLoading] = useState(true);
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [m, t] = await Promise.all([loadPaymentMethods(), loadTemplates()]);
+      const [m, t, ai] = await Promise.all([loadPaymentMethods(), loadTemplates(), loadAITraining()]);
       setMethods(m);
       setTemplates(t);
+      setTraining(ai);
       setLoading(false);
     })();
   }, []);
@@ -49,16 +61,10 @@ function SettingsPage() {
   function updateMethod(id: string, patch: Partial<PaymentMethod>) {
     setMethods((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
   }
-  function addMethod() {
-    setMethods((prev) => [...prev, newPaymentMethod("")]);
-  }
-  function removeMethod(id: string) {
-    setMethods((prev) => prev.filter((m) => m.id !== id));
-  }
+  function addMethod() { setMethods((prev) => [...prev, newPaymentMethod("")]); }
+  function removeMethod(id: string) { setMethods((prev) => prev.filter((m) => m.id !== id)); }
   async function savePayments() {
-    const cleaned = methods
-      .map((m) => ({ ...m, name: m.name.trim() }))
-      .filter((m) => m.name.length > 0);
+    const cleaned = methods.map((m) => ({ ...m, name: m.name.trim() })).filter((m) => m.name.length > 0);
     setMethods(cleaned);
     await savePaymentMethods(cleaned);
     flash("Payment methods saved ✓");
@@ -67,31 +73,60 @@ function SettingsPage() {
   // ----- Templates -----
   async function deleteDashboardView(id: string) {
     const next = { ...templates, dashboardViews: templates.dashboardViews.filter((v) => v.id !== id) };
-    setTemplates(next);
-    await saveTemplates(next);
-    flash("Template deleted ✓");
+    setTemplates(next); await saveTemplates(next); flash("Template deleted ✓");
   }
   async function deleteExportTemplate(id: string) {
     const next = { ...templates, exportTemplates: templates.exportTemplates.filter((v) => v.id !== id) };
-    setTemplates(next);
-    await saveTemplates(next);
-    flash("Template deleted ✓");
+    setTemplates(next); await saveTemplates(next); flash("Template deleted ✓");
   }
   async function renameDashboardView(id: string, name: string) {
     const next = { ...templates, dashboardViews: templates.dashboardViews.map((v) => (v.id === id ? { ...v, name } : v)) };
-    setTemplates(next);
-    await saveTemplates(next);
+    setTemplates(next); await saveTemplates(next);
   }
   async function renameExportTemplate(id: string, name: string) {
     const next = { ...templates, exportTemplates: templates.exportTemplates.map((v) => (v.id === id ? { ...v, name } : v)) };
-    setTemplates(next);
-    await saveTemplates(next);
+    setTemplates(next); await saveTemplates(next);
+  }
+
+  // ----- AI Training -----
+  function addRule() { setTraining((p) => ({ ...p, marketerRules: [...p.marketerRules, newMarketerRule()] })); }
+  function updateRule(id: string, patch: Partial<{ marketerName: string; patternsText: string }>) {
+    setTraining((p) => ({
+      ...p,
+      marketerRules: p.marketerRules.map((r) => {
+        if (r.id !== id) return r;
+        const next = { ...r };
+        if (patch.marketerName !== undefined) next.marketerName = patch.marketerName;
+        if (patch.patternsText !== undefined) {
+          next.patterns = patch.patternsText.split(",").map((s) => s.trim()).filter(Boolean);
+        }
+        return next;
+      }),
+    }));
+  }
+  function removeRule(id: string) {
+    setTraining((p) => ({ ...p, marketerRules: p.marketerRules.filter((r) => r.id !== id) }));
+  }
+  function clearCorrections() {
+    setTraining((p) => ({ ...p, corrections: [] }));
+  }
+  async function saveTraining() {
+    const cleaned: AITrainingSetting = {
+      ...training,
+      marketerRules: training.marketerRules
+        .map((r) => ({ ...r, marketerName: r.marketerName.trim() }))
+        .filter((r) => r.marketerName && r.patterns.length > 0),
+    };
+    setTraining(cleaned);
+    await saveAITraining(cleaned);
+    toast.success("AI training saved");
+    flash("AI training saved ✓");
   }
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="max-w-[1400px] mx-auto px-6 py-5 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-6 py-5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link to="/">
               <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
@@ -101,7 +136,19 @@ function SettingsPage() {
               <p className="text-sm text-muted-foreground mt-0.5">Configure application preferences</p>
             </div>
           </div>
-          {savedAt && <span className="text-sm text-muted-foreground">{savedAt}</span>}
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {savedAt && <span className="text-sm text-muted-foreground mr-2">{savedAt}</span>}
+            <Link to="/companies">
+              <Button variant="outline" size="sm"><Building2 className="h-4 w-4 mr-2" /> Marketers</Button>
+            </Link>
+            <Link to="/technicians">
+              <Button variant="outline" size="sm"><Wrench className="h-4 w-4 mr-2" /> Technicians</Button>
+            </Link>
+            <Link to="/installers">
+              <Button variant="outline" size="sm"><Wrench className="h-4 w-4 mr-2" /> Installers</Button>
+            </Link>
+            <RemoteLinkButton />
+          </div>
         </div>
       </header>
 
@@ -110,14 +157,13 @@ function SettingsPage() {
           <TabsList>
             <TabsTrigger value="payment">Payment Methods</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
+            <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Message Training Center</TabsTrigger>
           </TabsList>
 
           {/* PAYMENT METHODS */}
           <TabsContent value="payment" className="mt-4">
             <Card>
-              <CardHeader>
-                <CardTitle>Payment Methods</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Payment Methods</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {loading ? (
                   <p className="text-sm text-muted-foreground">Loading…</p>
@@ -138,16 +184,10 @@ function SettingsPage() {
                           <div className="flex items-center gap-1">
                             <span className="text-xs text-muted-foreground">Fee %</span>
                             <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              max="100"
-                              placeholder="0"
+                              type="number" step="0.01" min="0" max="100" placeholder="0"
                               value={m.feePercent ?? ""}
                               onChange={(e) =>
-                                updateMethod(m.id, {
-                                  feePercent: e.target.value === "" ? undefined : parseFloat(e.target.value),
-                                })
+                                updateMethod(m.id, { feePercent: e.target.value === "" ? undefined : parseFloat(e.target.value) })
                               }
                               className="w-20 h-9"
                             />
@@ -176,9 +216,7 @@ function SettingsPage() {
           {/* TEMPLATES */}
           <TabsContent value="templates" className="mt-4 space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Dashboard View Templates</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Dashboard View Templates</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {loading ? (
                   <p className="text-sm text-muted-foreground">Loading…</p>
@@ -211,9 +249,7 @@ function SettingsPage() {
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle>PDF Export Templates</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>PDF Export Templates</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {loading ? (
                   <p className="text-sm text-muted-foreground">Loading…</p>
@@ -243,6 +279,107 @@ function SettingsPage() {
                       </Button>
                     </div>
                   ))
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* AI TRAINING */}
+          <TabsContent value="ai" className="mt-4 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Marketer Mapping Rules</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  When a parsed message mentions any of the listed names/keywords (case-insensitive),
+                  the marketer will be set automatically. Separate keywords with commas.
+                </p>
+                {training.marketerRules.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No rules yet — add your first one below.</p>
+                )}
+                {training.marketerRules.map((r) => (
+                  <div key={r.id} className="grid grid-cols-12 gap-2 items-center border rounded-md p-2">
+                    <Input
+                      className="col-span-4 h-9"
+                      placeholder="Marketer name (e.g. ABC Marketing)"
+                      value={r.marketerName}
+                      onChange={(e) => updateRule(r.id, { marketerName: e.target.value })}
+                    />
+                    <Input
+                      className="col-span-7 h-9"
+                      placeholder="Keywords / company names that map to this marketer (comma separated)"
+                      value={r.patterns.join(", ")}
+                      onChange={(e) => updateRule(r.id, { patternsText: e.target.value })}
+                    />
+                    <Button variant="ghost" size="icon" onClick={() => removeRule(r.id)} className="h-9 w-9 col-span-1">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="flex gap-2 pt-1">
+                  <Button variant="outline" size="sm" onClick={addRule}>
+                    <Plus className="h-4 w-4 mr-2" /> Add rule
+                  </Button>
+                  <Button size="sm" onClick={saveTraining}>Save</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>General AI Rules / Memory</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Free-form instructions the AI will always follow when parsing messages
+                  (e.g. "If the message contains 'urgent', set notes to start with URGENT", or
+                  "Phone numbers without + are US numbers").
+                </p>
+                <Textarea
+                  rows={6}
+                  value={training.generalRules}
+                  onChange={(e) => setTraining((p) => ({ ...p, generalRules: e.target.value }))}
+                  placeholder="Write any rules the AI should remember..."
+                />
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={saveTraining}>Save</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Corrections (auto-learned)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Every time you fix a parsed value before submitting, it's recorded here and sent
+                  to the AI as additional context next time.
+                </p>
+                {training.corrections.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No corrections recorded yet.</p>
+                ) : (
+                  <div className="border rounded-md divide-y max-h-80 overflow-auto">
+                    {training.corrections.map((c) => (
+                      <div key={c.id} className="p-2 text-xs flex items-center gap-2">
+                        <span className="text-muted-foreground w-32 shrink-0">
+                          {new Date(c.at).toLocaleString()}
+                        </span>
+                        <span className="font-medium w-20 shrink-0">{c.field}</span>
+                        <span className="line-through text-muted-foreground truncate">{c.parsed || "—"}</span>
+                        <span>→</span>
+                        <span className="font-semibold truncate">{c.corrected}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {training.corrections.length > 0 && (
+                  <div className="flex justify-end pt-1">
+                    <Button variant="outline" size="sm" onClick={async () => { clearCorrections(); await saveAITraining({ ...training, corrections: [] }); toast.success("Cleared"); }}>
+                      Clear history
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
