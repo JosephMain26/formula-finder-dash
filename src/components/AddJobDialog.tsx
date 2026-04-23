@@ -125,6 +125,11 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  function feePercentFor(methodName: string): number {
+    const m = paymentMethods.find((p) => p.name === methodName);
+    return typeof m?.feePercent === "number" ? m.feePercent : 0;
+  }
+
   function handleCompanyChange(companyId: string) {
     const company = companies.find(c => c.id === companyId);
     setForm((prev) => ({
