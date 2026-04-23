@@ -195,19 +195,53 @@ function ParseTab() {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder={`Customer: John Smith\nPhone: +1 555-1234\nAddress: 123 Main St\nGarage Door Repair\nClosed 350$\nParts 40$`}
-        rows={10}
-        maxLength={5000}
-        className="font-mono text-sm"
-      />
-      <div className="flex justify-between items-center text-xs text-muted-foreground">
-        <span>{message.length} / 5000</span>
+          rows={10}
+          maxLength={5000}
+          className="font-mono text-sm"
+        />
+        <div className="flex justify-between items-center text-xs text-muted-foreground">
+          <span>{message.length} / 5000</span>
+        </div>
+        <div className="flex justify-end">
+          <Button onClick={parse} disabled={parsing || !message.trim()}>
+            {parsing ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Parsing...</>) : (<><Sparkles className="h-4 w-4 mr-2" /> Parse & Review</>)}
+          </Button>
+        </div>
       </div>
-      <div className="flex justify-end">
-        <Button onClick={submit} disabled={loading || !message.trim()}>
-          {loading ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>) : (<><Sparkles className="h-4 w-4 mr-2" /> Parse & Submit</>)}
-        </Button>
-      </div>
-    </div>
+
+      <Dialog open={reviewOpen} onOpenChange={(o) => { if (!submitting) setReviewOpen(o); }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review & Edit Job Details</DialogTitle>
+            <DialogDescription>
+              We pre-filled the details from your message. Please review, fix anything, and add any missing info before submitting.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            <Field label="Job Date"><Input type="date" value={draft.job_date} onChange={(e) => updateDraft("job_date", e.target.value)} /></Field>
+            <Field label="Marketer"><Input value={draft.company_1} onChange={(e) => updateDraft("company_1", e.target.value)} /></Field>
+            <Field label="Technician"><Input value={draft.tech_name} onChange={(e) => updateDraft("tech_name", e.target.value)} /></Field>
+            <Field label="Phone"><Input value={draft.phone_no} onChange={(e) => updateDraft("phone_no", e.target.value)} /></Field>
+            <Field label="Address" full><Input value={draft.address} onChange={(e) => updateDraft("address", e.target.value)} /></Field>
+            <Field label="Job Type"><Input value={draft.job_type} onChange={(e) => updateDraft("job_type", e.target.value)} /></Field>
+            <Field label="Payment"><Input value={draft.payment} onChange={(e) => updateDraft("payment", e.target.value)} /></Field>
+            <Field label="Price ($)"><Input type="number" step="0.01" value={draft.price} onChange={(e) => updateDraft("price", e.target.value)} /></Field>
+            <Field label="Parts ($)"><Input type="number" step="0.01" value={draft.parts} onChange={(e) => updateDraft("parts", e.target.value)} /></Field>
+            <Field label="Co Parts ($)"><Input type="number" step="0.01" value={draft.co_parts} onChange={(e) => updateDraft("co_parts", e.target.value)} /></Field>
+            <Field label="Office Parts ($)"><Input type="number" step="0.01" value={draft.office_parts} onChange={(e) => updateDraft("office_parts", e.target.value)} /></Field>
+            <Field label="Notes" full>
+              <Textarea rows={3} value={draft.notes} onChange={(e) => updateDraft("notes", e.target.value)} />
+            </Field>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setReviewOpen(false)} disabled={submitting}>Back</Button>
+            <Button onClick={confirmSubmit} disabled={submitting}>
+              {submitting ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>) : (<><Plus className="h-4 w-4 mr-2" /> Submit Job</>)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
