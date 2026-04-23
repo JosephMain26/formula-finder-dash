@@ -431,10 +431,12 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Check #</label>
-            <Input value={form.check_no} onChange={(e) => update("check_no", e.target.value)} />
-          </div>
+          {form.payment.toLowerCase().includes("check") && (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Check #</label>
+              <Input value={form.check_no} onChange={(e) => update("check_no", e.target.value)} />
+            </div>
+          )}
           <div>
             <label className="text-xs font-medium text-muted-foreground">Tip ($)</label>
             <Input type="number" step="0.01" value={form.tip} onChange={(e) => update("tip", e.target.value)} />
@@ -443,12 +445,14 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             <label className="text-xs font-medium text-muted-foreground">Cost ($)</label>
             <Input type="number" step="0.01" value={form.cost} onChange={(e) => update("cost", e.target.value)} />
           </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">
-              CC Fee ($) {feePercentFor(form.payment) > 0 && `— auto ${feePercentFor(form.payment)}%`}
-            </label>
-            <Input type="number" step="0.01" value={form.cc_fee} onChange={(e) => update("cc_fee", e.target.value)} />
-          </div>
+          {feePercentFor(form.payment) > 0 && (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                CC Fee ($) — auto {feePercentFor(form.payment)}%
+              </label>
+              <Input type="number" step="0.01" value={form.cc_fee} onChange={(e) => update("cc_fee", e.target.value)} />
+            </div>
+          )}
           <div>
             <label className="text-xs font-medium text-muted-foreground">Created By</label>
             <Input value={form.created_by} onChange={(e) => update("created_by", e.target.value)} />
