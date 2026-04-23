@@ -10,7 +10,15 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { message, companies = [], technicians = [], jobTypes = [] } = await req.json();
+    const {
+      message,
+      companies = [],
+      technicians = [],
+      jobTypes = [],
+      generalRules = "",
+      marketerRules = [],
+      recentCorrections = [],
+    } = await req.json();
     if (!message || typeof message !== "string" || message.length > 5000) {
       return new Response(JSON.stringify({ error: "Invalid message" }), {
         status: 400,
@@ -29,7 +37,24 @@ Job type guess from keywords (e.g., "Garage Door Repair", "Plumbing", "Electrica
 ${companies.length ? `Known marketers/companies: ${companies.join(", ")}.` : ""}
 ${technicians.length ? `Known technicians: ${technicians.join(", ")}.` : ""}
 ${jobTypes.length ? `Known job types: ${jobTypes.join(", ")}.` : ""}
-Match company/tech/job_type to known values when there's a clear match (case-insensitive).`;
+Match company/tech/job_type to known values when there's a clear match (case-insensitive).
+${
+  Array.isArray(marketerRules) && marketerRules.length
+    ? `Marketer mapping rules (apply when message contains the listed names/keywords, case-insensitive):\n${marketerRules
+        .filter((r: any) => r?.marketerName && Array.isArray(r?.patterns) && r.patterns.length)
+        .map((r: any) => `- If message mentions any of [${r.patterns.join(", ")}] → company = "${r.marketerName}"`)
+        .join("\n")}`
+    : ""
+}
+${
+  Array.isArray(recentCorrections) && recentCorrections.length
+    ? `Recent admin corrections (learn from these — prefer the corrected value when the same pattern appears):\n${recentCorrections
+        .slice(0, 25)
+        .map((c: any) => `- ${c.field}: parsed "${c.parsed}" → corrected "${c.corrected}"`)
+        .join("\n")}`
+    : ""
+}
+${generalRules ? `Additional rules from the admin (always follow):\n${generalRules}` : ""}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
