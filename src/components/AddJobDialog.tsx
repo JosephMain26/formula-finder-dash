@@ -51,8 +51,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [editingJobType, setEditingJobType] = useState<JobType | null>(null);
   const [editJobTypeName, setEditJobTypeName] = useState("");
   const [managingJobTypes, setManagingJobTypes] = useState(false);
-  const [paymentOptions, setPaymentOptions] = useState<string[]>([]);
-  const [ccFeePercent, setCcFeePercent] = useState(0);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   const [form, setForm] = useState(emptyForm);
 
