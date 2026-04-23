@@ -12,6 +12,7 @@ import { ParseMessageDialog } from "@/components/ParseMessageDialog";
 import { DateRangePresets, type DateRange } from "@/components/DateRangePresets";
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { Button } from "@/components/ui/button";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Building2, Wrench, Settings } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -137,56 +138,62 @@ function Dashboard() {
       <main className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
         <StatsCards jobs={filtered} />
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="flex-1 min-w-0 bg-card rounded-xl border p-5 space-y-5">
-            <div className="flex flex-wrap gap-3 items-end">
-              <DateRangePresets range={dateRange} onChange={setDateRange} />
-            </div>
-            <JobFilters
-              search={search} onSearchChange={setSearch}
-              statusFilter={statusFilter} onStatusChange={setStatusFilter}
-              techFilter={techFilter} onTechChange={setTechFilter}
-              companyFilter={companyFilter} onCompanyChange={setCompanyFilter}
-              jobTypeFilter={jobTypeFilter} onJobTypeChange={setJobTypeFilter}
-              paidFilter={paidFilter} onPaidChange={setPaidFilter}
-              onClear={clearFilters}
-              techs={uniqueValues.techs}
-              companies={uniqueValues.companies}
-              jobTypes={uniqueValues.jobTypes}
-              statuses={uniqueValues.statuses}
-            />
+        <ResizablePanelGroup orientation="horizontal" className="min-h-[600px] gap-0">
+          <ResizablePanel defaultSize={75} minSize={40}>
+            <div className="bg-card rounded-xl border p-5 space-y-5 h-full overflow-auto">
+              <div className="flex flex-wrap gap-3 items-end">
+                <DateRangePresets range={dateRange} onChange={setDateRange} />
+              </div>
+              <JobFilters
+                search={search} onSearchChange={setSearch}
+                statusFilter={statusFilter} onStatusChange={setStatusFilter}
+                techFilter={techFilter} onTechChange={setTechFilter}
+                companyFilter={companyFilter} onCompanyChange={setCompanyFilter}
+                jobTypeFilter={jobTypeFilter} onJobTypeChange={setJobTypeFilter}
+                paidFilter={paidFilter} onPaidChange={setPaidFilter}
+                onClear={clearFilters}
+                techs={uniqueValues.techs}
+                companies={uniqueValues.companies}
+                jobTypes={uniqueValues.jobTypes}
+                statuses={uniqueValues.statuses}
+              />
 
-            {loading ? (
-              <div className="text-center py-12 text-muted-foreground">Loading jobs...</div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Showing {filtered.length} of {jobs.length} jobs</span>
-                  <div className="flex items-center gap-2">
-                    <ExportReportDialog jobs={jobs} companies={uniqueValues.companies} />
-                    <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} onSetVisible={setVisibleColumns} />
+              {loading ? (
+                <div className="text-center py-12 text-muted-foreground">Loading jobs...</div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Showing {filtered.length} of {jobs.length} jobs</span>
+                    <div className="flex items-center gap-2">
+                      <ExportReportDialog jobs={jobs} companies={uniqueValues.companies} />
+                      <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} onSetVisible={setVisibleColumns} />
+                    </div>
                   </div>
-                </div>
-                <BulkEditBar
-                  selectedIds={[...selectedIds].filter((id) => filtered.some((j) => j.id === id))}
-                  onClear={clearSelection}
-                  onChanged={() => { clearSelection(); fetchJobs(); }}
-                  statuses={uniqueValues.statuses}
-                />
-                <JobsTable
-                  jobs={filtered}
-                  onJobsChanged={fetchJobs}
-                  visibleColumns={visibleColumns}
-                  selectedIds={selectedIds}
-                  onToggleSelect={toggleSelect}
-                  onToggleSelectAll={toggleSelectAll}
-                />
-              </>
-            )}
-          </div>
-
-          <AnalyticsPanel jobs={filtered} />
-        </div>
+                  <BulkEditBar
+                    selectedIds={[...selectedIds].filter((id) => filtered.some((j) => j.id === id))}
+                    onClear={clearSelection}
+                    onChanged={() => { clearSelection(); fetchJobs(); }}
+                    statuses={uniqueValues.statuses}
+                  />
+                  <JobsTable
+                    jobs={filtered}
+                    onJobsChanged={fetchJobs}
+                    visibleColumns={visibleColumns}
+                    selectedIds={selectedIds}
+                    onToggleSelect={toggleSelect}
+                    onToggleSelectAll={toggleSelectAll}
+                  />
+                </>
+              )}
+            </div>
+          </ResizablePanel>
+          <ResizableHandle withHandle className="mx-3" />
+          <ResizablePanel defaultSize={25} minSize={15}>
+            <div className="h-full overflow-auto pr-1">
+              <AnalyticsPanel jobs={filtered} />
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </main>
     </div>
   );
