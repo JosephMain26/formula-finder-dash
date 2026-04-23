@@ -27,8 +27,9 @@ const COLS = 6;
 const MIN_W = 1;
 const MAX_W = 6;
 const MIN_H = 80;
-const MAX_H = 320;
+const MAX_H = 600;
 const DEFAULT_H = 96;
+const ROW_PX = 8; // grid auto-row size; each card spans ceil(h / ROW_PX) rows
 
 const DEFAULT_CONFIG: CardConfig[] = [
   { key: "total_revenue", w: 1, h: DEFAULT_H },
