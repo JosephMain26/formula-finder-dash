@@ -1,66 +1,25 @@
 
 
-## Invite Users + Custom Roles & Permissions
+## Add "Remember me" to login
 
-Now that the email domain is set up, I'll add three sections to **Settings → Users**: invites, custom roles, and a permissions matrix.
+Supabase already keeps users signed in across reloads and browser restarts by default. The toggle just lets users opt out — when **unchecked**, we sign them out when they close the tab.
 
-### What you'll see in Settings → Users
+### Changes (one file: `src/routes/auth.tsx`)
 
-```text
-┌────────────────────────────────────────────────────────┐
-│ INVITES                                                │
-│ [email@example.com]  [Role ▾]  [Send invite]           │
-│ Pending: bob@x.com — Manager — 2h ago [Resend][Cancel] │
-├────────────────────────────────────────────────────────┤
-│ USERS                                                  │
-│ Jane (jane@…)   [Manager ▾]   [Remove]                 │
-├────────────────────────────────────────────────────────┤
-│ ROLES & PERMISSIONS         [+ Add role]               │
-│ Permission              Admin Manager User Custom1     │
-│ View jobs                ✓     ✓     ✓     ☐           │
-│ Add jobs                 ✓     ✓     ✓     ☐           │
-│ Edit jobs                ✓     ✓     ☐     ☐           │
-│ Delete jobs              ✓     ✓     ☐     ☐           │
-│ Manage marketers/techs   ✓     ☐     ☐     ☐           │
-│ View AI training         ✓     ☐     ☐     ☐           │
-│ Manage users & roles     ✓     ☐     ☐     ☐           │
-│ Use remote upload link   ✓     ✓     ✓     ✓           │
-└────────────────────────────────────────────────────────┘
-```
+1. Add a **Remember me** checkbox below the password field on the Sign In form (default: checked).
+2. On successful sign-in:
+   - If **checked** → do nothing extra (default Supabase behavior — session persists across browser restarts via localStorage).
+   - If **unchecked** → set a flag `sessionStorage.setItem('lovable.ephemeral', '1')`. A small listener in `__root.tsx` (or `auth-context.tsx`) reads this flag once on mount and registers a `beforeunload` handler that calls `supabase.auth.signOut()` when the tab closes.
+3. Persist the user's last choice in `localStorage` so the checkbox remembers their preference next visit.
 
-Admin row is locked — admin always has every permission.
+### Why this is the cheapest option
 
-### How invites work
+- No DB migration, no edge function, no new packages.
+- `client.ts` is auto-generated and can't be edited, so we can't swap storage adapters at runtime — the `beforeunload` approach achieves the same UX (session ends on tab close) with ~15 lines of code.
+- Two small edits: `src/routes/auth.tsx` (checkbox + flag) and `src/lib/auth-context.tsx` (one `useEffect` to register the unload handler).
 
-- Enter email, pick role, click **Send invite** → recipient gets a branded magic-link email from `notify.gedatajob.com`.
-- Clicking the link signs them in and auto-assigns the pre-selected role.
-- Pending invites show **Resend** / **Cancel** buttons; expire after 7 days.
+### Files touched
 
-### Database changes (one migration)
-
-- `pending_invites` (`email`, `role`, `invited_by`, `token`, `expires_at`, `accepted_at`) — admin-only RLS.
-- `permissions` (`key`, `label`) — seeded with the 8 rows above.
-- `role_permissions` (`role_name`, `permission_key`) — drives the matrix; seeded with default Admin/Manager/User grants.
-- `custom_roles` (`name`) — for roles beyond admin/manager/user.
-- Update `handle_new_user` trigger: on signup, look up `pending_invites` by email; if found, assign that role and mark invite accepted.
-- Helper `has_permission(_user_id, _key)` SECURITY DEFINER — admin short-circuits to true; otherwise checks `role_permissions` joined with `user_roles`.
-
-### Backend
-
-- **Server function** `inviteUser` (in `src/routes/settings.tsx` or a dedicated file) — admin-only, validates with zod, inserts into `pending_invites`, calls `supabaseAdmin.auth.admin.inviteUserByEmail()` with `notify.gedatajob.com` as the sender (handled by the existing auth-email-hook once auth templates are scaffolded).
-- **Auth email templates** scaffolded so the invite email is branded.
-- **Resend / cancel** = simple admin-only DB ops.
-
-### Frontend changes
-
-- **`src/components/UsersManager.tsx`** — add Invites and Roles & Permissions sections above the existing Users + Pre-seeded admins blocks.
-- **`src/lib/auth-context.tsx`** — expose `permissions: Set<string>` and `can(key)` helper alongside existing `isAdmin/isManager`.
-- **`src/routes/index.tsx`** & **`src/components/JobsTable.tsx`** — replace `isAdmin`/`isManager` UI gates with `can('jobs.delete')`, `can('users.manage')`, etc. RLS still enforces server-side.
-- Pending-invite acceptance is automatic via the updated signup trigger — no extra page needed.
-
-### Technical notes
-
-- `inviteUserByEmail` requires the service-role client (`supabaseAdmin` from `client.server.ts`) and runs in a server function gated by `requireSupabaseAuth` + an admin role check.
-- Permission keys are stable strings (`jobs.view`, `jobs.add`, `jobs.edit`, `jobs.delete`, `entities.manage`, `ai.view`, `users.manage`, `upload.remote`) — used by both the matrix UI and frontend `can()` checks.
-- Default seeds match the matrix shown above; you can toggle anything except the Admin row.
+- `src/routes/auth.tsx` — add checkbox, write flag on submit.
+- `src/lib/auth-context.tsx` — add `useEffect` that signs out on tab close when the ephemeral flag is set.
 
