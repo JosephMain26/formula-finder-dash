@@ -25,11 +25,12 @@ interface JobsTableProps {
 function StatusBadge({ status }: { status: string | null }) {
   if (!status) return null;
   const lower = status.toLowerCase();
-  let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
-  if (lower === "completed" || lower === "done") variant = "default";
-  else if (lower === "pending") variant = "secondary";
-  else if (lower === "cancelled" || lower === "canceled") variant = "destructive";
-  return <Badge variant={variant}>{status}</Badge>;
+  let className = "bg-muted text-muted-foreground hover:bg-muted";
+  if (lower === "completed" || lower === "done") className = "bg-green-500 text-white hover:bg-green-500";
+  else if (lower === "pending") className = "bg-yellow-400 text-black hover:bg-yellow-400";
+  else if (lower === "cancelled" || lower === "canceled") className = "bg-red-500 text-white hover:bg-red-500";
+  else if (lower === "in progress") className = "bg-blue-500 text-white hover:bg-blue-500";
+  return <Badge className={className}>{status}</Badge>;
 }
 
 function currency(val: number | null) {
