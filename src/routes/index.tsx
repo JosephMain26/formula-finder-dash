@@ -121,6 +121,9 @@ function Dashboard() {
             <Link to="/technicians">
               <Button variant="outline"><Wrench className="h-4 w-4 mr-2" /> Technicians</Button>
             </Link>
+            <Link to="/installers">
+              <Button variant="outline"><Wrench className="h-4 w-4 mr-2" /> Installers</Button>
+            </Link>
             <Link to="/settings">
               <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Settings</Button>
             </Link>

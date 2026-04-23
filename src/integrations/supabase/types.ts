@@ -65,6 +65,36 @@ export type Database = {
         }
         Relationships: []
       }
+      installers: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          install_types: string[]
+          name: string
+          phone_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          install_types?: string[]
+          name: string
+          phone_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          install_types?: string[]
+          name?: string
+          phone_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       job_types: {
         Row: {
           created_at: string
@@ -97,6 +127,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          installer_id: string | null
+          installer_name: string | null
           job_date: string | null
           job_type: string | null
           manual_percentage: number | null
@@ -130,6 +162,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          installer_id?: string | null
+          installer_name?: string | null
           job_date?: string | null
           job_type?: string | null
           manual_percentage?: number | null
@@ -163,6 +197,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          installer_id?: string | null
+          installer_name?: string | null
           job_date?: string | null
           job_type?: string | null
           manual_percentage?: number | null
@@ -189,6 +225,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_installer_id_fkey"
+            columns: ["installer_id"]
+            isOneToOne: false
+            referencedRelation: "installers"
             referencedColumns: ["id"]
           },
         ]

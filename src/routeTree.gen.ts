@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TechniciansRouteImport } from './routes/technicians'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as InstallersRouteImport } from './routes/installers'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -22,6 +23,11 @@ const TechniciansRoute = TechniciansRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstallersRoute = InstallersRouteImport.update({
+  id: '/installers',
+  path: '/installers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CompaniesRoute = CompaniesRouteImport.update({
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/companies': typeof CompaniesRoute
+  '/installers': typeof InstallersRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/companies': typeof CompaniesRoute
+  '/installers': typeof InstallersRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
 }
@@ -51,20 +59,28 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/companies': typeof CompaniesRoute
+  '/installers': typeof InstallersRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/companies' | '/settings' | '/technicians'
+  fullPaths: '/' | '/companies' | '/installers' | '/settings' | '/technicians'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/companies' | '/settings' | '/technicians'
-  id: '__root__' | '/' | '/companies' | '/settings' | '/technicians'
+  to: '/' | '/companies' | '/installers' | '/settings' | '/technicians'
+  id:
+    | '__root__'
+    | '/'
+    | '/companies'
+    | '/installers'
+    | '/settings'
+    | '/technicians'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CompaniesRoute: typeof CompaniesRoute
+  InstallersRoute: typeof InstallersRoute
   SettingsRoute: typeof SettingsRoute
   TechniciansRoute: typeof TechniciansRoute
 }
@@ -83,6 +99,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/installers': {
+      id: '/installers'
+      path: '/installers'
+      fullPath: '/installers'
+      preLoaderRoute: typeof InstallersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/companies': {
@@ -105,6 +128,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CompaniesRoute: CompaniesRoute,
+  InstallersRoute: InstallersRoute,
   SettingsRoute: SettingsRoute,
   TechniciansRoute: TechniciansRoute,
 }
