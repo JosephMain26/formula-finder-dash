@@ -166,7 +166,7 @@ function Dashboard() {
                     <span className="text-xs text-muted-foreground">Showing {filtered.length} of {jobs.length} jobs</span>
                     <div className="flex items-center gap-2">
                       <ExportReportDialog jobs={jobs} companies={uniqueValues.companies} />
-                      <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} onSetV:visible={setVisibleColumns} />
+                      <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} onSetVisible={setVisibleColumns} />
                     </div>
                   </div>
                   <BulkEditBar
