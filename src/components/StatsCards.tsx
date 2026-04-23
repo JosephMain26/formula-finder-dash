@@ -242,7 +242,7 @@ export function StatsCards({ jobs }: StatsCardsProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">Drag cards to reorder · drag bottom-right corner to resize</span>
+        <span className="text-xs text-muted-foreground">Drag to reorder · drag bottom-right corner to resize width &amp; height</span>
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm"><Settings2 className="h-4 w-4 mr-2" /> Customize</Button>
