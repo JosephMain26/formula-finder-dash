@@ -63,17 +63,34 @@ interface ColumnToggleProps {
   onSetVisible: (keys: ColumnKey[]) => void;
 }
 
+const ACTIVE_VIEW_KEY = "dashboard_active_view_id";
+
 export function ColumnToggle({ visibleColumns, onToggle, onShowAll, onSetVisible }: ColumnToggleProps) {
   const [templates, setTemplates] = useState<TemplatesSetting>({ dashboardViews: [], exportTemplates: [] });
   const [activeId, setActiveId] = useState<string>("");
   const [newName, setNewName] = useState("");
 
   useEffect(() => {
-    loadTemplates().then(setTemplates);
+    loadTemplates().then((t) => {
+      setTemplates(t);
+      const savedId = typeof window !== "undefined" ? localStorage.getItem(ACTIVE_VIEW_KEY) || "" : "";
+      const match = savedId ? t.dashboardViews.find(v => v.id === savedId) : null;
+      if (match) {
+        setActiveId(match.id);
+        onSetVisible(match.visibleColumns as ColumnKey[]);
+      } else if (savedId) {
+        // template no longer exists — clear stale id
+        localStorage.removeItem(ACTIVE_VIEW_KEY);
+      }
+    });
   }, []);
 
   function applyTemplate(id: string) {
     setActiveId(id);
+    if (typeof window !== "undefined") {
+      if (id) localStorage.setItem(ACTIVE_VIEW_KEY, id);
+      else localStorage.removeItem(ACTIVE_VIEW_KEY);
+    }
     if (!id) return;
     const t = templates.dashboardViews.find(v => v.id === id);
     if (t) onSetVisible(t.visibleColumns as ColumnKey[]);
@@ -91,6 +108,7 @@ export function ColumnToggle({ visibleColumns, onToggle, onShowAll, onSetVisible
     setTemplates(next);
     await saveTemplates(next);
     setActiveId(tpl.id);
+    if (typeof window !== "undefined") localStorage.setItem(ACTIVE_VIEW_KEY, tpl.id);
     setNewName("");
   }
 
@@ -100,6 +118,7 @@ export function ColumnToggle({ visibleColumns, onToggle, onShowAll, onSetVisible
     setTemplates(next);
     await saveTemplates(next);
     setActiveId("");
+    if (typeof window !== "undefined") localStorage.removeItem(ACTIVE_VIEW_KEY);
   }
 
   return (
