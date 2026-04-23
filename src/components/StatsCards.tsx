@@ -263,9 +263,14 @@ export function StatsCards({ jobs }: StatsCardsProps) {
           </PopoverContent>
         </Popover>
       </div>
-      <div ref={gridRef} className="grid grid-cols-6 gap-4">
+      <div
+        ref={gridRef}
+        className="grid grid-cols-6 gap-4"
+        style={{ gridAutoRows: `${ROW_PX}px`, gridAutoFlow: "row dense" }}
+      >
         {config.map((c, i) => {
           const stat = computeStat(c.key, jobs);
+          const rowSpan = Math.max(1, Math.ceil((c.h + 16) / (ROW_PX + 16))); // include gap
           return (
             <Card
               key={c.key}
@@ -274,7 +279,7 @@ export function StatsCards({ jobs }: StatsCardsProps) {
               onDragOver={(e) => onDragOver(e, i)}
               onDrop={() => onDrop(i)}
               onDragEnd={() => { dragIndex.current = null; setOverIndex(null); }}
-              style={{ height: `${c.h}px` }}
+              style={{ gridRow: `span ${rowSpan}` }}
               className={`${colSpanClass(c.w)} ${overIndex === i ? "ring-2 ring-primary" : ""} relative cursor-move transition-shadow`}
             >
               <CardContent className="p-3 h-full">
