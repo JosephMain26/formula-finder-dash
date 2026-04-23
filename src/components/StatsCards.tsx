@@ -213,8 +213,10 @@ export function StatsCards({ jobs }: StatsCardsProps) {
       const r = resizing!;
       const dx = e.clientX - r.startX;
       const dy = e.clientY - r.startY;
-      const stepW = r.colPx + 16; // approx col + gap
-      const newW = Math.max(MIN_W, Math.min(MAX_W, r.startW + Math.round(dx / stepW)));
+      const stepW = r.colPx + 16;
+      // Use floor with a small bias so width changes feel responsive in both directions
+      const deltaCols = Math.round(dx / stepW);
+      const newW = Math.max(MIN_W, Math.min(MAX_W, r.startW + deltaCols));
       const newH = Math.max(MIN_H, Math.min(MAX_H, r.startH + dy));
       setConfig((prev) => {
         const next = [...prev];
