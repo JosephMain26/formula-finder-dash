@@ -130,6 +130,17 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
                   <EditableCell jobId={job.id} field="job_date" type="date" value={job.job_date}
                     display={<span className="px-2">{job.job_date ? new Date(job.job_date).toLocaleDateString() : "—"}</span>}
                     onSaved={onJobsChanged} />
+                  {job.created_by === "remote_link" && (
+                    <div
+                      className="px-2 mt-0.5 text-[10px] font-semibold text-red-500 leading-tight"
+                      title={`Submitted via remote upload link on ${new Date(job.created_at).toLocaleString()}`}
+                    >
+                      Created by remote link
+                      <div className="font-normal text-red-500/80">
+                        {new Date(job.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                  )}
                 </TableCell>
               )}
               {show("company") && <TableCell className="text-sm font-medium">{job.company_1 || job.company || "—"}</TableCell>}

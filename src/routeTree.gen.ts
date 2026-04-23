@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UploadRouteImport } from './routes/upload'
 import { Route as TechniciansRouteImport } from './routes/technicians'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as InstallersRouteImport } from './routes/installers'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as IndexRouteImport } from './routes/index'
 
+const UploadRoute = UploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TechniciansRoute = TechniciansRouteImport.update({
   id: '/technicians',
   path: '/technicians',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/installers': typeof InstallersRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
+  '/upload': typeof UploadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/installers': typeof InstallersRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
+  '/upload': typeof UploadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,12 +70,25 @@ export interface FileRoutesById {
   '/installers': typeof InstallersRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
+  '/upload': typeof UploadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/companies' | '/installers' | '/settings' | '/technicians'
+  fullPaths:
+    | '/'
+    | '/companies'
+    | '/installers'
+    | '/settings'
+    | '/technicians'
+    | '/upload'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/companies' | '/installers' | '/settings' | '/technicians'
+  to:
+    | '/'
+    | '/companies'
+    | '/installers'
+    | '/settings'
+    | '/technicians'
+    | '/upload'
   id:
     | '__root__'
     | '/'
@@ -75,6 +96,7 @@ export interface FileRouteTypes {
     | '/installers'
     | '/settings'
     | '/technicians'
+    | '/upload'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -83,10 +105,18 @@ export interface RootRouteChildren {
   InstallersRoute: typeof InstallersRoute
   SettingsRoute: typeof SettingsRoute
   TechniciansRoute: typeof TechniciansRoute
+  UploadRoute: typeof UploadRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/upload': {
+      id: '/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof UploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/technicians': {
       id: '/technicians'
       path: '/technicians'
@@ -131,6 +161,7 @@ const rootRouteChildren: RootRouteChildren = {
   InstallersRoute: InstallersRoute,
   SettingsRoute: SettingsRoute,
   TechniciansRoute: TechniciansRoute,
+  UploadRoute: UploadRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
