@@ -138,7 +138,7 @@ function Dashboard() {
       <main className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
         <StatsCards jobs={filtered} />
 
-        <ResizablePanelGroup direction="horizontal" className="min-h-[600px] gap-0" autoSaveId="dashboard-split">
+        <ResizablePanelGroup orientation="horizontal" className="min-h-[600px] gap-0" autoSaveId="dashboard-split">
           <ResizablePanel defaultSize={75} minSize={40}>
             <div className="bg-card rounded-xl border p-5 space-y-5 h-full overflow-auto">
               <div className="flex flex-wrap gap-3 items-end">
