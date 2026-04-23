@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DollarSign, Briefcase, Users, Wrench, Megaphone, TrendingUp, Package, Trophy, Star, ListOrdered, Settings2, GripVertical, Maximize2, Minimize2 } from "lucide-react";
+import { DollarSign, Briefcase, Users, Wrench, Megaphone, TrendingUp, Package, Trophy, Star, ListOrdered, Settings2, GripVertical } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Job = Tables<"jobs">;
@@ -17,19 +17,25 @@ type StatKey =
   | "avg_job_revenue" | "marketer_parts" | "office_parts" | "tech_parts"
   | "best_tech" | "best_marketer" | "top_job_types";
 
-type CardConfig = { key: StatKey; size: 1 | 2 };
+type CardConfig = { key: StatKey; w: number; h: number }; // w = column span 1..6, h = px
 
-const STORAGE_KEY = "dashboard_stat_cards_v2";
-const LEGACY_KEY = "dashboard_stat_cards_v1";
-const MAX_SLOTS = 6; // total column slots (size 1 = 1 slot, size 2 = 2 slots)
+const STORAGE_KEY = "dashboard_stat_cards_v3";
+const LEGACY_V2 = "dashboard_stat_cards_v2";
+const LEGACY_V1 = "dashboard_stat_cards_v1";
+const COLS = 6;
+const MIN_W = 1;
+const MAX_W = 6;
+const MIN_H = 80;
+const MAX_H = 320;
+const DEFAULT_H = 96;
 
 const DEFAULT_CONFIG: CardConfig[] = [
-  { key: "total_revenue", size: 1 },
-  { key: "total_jobs", size: 1 },
-  { key: "marketer_total", size: 1 },
-  { key: "office_total", size: 1 },
-  { key: "tech_total", size: 1 },
-  { key: "avg_job_revenue", size: 1 },
+  { key: "total_revenue", w: 1, h: DEFAULT_H },
+  { key: "total_jobs", w: 1, h: DEFAULT_H },
+  { key: "marketer_total", w: 1, h: DEFAULT_H },
+  { key: "office_total", w: 1, h: DEFAULT_H },
+  { key: "tech_total", w: 1, h: DEFAULT_H },
+  { key: "avg_job_revenue", w: 1, h: DEFAULT_H },
 ];
 
 const ALL_STATS: { key: StatKey; label: string }[] = [
@@ -101,14 +107,24 @@ function computeStat(key: StatKey, jobs: Job[]): { label: string; value: string;
   }
 }
 
-function slotsUsed(cfg: CardConfig[]) {
-  return cfg.reduce((s, c) => s + c.size, 0);
-}
+const colSpanClass = (w: number) => {
+  switch (Math.max(MIN_W, Math.min(MAX_W, w))) {
+    case 1: return "col-span-1";
+    case 2: return "col-span-2";
+    case 3: return "col-span-3";
+    case 4: return "col-span-4";
+    case 5: return "col-span-5";
+    case 6: return "col-span-6";
+    default: return "col-span-1";
+  }
+};
 
 export function StatsCards({ jobs }: StatsCardsProps) {
   const [config, setConfig] = useState<CardConfig[]>(DEFAULT_CONFIG);
   const dragIndex = useRef<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const [resizing, setResizing] = useState<{ index: number; startX: number; startY: number; startW: number; startH: number; colPx: number } | null>(null);
 
   useEffect(() => {
     try {
@@ -117,22 +133,32 @@ export function StatsCards({ jobs }: StatsCardsProps) {
         const parsed = JSON.parse(raw) as CardConfig[];
         if (Array.isArray(parsed) && parsed.length) {
           const valid = parsed
-            .filter((c) => c && ALL_STATS.some((s) => s.key === c.key) && (c.size === 1 || c.size === 2));
-          if (valid.length) {
-            setConfig(valid);
-            return;
-          }
+            .filter((c) => c && ALL_STATS.some((s) => s.key === c.key))
+            .map((c) => ({
+              key: c.key,
+              w: Math.max(MIN_W, Math.min(MAX_W, Math.round(c.w || 1))),
+              h: Math.max(MIN_H, Math.min(MAX_H, Math.round(c.h || DEFAULT_H))),
+            }));
+          if (valid.length) { setConfig(valid); return; }
         }
       }
-      // migrate v1 (StatKey[])
-      const legacy = localStorage.getItem(LEGACY_KEY);
-      if (legacy) {
-        const parsed = JSON.parse(legacy) as StatKey[];
+      const v2 = localStorage.getItem(LEGACY_V2);
+      if (v2) {
+        const parsed = JSON.parse(v2) as { key: StatKey; size: 1 | 2 }[];
+        if (Array.isArray(parsed) && parsed.length) {
+          const valid = parsed
+            .filter((c) => c && ALL_STATS.some((s) => s.key === c.key))
+            .map<CardConfig>((c) => ({ key: c.key, w: c.size === 2 ? 2 : 1, h: DEFAULT_H }));
+          if (valid.length) { setConfig(valid); return; }
+        }
+      }
+      const v1 = localStorage.getItem(LEGACY_V1);
+      if (v1) {
+        const parsed = JSON.parse(v1) as StatKey[];
         if (Array.isArray(parsed) && parsed.length) {
           const valid = parsed
             .filter((k) => ALL_STATS.some((s) => s.key === k))
-            .slice(0, MAX_SLOTS)
-            .map<CardConfig>((k) => ({ key: k, size: 1 }));
+            .map<CardConfig>((k) => ({ key: k, w: 1, h: DEFAULT_H }));
           if (valid.length) setConfig(valid);
         }
       }
@@ -146,24 +172,8 @@ export function StatsCards({ jobs }: StatsCardsProps) {
 
   function toggle(key: StatKey) {
     const exists = config.find((c) => c.key === key);
-    if (exists) {
-      persist(config.filter((c) => c.key !== key));
-    } else {
-      if (slotsUsed(config) >= MAX_SLOTS) return;
-      persist([...config, { key, size: 1 }]);
-    }
-  }
-
-  function toggleSize(key: StatKey) {
-    const next = config.map((c) => {
-      if (c.key !== key) return c;
-      if (c.size === 2) return { ...c, size: 1 as const };
-      // grow to 2 only if room
-      const others = slotsUsed(config) - c.size;
-      if (others + 2 > MAX_SLOTS) return c;
-      return { ...c, size: 2 as const };
-    });
-    persist(next);
+    if (exists) persist(config.filter((c) => c.key !== key));
+    else persist([...config, { key, w: 1, h: DEFAULT_H }]);
   }
 
   function onDragStart(i: number) { dragIndex.current = i; }
@@ -182,25 +192,65 @@ export function StatsCards({ jobs }: StatsCardsProps) {
     persist(next);
   }
 
-  const used = slotsUsed(config);
+  function startResize(e: React.PointerEvent, index: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    const grid = gridRef.current;
+    if (!grid) return;
+    const styles = getComputedStyle(grid);
+    const gap = parseFloat(styles.columnGap || styles.gap || "16") || 16;
+    const totalW = grid.clientWidth;
+    const colPx = (totalW - gap * (COLS - 1)) / COLS;
+    const c = config[index];
+    setResizing({ index, startX: e.clientX, startY: e.clientY, startW: c.w, startH: c.h, colPx });
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }
+
+  useEffect(() => {
+    if (!resizing) return;
+    function onMove(e: PointerEvent) {
+      const r = resizing!;
+      const dx = e.clientX - r.startX;
+      const dy = e.clientY - r.startY;
+      const stepW = r.colPx + 16; // approx col + gap
+      const newW = Math.max(MIN_W, Math.min(MAX_W, r.startW + Math.round(dx / stepW)));
+      const newH = Math.max(MIN_H, Math.min(MAX_H, r.startH + dy));
+      setConfig((prev) => {
+        const next = [...prev];
+        if (!next[r.index]) return prev;
+        if (next[r.index].w === newW && next[r.index].h === newH) return prev;
+        next[r.index] = { ...next[r.index], w: newW, h: newH };
+        return next;
+      });
+    }
+    function onUp() {
+      setResizing(null);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch {}
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [resizing, config]);
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{used} of {MAX_SLOTS} slots used · drag to reorder</span>
+        <span className="text-xs text-muted-foreground">Drag cards to reorder · drag bottom-right corner to resize</span>
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm"><Settings2 className="h-4 w-4 mr-2" /> Customize</Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-64">
-            <p className="text-xs text-muted-foreground mb-2">Pick cards (size 2 uses 2 slots of {MAX_SLOTS})</p>
+            <p className="text-xs text-muted-foreground mb-2">Pick which cards to show</p>
             <div className="space-y-2 max-h-72 overflow-auto">
               {ALL_STATS.map((s) => {
                 const checked = config.some((c) => c.key === s.key);
-                const disabled = !checked && used >= MAX_SLOTS;
                 return (
-                  <label key={s.key} className={`flex items-center gap-2 text-sm ${disabled ? "opacity-50" : "cursor-pointer"}`}>
-                    <Checkbox checked={checked} disabled={disabled} onCheckedChange={() => toggle(s.key)} />
+                  <label key={s.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={checked} onCheckedChange={() => toggle(s.key)} />
                     <span>{s.label}</span>
                   </label>
                 );
@@ -209,10 +259,9 @@ export function StatsCards({ jobs }: StatsCardsProps) {
           </PopoverContent>
         </Popover>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div ref={gridRef} className="grid grid-cols-6 gap-4">
         {config.map((c, i) => {
           const stat = computeStat(c.key, jobs);
-          const canGrow = c.size === 2 || used - c.size + 2 <= MAX_SLOTS;
           return (
             <Card
               key={c.key}
@@ -221,10 +270,11 @@ export function StatsCards({ jobs }: StatsCardsProps) {
               onDragOver={(e) => onDragOver(e, i)}
               onDrop={() => onDrop(i)}
               onDragEnd={() => { dragIndex.current = null; setOverIndex(null); }}
-              className={`${c.size === 2 ? "col-span-2 sm:col-span-2 lg:col-span-2" : ""} ${overIndex === i ? "ring-2 ring-primary" : ""} cursor-move transition`}
+              style={{ height: `${c.h}px` }}
+              className={`${colSpanClass(c.w)} ${overIndex === i ? "ring-2 ring-primary" : ""} relative cursor-move transition-shadow`}
             >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-2">
+              <CardContent className="p-4 h-full">
+                <div className="flex items-center justify-between gap-2 h-full">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <div className="min-w-0">
@@ -233,21 +283,18 @@ export function StatsCards({ jobs }: StatsCardsProps) {
                       {stat.sub && <p className="text-[11px] text-muted-foreground mt-0.5 truncate" title={stat.sub}>{stat.sub}</p>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <stat.icon className={`h-7 w-7 ${stat.color} opacity-80`} />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      title={c.size === 2 ? "Shrink" : canGrow ? "Expand" : "No room to expand"}
-                      disabled={c.size === 1 && !canGrow}
-                      onClick={() => toggleSize(c.key)}
-                    >
-                      {c.size === 2 ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-                    </Button>
-                  </div>
+                  <stat.icon className={`h-7 w-7 ${stat.color} opacity-80 shrink-0`} />
                 </div>
               </CardContent>
+              <div
+                onPointerDown={(e) => startResize(e, i)}
+                title="Drag to resize"
+                className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-60 hover:opacity-100"
+                style={{
+                  background:
+                    "linear-gradient(135deg, transparent 0 50%, hsl(var(--muted-foreground) / 0.6) 50% 60%, transparent 60% 70%, hsl(var(--muted-foreground) / 0.6) 70% 80%, transparent 80%)",
+                }}
+              />
             </Card>
           );
         })}
