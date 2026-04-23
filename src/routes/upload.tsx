@@ -295,6 +295,9 @@ function ParseTab({ opts }: { opts: Options }) {
   const [done, setDone] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [draft, setDraft] = useState<DraftForm>(emptyDraft);
+  const [parsedSnapshot, setParsedSnapshot] = useState<{
+    company: string; tech_name: string; job_type: string; payment: string; snippet: string;
+  } | null>(null);
 
   async function parse() {
     const trimmed = message.trim();
@@ -302,12 +305,16 @@ function ParseTab({ opts }: { opts: Options }) {
     if (trimmed.length > 5000) { toast.error("Message too long (max 5000 chars)"); return; }
     setParsing(true);
     try {
+      const training = await loadAITraining();
       const { data, error } = await supabase.functions.invoke("parse-job-message", {
         body: {
           message: trimmed,
           companies: opts.companies.map((c) => c.company_name),
           technicians: opts.techs.map((t) => t.tech_name),
           jobTypes: opts.jobTypes.map((j) => j.name),
+          generalRules: training.generalRules,
+          marketerRules: training.marketerRules,
+          recentCorrections: training.corrections,
         },
       });
       if (error) {
@@ -319,13 +326,28 @@ function ParseTab({ opts }: { opts: Options }) {
       if (ex.customer_name) noteParts.push(`Customer: ${ex.customer_name}`);
       if (ex.notes) noteParts.push(ex.notes);
 
-      const company = opts.companies.find(
-        (c) => c.company_name.toLowerCase() === String(ex.company || "").toLowerCase()
+      // Apply local marketer rules (override AI guess if a rule matches)
+      const ruleMatch = applyMarketerRules(
+        { company: ex.company, customer_name: ex.customer_name, notes: ex.notes },
+        trimmed,
+        training.marketerRules
       );
+      const finalCompanyName = ruleMatch || ex.company || "";
+      const company = opts.companies.find(
+        (c) => c.company_name.toLowerCase() === finalCompanyName.toLowerCase()
+      );
+
+      setParsedSnapshot({
+        company: finalCompanyName,
+        tech_name: ex.tech_name || "",
+        job_type: ex.job_type || "",
+        payment: ex.payment || "",
+        snippet: trimmed.slice(0, 120),
+      });
 
       setDraft({
         job_date: ex.job_date || "",
-        company_1: company?.company_name || ex.company || "",
+        company_1: company?.company_name || finalCompanyName,
         company_id: company?.id ?? null,
         tech_name: ex.tech_name || "",
         phone_no: ex.phone_no || "",
@@ -354,10 +376,27 @@ function ParseTab({ opts }: { opts: Options }) {
     try {
       const { error } = await supabase.from("jobs").insert(buildPayload(draft));
       if (error) { toast.error("Failed to save job"); return; }
+      // Auto-learn: record any field the user corrected
+      if (parsedSnapshot) {
+        const checks: { field: "company" | "tech_name" | "job_type" | "payment"; parsed: string; corrected: string }[] = [
+          { field: "company", parsed: parsedSnapshot.company, corrected: draft.company_1 },
+          { field: "tech_name", parsed: parsedSnapshot.tech_name, corrected: draft.tech_name },
+          { field: "job_type", parsed: parsedSnapshot.job_type, corrected: draft.job_type },
+          { field: "payment", parsed: parsedSnapshot.payment, corrected: draft.payment },
+        ];
+        for (const c of checks) {
+          const a = (c.parsed || "").trim().toLowerCase();
+          const b = (c.corrected || "").trim().toLowerCase();
+          if (b && a !== b) {
+            await recordCorrection({ field: c.field, parsed: c.parsed || "", corrected: c.corrected, snippet: parsedSnapshot.snippet });
+          }
+        }
+      }
       setReviewOpen(false);
       setDone(true);
       setMessage("");
       setDraft(emptyDraft);
+      setParsedSnapshot(null);
     } finally {
       setSubmitting(false);
     }
