@@ -400,23 +400,25 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             <Select
               value={form.payment}
               onValueChange={(v) => {
-                const isCard = v.toLowerCase().includes("card");
+                const pct = feePercentFor(v);
                 const price = parseFloat(form.price) || 0;
                 setForm((prev) => ({
                   ...prev,
                   payment: v,
-                  cc_fee: isCard && ccFeePercent > 0
-                    ? (Math.round(price * (ccFeePercent / 100) * 100) / 100).toString()
+                  cc_fee: pct > 0
+                    ? (Math.round(price * (pct / 100) * 100) / 100).toString()
                     : "0",
                 }));
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder={paymentOptions.length ? "Select payment method" : "Enable methods in Settings"} />
+                <SelectValue placeholder={paymentMethods.length ? "Select payment method" : "Add methods in Settings"} />
               </SelectTrigger>
               <SelectContent>
-                {paymentOptions.map((opt) => (
-                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                {paymentMethods.map((m) => (
+                  <SelectItem key={m.id} value={m.name}>
+                    {m.name}{typeof m.feePercent === "number" && m.feePercent > 0 ? ` (${m.feePercent}% fee)` : ""}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
