@@ -9,6 +9,7 @@ import { ColumnToggle, useColumnVisibility } from "@/components/ColumnToggle";
 import { ExportReportDialog } from "@/components/ExportReportDialog";
 import { BulkEditBar } from "@/components/BulkEditBar";
 import { ParseMessageDialog } from "@/components/ParseMessageDialog";
+import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { DateRangePresets, type DateRange } from "@/components/DateRangePresets";
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { Button } from "@/components/ui/button";
@@ -129,6 +130,7 @@ function Dashboard() {
             <Link to="/settings">
               <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Settings</Button>
             </Link>
+            <RemoteLinkButton />
             <ParseMessageDialog onJobSaved={fetchJobs} />
             <AddJobDialog onJobAdded={fetchJobs} />
           </div>
