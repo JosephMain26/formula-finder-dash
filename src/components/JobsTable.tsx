@@ -5,8 +5,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { JobDialog } from "@/components/AddJobDialog";
+import { EditableCell } from "@/components/EditableCell";
 import type { Tables } from "@/integrations/supabase/types";
 import type { ColumnKey } from "@/components/ColumnToggle";
+
+const STATUS_OPTIONS = ["Pending", "Completed", "Cancelled", "In Progress"];
 
 type Job = Tables<"jobs">;
 
@@ -121,23 +124,101 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
                   </div>
                 </TableCell>
               )}
-              {show("job_date") && <TableCell className="whitespace-nowrap text-sm">{job.job_date ? new Date(job.job_date).toLocaleDateString() : "—"}</TableCell>}
+              {show("job_date") && (
+                <TableCell className="whitespace-nowrap text-sm p-1">
+                  <EditableCell jobId={job.id} field="job_date" type="date" value={job.job_date}
+                    display={<span className="px-2">{job.job_date ? new Date(job.job_date).toLocaleDateString() : "—"}</span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
               {show("company") && <TableCell className="text-sm font-medium">{job.company_1 || job.company || "—"}</TableCell>}
-              {show("tech_name") && <TableCell className="text-sm">{job.tech_name || "—"}</TableCell>}
-              {show("po_number") && <TableCell className="text-sm">{job.po_number || "—"}</TableCell>}
-              {show("job_type") && <TableCell className="text-sm">{job.job_type || "—"}</TableCell>}
-              {show("status") && <TableCell><StatusBadge status={job.status} /></TableCell>}
-              {show("price") && <TableCell className="text-right text-sm font-medium">{currency(job.price)}</TableCell>}
-              {show("co_parts") && <TableCell className="text-right text-sm">{currency(job.co_parts)}</TableCell>}
-              {show("office_parts") && <TableCell className="text-right text-sm">{currency((job as any).office_parts ?? 0)}</TableCell>}
-              {show("parts") && <TableCell className="text-right text-sm">{currency(job.parts)}</TableCell>}
-              {show("manual_percentage") && <TableCell className="text-right text-sm">{job.manual_percentage != null ? `${job.manual_percentage}%` : "—"}</TableCell>}
+              {show("tech_name") && (
+                <TableCell className="text-sm p-1">
+                  <EditableCell jobId={job.id} field="tech_name" value={job.tech_name}
+                    display={<span className="px-2">{job.tech_name || "—"}</span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
+              {show("po_number") && (
+                <TableCell className="text-sm p-1">
+                  <EditableCell jobId={job.id} field="po_number" value={job.po_number}
+                    display={<span className="px-2">{job.po_number || "—"}</span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
+              {show("job_type") && (
+                <TableCell className="text-sm p-1">
+                  <EditableCell jobId={job.id} field="job_type" value={job.job_type}
+                    display={<span className="px-2">{job.job_type || "—"}</span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
+              {show("status") && (
+                <TableCell className="p-1">
+                  <EditableCell jobId={job.id} field="status" type="select" options={STATUS_OPTIONS} value={job.status}
+                    display={<span className="px-2"><StatusBadge status={job.status} /></span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
+              {show("price") && (
+                <TableCell className="text-right text-sm font-medium p-1">
+                  <EditableCell jobId={job.id} field="price" type="number" value={job.price} align="right"
+                    display={<span className="px-2">{currency(job.price)}</span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
+              {show("co_parts") && (
+                <TableCell className="text-right text-sm p-1">
+                  <EditableCell jobId={job.id} field="co_parts" type="number" value={job.co_parts} align="right"
+                    display={<span className="px-2">{currency(job.co_parts)}</span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
+              {show("office_parts") && (
+                <TableCell className="text-right text-sm p-1">
+                  <EditableCell jobId={job.id} field="office_parts" type="number" value={(job as any).office_parts ?? 0} align="right"
+                    display={<span className="px-2">{currency((job as any).office_parts ?? 0)}</span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
+              {show("parts") && (
+                <TableCell className="text-right text-sm p-1">
+                  <EditableCell jobId={job.id} field="parts" type="number" value={job.parts} align="right"
+                    display={<span className="px-2">{currency(job.parts)}</span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
+              {show("manual_percentage") && (
+                <TableCell className="text-right text-sm p-1">
+                  <EditableCell jobId={job.id} field="manual_percentage" type="number" value={job.manual_percentage} align="right"
+                    display={<span className="px-2">{job.manual_percentage != null ? `${job.manual_percentage}%` : "—"}</span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
               {show("total_marketer") && <TableCell className="text-right text-sm font-medium">{currency((job as any).total_marketer ?? 0)}</TableCell>}
               {show("total_office") && <TableCell className="text-right text-sm font-medium">{currency(job.total_office)}</TableCell>}
               {show("total_tech") && <TableCell className="text-right text-sm font-medium text-primary">{currency(job.total_tech)}</TableCell>}
-              {show("tip") && <TableCell className="text-right text-sm">{currency(job.tip)}</TableCell>}
-              {show("cc_fee") && <TableCell className="text-right text-sm">{currency(job.cc_fee)}</TableCell>}
-              {show("payment") && <TableCell className="text-sm">{job.payment || "—"}</TableCell>}
+              {show("tip") && (
+                <TableCell className="text-right text-sm p-1">
+                  <EditableCell jobId={job.id} field="tip" type="number" value={job.tip} align="right"
+                    display={<span className="px-2">{currency(job.tip)}</span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
+              {show("cc_fee") && (
+                <TableCell className="text-right text-sm p-1">
+                  <EditableCell jobId={job.id} field="cc_fee" type="number" value={job.cc_fee} align="right"
+                    display={<span className="px-2">{currency(job.cc_fee)}</span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
+              {show("payment") && (
+                <TableCell className="text-sm p-1">
+                  <EditableCell jobId={job.id} field="payment" value={job.payment}
+                    display={<span className="px-2">{job.payment || "—"}</span>}
+                    onSaved={onJobsChanged} />
+                </TableCell>
+              )}
               {show("paid") && (
                 <TableCell>
                   <button
