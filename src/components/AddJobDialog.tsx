@@ -18,6 +18,7 @@ type Technician = {
   percentage: number | null;
 };
 type JobType = { id: string; name: string };
+type Installer = { id: string; name: string };
 
 const emptyForm = {
   job_date: "", company_id: "", technician_id: "", tech_name: "",
@@ -25,6 +26,7 @@ const emptyForm = {
   status: "Pending", price: "", co_parts: "", office_parts: "", parts: "", payment: "",
   check_no: "", tip: "", cost: "", notes: "", cc_fee: "",
   manual_percentage: "", marketer_percentage: "", created_by: "", maps: "", paid: false,
+  installer_id: "", installer_name: "",
 };
 
 interface JobDialogProps {
@@ -45,6 +47,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [companies, setCompanies] = useState<Company[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
+  const [installers, setInstallers] = useState<Installer[]>([]);
   const [useManualPercentage, setUseManualPercentage] = useState(false);
   const [useManualMarketerPercentage, setUseManualMarketerPercentage] = useState(false);
   const [newJobType, setNewJobType] = useState("");
@@ -59,6 +62,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     if (open) {
       supabase.from("companies").select("*").order("company_name").then(({ data }) => setCompanies(data || []));
       supabase.from("technicians").select("*").order("tech_name").then(({ data }) => setTechnicians((data as Technician[]) || []));
+      (supabase as any).from("installers").select("id,name").order("name").then(({ data }: any) => setInstallers((data as Installer[]) || []));
       fetchJobTypes();
       loadPaymentMethods().then((m) => setPaymentMethods(m));
 
@@ -89,6 +93,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           created_by: job.created_by || "",
           maps: job.maps || "",
           paid: job.paid || false,
+          installer_id: (job as any).installer_id || "",
+          installer_name: (job as any).installer_name || "",
         });
         setUseManualPercentage(!!job.manual_percentage);
         setUseManualMarketerPercentage(false);
@@ -218,6 +224,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       total_tech: totalTech,
       total_office: totalOffice,
       total_marketer: totalMarketer,
+      installer_id: form.installer_id || null,
+      installer_name: form.installer_name || null,
     };
 
     let error;
