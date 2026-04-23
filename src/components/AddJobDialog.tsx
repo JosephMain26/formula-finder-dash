@@ -437,7 +437,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              CC Fee ($) {form.payment.toLowerCase().includes("card") && ccFeePercent > 0 && `— auto ${ccFeePercent}%`}
+              CC Fee ($) {feePercentFor(form.payment) > 0 && `— auto ${feePercentFor(form.payment)}%`}
             </label>
             <Input type="number" step="0.01" value={form.cc_fee} onChange={(e) => update("cc_fee", e.target.value)} />
           </div>
