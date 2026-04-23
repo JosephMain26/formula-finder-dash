@@ -9,7 +9,7 @@ import { Trash2, Plus, Send, RotateCw, X, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { inviteUser, resendInvite, cancelInvite } from "@/lib/invites.functions";
-import type { AppRole } from "@/lib/auth-context";
+import { useAuth, type AppRole } from "@/lib/auth-context";
 
 type Profile = { id: string; email: string | null; display_name: string | null; created_at: string };
 type RoleRow = { user_id: string; role: AppRole };
@@ -18,7 +18,16 @@ type Permission = { key: string; label: string };
 
 const BUILT_IN_ROLES = ["admin", "manager", "user"];
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error !== null && "statusText" in error && typeof (error as { statusText?: unknown }).statusText === "string") {
+    return (error as { statusText: string }).statusText || fallback;
+  }
+  return fallback;
+}
+
 export function UsersManager() {
+  const { session } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<Record<string, AppRole>>({});
   const [seedEmail, setSeedEmail] = useState("");
@@ -42,120 +51,56 @@ export function UsersManager() {
   const cancelFn = useServerFn(cancelInvite);
 
   const allRoles = [...BUILT_IN_ROLES, ...customRoles.map((c) => c.name)];
-
-  async function load() {
-    setLoading(true);
-    const [
-      { data: p },
-      { data: r },
-      { data: s },
-      { data: inv },
-      { data: perms },
-      { data: cust },
-      { data: rp },
-    ] = await Promise.all([
-      (supabase as any).from("profiles").select("*").order("created_at", { ascending: false }),
-      (supabase as any).from("user_roles").select("user_id, role"),
-      (supabase as any).from("admin_seed").select("email"),
-      (supabase as any)
-        .from("pending_invites")
-        .select("id, email, role, created_at, expires_at")
-        .is("accepted_at", null)
-        .order("created_at", { ascending: false }),
-      (supabase as any).from("permissions").select("key, label").order("key"),
-      (supabase as any).from("custom_roles").select("name").order("name"),
-      (supabase as any).from("role_permissions").select("role_name, permission_key"),
-    ]);
-
-    setProfiles(p || []);
-    const map: Record<string, AppRole> = {};
-    (r || []).forEach((row: RoleRow) => {
-      const cur = map[row.user_id];
-      if (!cur || row.role === "admin" || (row.role === "manager" && cur === "user")) map[row.user_id] = row.role;
-    });
-    setRoles(map);
-    setSeeds(s || []);
-    setPending(inv || []);
-    setPermissions(perms || []);
-    setCustomRoles(cust || []);
-
-    const rpMap: Record<string, Set<string>> = {};
-    (rp || []).forEach((row: any) => {
-      if (!rpMap[row.role_name]) rpMap[row.role_name] = new Set();
-      rpMap[row.role_name].add(row.permission_key);
-    });
-    setRolePerms(rpMap);
-
-    setLoading(false);
-  }
-
-  useEffect(() => { load(); }, []);
-
-  // ------------- Users -------------
-  async function changeRole(userId: string, newRole: string) {
-    await (supabase as any).from("user_roles").delete().eq("user_id", userId);
-    // Built-in roles use the enum; custom roles can't be inserted into user_roles (enum-constrained).
-    if (!BUILT_IN_ROLES.includes(newRole)) {
-      toast.error("Custom roles cannot yet be assigned directly to existing users (enum limitation). Use built-in roles.");
-      return;
-    }
-    const { error } = await (supabase as any).from("user_roles").insert({ user_id: userId, role: newRole });
-    if (error) { toast.error(error.message); return; }
-    toast.success(`Role updated to ${newRole}`);
-    setRoles((prev) => ({ ...prev, [userId]: newRole }));
-  }
-
-  // ------------- Seeds -------------
-  async function addSeed() {
-    const email = seedEmail.trim().toLowerCase();
-    if (!email) return;
-    const { error } = await (supabase as any).from("admin_seed").insert({ email });
-    if (error) { toast.error(error.message); return; }
-    setSeedEmail("");
-    toast.success("Pre-seeded admin email added");
-    load();
-  }
-  async function removeSeed(email: string) {
-    const { error } = await (supabase as any).from("admin_seed").delete().eq("email", email);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Removed");
-    load();
-  }
-
+...
   // ------------- Invites -------------
   async function sendInvite() {
     const email = inviteEmail.trim().toLowerCase();
+    const accessToken = session?.access_token;
     if (!email) return;
+    if (!accessToken) {
+      toast.error("Your session has expired. Please sign in again.");
+      return;
+    }
     setInviteSending(true);
     try {
-      await inviteFn({ data: { email, role: inviteRole } });
+      await inviteFn({ data: { accessToken, email, role: inviteRole } });
       toast.success(`Invite sent to ${email}`);
       setInviteEmail("");
       load();
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to send invite");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e, "Failed to send invite"));
     } finally {
       setInviteSending(false);
     }
   }
 
   async function resend(email: string) {
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      toast.error("Your session has expired. Please sign in again.");
+      return;
+    }
     try {
-      await resendFn({ data: { email } });
+      await resendFn({ data: { accessToken, email } });
       toast.success("Invite resent");
       load();
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to resend");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e, "Failed to resend"));
     }
   }
 
   async function cancel(email: string) {
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      toast.error("Your session has expired. Please sign in again.");
+      return;
+    }
     try {
-      await cancelFn({ data: { email } });
+      await cancelFn({ data: { accessToken, email } });
       toast.success("Invite cancelled");
       load();
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to cancel");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e, "Failed to cancel"));
     }
   }
 
