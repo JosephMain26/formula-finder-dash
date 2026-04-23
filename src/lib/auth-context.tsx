@@ -78,7 +78,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else setLoading(false);
     });
 
-    return () => sub.subscription.unsubscribe();
+    // "Remember me" off → sign out when tab closes
+    const handleUnload = () => {
+      if (typeof window !== "undefined" && sessionStorage.getItem("lovable.ephemeral") === "1") {
+        try {
+          supabase.auth.signOut();
+        } catch {
+          // ignore
+        }
+      }
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("beforeunload", handleUnload);
+    }
+
+    return () => {
+      sub.subscription.unsubscribe();
+      if (typeof window !== "undefined") {
+        window.removeEventListener("beforeunload", handleUnload);
+      }
+    };
   }, []);
 
   async function signOut() {

@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+
+const REMEMBER_KEY = "lovable.rememberMe";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -24,10 +27,26 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const saved = localStorage.getItem(REMEMBER_KEY);
+    return saved === null ? true : saved === "1";
+  });
+
+  function applyRememberFlag(remember: boolean) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(REMEMBER_KEY, remember ? "1" : "0");
+    if (remember) {
+      sessionStorage.removeItem("lovable.ephemeral");
+    } else {
+      sessionStorage.setItem("lovable.ephemeral", "1");
+    }
+  }
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    applyRememberFlag(rememberMe);
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setBusy(false);
     if (error) {
@@ -94,6 +113,16 @@ function AuthPage() {
                 <div className="space-y-1.5">
                   <Label htmlFor="si-pw">Password</Label>
                   <Input id="si-pw" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="si-remember"
+                    checked={rememberMe}
+                    onCheckedChange={(v) => setRememberMe(v === true)}
+                  />
+                  <Label htmlFor="si-remember" className="text-sm font-normal cursor-pointer">
+                    Remember me
+                  </Label>
                 </div>
                 <Button type="submit" className="w-full" disabled={busy}>
                   {busy ? "Signing in…" : "Sign In"}
