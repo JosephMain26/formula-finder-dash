@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { DollarSign, Briefcase, Users, Wrench, Megaphone, TrendingUp, Package, Trophy, Star, ListOrdered, Settings2, GripVertical } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { AutoFitText } from "@/components/AutoFitText";
 
 type Job = Tables<"jobs">;
 
