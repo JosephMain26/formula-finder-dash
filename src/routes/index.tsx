@@ -14,8 +14,9 @@ import { DateRangePresets, type DateRange } from "@/components/DateRangePresets"
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { Button } from "@/components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { Settings } from "lucide-react";
+import { Settings, LogOut } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { useAuth } from "@/lib/auth-context";
 
 type Job = Tables<"jobs">;
 
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
+  const { user, role, isAdmin, signOut } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const { visibleColumns, toggle: toggleColumn, showAll: showAllColumns, setVisible: setVisibleColumns } = useColumnVisibility();
   const [loading, setLoading] = useState(true);
@@ -118,11 +120,20 @@ function Dashboard() {
             <p className="text-sm text-muted-foreground mt-0.5">Track and manage all service jobs</p>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/settings">
-              <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Settings</Button>
-            </Link>
+            {user && (
+              <div className="hidden sm:flex flex-col items-end leading-tight">
+                <span className="text-xs font-medium">{user.email}</span>
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{role || "—"}</span>
+              </div>
+            )}
+            {isAdmin && (
+              <Link to="/settings">
+                <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Settings</Button>
+              </Link>
+            )}
             <ParseMessageDialog onJobSaved={fetchJobs} />
             <AddJobDialog onJobAdded={fetchJobs} />
+            <Button variant="ghost" size="icon" onClick={signOut} title="Sign out"><LogOut className="h-4 w-4" /></Button>
           </div>
         </div>
       </header>
