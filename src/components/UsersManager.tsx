@@ -51,8 +51,95 @@ export function UsersManager() {
   const cancelFn = useServerFn(cancelInvite);
 
   const allRoles = [...BUILT_IN_ROLES, ...customRoles.map((c) => c.name)];
-...
-  // ------------- Invites -------------
+
+  async function load() {
+    setLoading(true);
+    const [
+      { data: p },
+      { data: r },
+      { data: s },
+      { data: inv },
+      { data: perms },
+      { data: cust },
+      { data: rp },
+    ] = await Promise.all([
+      (supabase as any).from("profiles").select("*").order("created_at", { ascending: false }),
+      (supabase as any).from("user_roles").select("user_id, role"),
+      (supabase as any).from("admin_seed").select("email"),
+      (supabase as any)
+        .from("pending_invites")
+        .select("id, email, role, created_at, expires_at")
+        .is("accepted_at", null)
+        .order("created_at", { ascending: false }),
+      (supabase as any).from("permissions").select("key, label").order("key"),
+      (supabase as any).from("custom_roles").select("name").order("name"),
+      (supabase as any).from("role_permissions").select("role_name, permission_key"),
+    ]);
+
+    setProfiles(p || []);
+    const map: Record<string, AppRole> = {};
+    (r || []).forEach((row: RoleRow) => {
+      const cur = map[row.user_id];
+      if (!cur || row.role === "admin" || (row.role === "manager" && cur === "user")) map[row.user_id] = row.role;
+    });
+    setRoles(map);
+    setSeeds(s || []);
+    setPending(inv || []);
+    setPermissions(perms || []);
+    setCustomRoles(cust || []);
+
+    const rpMap: Record<string, Set<string>> = {};
+    (rp || []).forEach((row: any) => {
+      if (!rpMap[row.role_name]) rpMap[row.role_name] = new Set();
+      rpMap[row.role_name].add(row.permission_key);
+    });
+    setRolePerms(rpMap);
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function changeRole(userId: string, newRole: string) {
+    await (supabase as any).from("user_roles").delete().eq("user_id", userId);
+    if (!BUILT_IN_ROLES.includes(newRole)) {
+      toast.error("Custom roles cannot yet be assigned directly to existing users (enum limitation). Use built-in roles.");
+      return;
+    }
+    const { error } = await (supabase as any).from("user_roles").insert({ user_id: userId, role: newRole });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Role updated to ${newRole}`);
+    setRoles((prev) => ({ ...prev, [userId]: newRole }));
+  }
+
+  async function addSeed() {
+    const email = seedEmail.trim().toLowerCase();
+    if (!email) return;
+    const { error } = await (supabase as any).from("admin_seed").insert({ email });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setSeedEmail("");
+    toast.success("Pre-seeded admin email added");
+    load();
+  }
+
+  async function removeSeed(email: string) {
+    const { error } = await (supabase as any).from("admin_seed").delete().eq("email", email);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Removed");
+    load();
+  }
+
   async function sendInvite() {
     const email = inviteEmail.trim().toLowerCase();
     const accessToken = session?.access_token;
