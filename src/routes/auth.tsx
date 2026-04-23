@@ -114,6 +114,16 @@ function AuthPage() {
                   <Label htmlFor="si-pw">Password</Label>
                   <Input id="si-pw" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="si-remember"
+                    checked={rememberMe}
+                    onCheckedChange={(v) => setRememberMe(v === true)}
+                  />
+                  <Label htmlFor="si-remember" className="text-sm font-normal cursor-pointer">
+                    Remember me
+                  </Label>
+                </div>
                 <Button type="submit" className="w-full" disabled={busy}>
                   {busy ? "Signing in…" : "Sign In"}
                 </Button>
