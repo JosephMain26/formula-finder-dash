@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles, Loader2, Plus, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/upload")({
@@ -22,7 +24,94 @@ export const Route = createFileRoute("/upload")({
 
 const REMOTE_MARKER = "remote_link";
 
+// ---------- Shared options hook (live data from system) ----------
+type Company = { id: string; company_name: string };
+type Tech = { id: string; tech_name: string };
+type JobType = { id: string; name: string };
+type Installer = { id: string; name: string };
+
+type Options = {
+  companies: Company[];
+  techs: Tech[];
+  jobTypes: JobType[];
+  installers: Installer[];
+  paymentMethods: PaymentMethod[];
+  loading: boolean;
+};
+
+function useOptions(): Options {
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [techs, setTechs] = useState<Tech[]>([]);
+  const [jobTypes, setJobTypes] = useState<JobType[]>([]);
+  const [installers, setInstallers] = useState<Installer[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [c, t, j, i, pm] = await Promise.all([
+        supabase.from("companies").select("id, company_name").order("company_name"),
+        supabase.from("technicians").select("id, tech_name").order("tech_name"),
+        supabase.from("job_types").select("id, name").order("name"),
+        (supabase as any).from("installers").select("id, name").order("name"),
+        loadPaymentMethods(),
+      ]);
+      if (cancelled) return;
+      setCompanies((c.data as Company[]) || []);
+      setTechs((t.data as Tech[]) || []);
+      setJobTypes((j.data as JobType[]) || []);
+      setInstallers((i.data as Installer[]) || []);
+      setPaymentMethods(pm);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  return { companies, techs, jobTypes, installers, paymentMethods, loading };
+}
+
+// Field wrapper
+function Field({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
+  return (
+    <div className={full ? "col-span-2" : ""}>
+      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+// Select that picks from a live list of names; passes the chosen name back
+function NameSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder: string;
+}) {
+  // If the current value isn't in the option list (e.g. AI parsed an unknown name), include it
+  const all = value && !options.includes(value) ? [value, ...options] : options;
+  return (
+    <Select value={value || undefined} onValueChange={onChange}>
+      <SelectTrigger>
+        <SelectValue placeholder={options.length ? placeholder : "None configured yet"} />
+      </SelectTrigger>
+      <SelectContent>
+        {all.map((name) => (
+          <SelectItem key={name} value={name}>{name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+// ---------- Page ----------
 function RemoteUploadPage() {
+  const opts = useOptions();
   return (
     <div className="min-h-screen bg-background flex items-start justify-center py-10 px-4">
       <div className="w-full max-w-xl space-y-6">
@@ -38,10 +127,10 @@ function RemoteUploadPage() {
             <TabsTrigger value="manual"><Plus className="h-4 w-4 mr-2" /> Manual Entry</TabsTrigger>
           </TabsList>
           <TabsContent value="parse" className="mt-4">
-            <ParseTab />
+            <ParseTab opts={opts} />
           </TabsContent>
           <TabsContent value="manual" className="mt-4">
-            <ManualTab />
+            <ManualTab opts={opts} />
           </TabsContent>
         </Tabs>
       </div>
@@ -60,6 +149,7 @@ function SuccessCard({ onAnother }: { onAnother: () => void }) {
   );
 }
 
+// ---------- Shared form rendering for both Parse review & Manual ----------
 type DraftForm = {
   job_date: string;
   company_1: string;
@@ -68,6 +158,8 @@ type DraftForm = {
   phone_no: string;
   address: string;
   job_type: string;
+  installer_name: string;
+  installer_id: string | null;
   price: string;
   parts: string;
   co_parts: string;
@@ -78,11 +170,125 @@ type DraftForm = {
 
 const emptyDraft: DraftForm = {
   job_date: "", company_1: "", company_id: null, tech_name: "", phone_no: "",
-  address: "", job_type: "", price: "", parts: "", co_parts: "", office_parts: "",
+  address: "", job_type: "", installer_name: "", installer_id: null,
+  price: "", parts: "", co_parts: "", office_parts: "",
   payment: "", notes: "",
 };
 
-function ParseTab() {
+function JobFields({
+  draft,
+  setDraft,
+  opts,
+}: {
+  draft: DraftForm;
+  setDraft: React.Dispatch<React.SetStateAction<DraftForm>>;
+  opts: Options;
+}) {
+  function update(k: keyof DraftForm, v: string) { setDraft((p) => ({ ...p, [k]: v })); }
+
+  function pickCompany(name: string) {
+    const c = opts.companies.find((x) => x.company_name === name);
+    setDraft((p) => ({ ...p, company_1: name, company_id: c?.id ?? null }));
+  }
+  function pickInstaller(name: string) {
+    const i = opts.installers.find((x) => x.name === name);
+    setDraft((p) => ({ ...p, installer_name: name, installer_id: i?.id ?? null }));
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Field label="Job Date">
+        <Input type="date" value={draft.job_date} onChange={(e) => update("job_date", e.target.value)} />
+      </Field>
+      <Field label="Marketer">
+        <NameSelect
+          value={draft.company_1}
+          onChange={pickCompany}
+          options={opts.companies.map((c) => c.company_name)}
+          placeholder="Select marketer"
+        />
+      </Field>
+      <Field label="Technician">
+        <NameSelect
+          value={draft.tech_name}
+          onChange={(v) => update("tech_name", v)}
+          options={opts.techs.map((t) => t.tech_name)}
+          placeholder="Select technician"
+        />
+      </Field>
+      <Field label="Phone">
+        <Input value={draft.phone_no} onChange={(e) => update("phone_no", e.target.value)} />
+      </Field>
+      <Field label="Address" full>
+        <Input value={draft.address} onChange={(e) => update("address", e.target.value)} />
+      </Field>
+      <Field label="Job Type">
+        <NameSelect
+          value={draft.job_type}
+          onChange={(v) => update("job_type", v)}
+          options={opts.jobTypes.map((j) => j.name)}
+          placeholder="Select job type"
+        />
+      </Field>
+      <Field label="Installer (optional)">
+        <NameSelect
+          value={draft.installer_name}
+          onChange={pickInstaller}
+          options={opts.installers.map((i) => i.name)}
+          placeholder="Select installer"
+        />
+      </Field>
+      <Field label="Payment Method">
+        <NameSelect
+          value={draft.payment}
+          onChange={(v) => update("payment", v)}
+          options={opts.paymentMethods.map((m) => m.name)}
+          placeholder="Select payment method"
+        />
+      </Field>
+      <Field label="Price ($)">
+        <Input type="number" step="0.01" value={draft.price} onChange={(e) => update("price", e.target.value)} />
+      </Field>
+      <Field label="Parts ($)">
+        <Input type="number" step="0.01" value={draft.parts} onChange={(e) => update("parts", e.target.value)} />
+      </Field>
+      <Field label="Co Parts ($)">
+        <Input type="number" step="0.01" value={draft.co_parts} onChange={(e) => update("co_parts", e.target.value)} />
+      </Field>
+      <Field label="Office Parts ($)">
+        <Input type="number" step="0.01" value={draft.office_parts} onChange={(e) => update("office_parts", e.target.value)} />
+      </Field>
+      <Field label="Notes" full>
+        <Textarea rows={3} value={draft.notes} onChange={(e) => update("notes", e.target.value)} />
+      </Field>
+    </div>
+  );
+}
+
+function buildPayload(draft: DraftForm) {
+  return {
+    job_date: draft.job_date || null,
+    company_id: draft.company_id,
+    company_1: draft.company_1 || null,
+    tech_name: draft.tech_name || null,
+    phone_no: draft.phone_no || null,
+    address: draft.address || null,
+    job_type: draft.job_type || null,
+    installer_id: draft.installer_id,
+    installer_name: draft.installer_name || null,
+    status: "Pending",
+    price: draft.price ? parseFloat(draft.price) : 0,
+    parts: draft.parts ? parseFloat(draft.parts) : 0,
+    co_parts: draft.co_parts ? parseFloat(draft.co_parts) : 0,
+    office_parts: draft.office_parts ? parseFloat(draft.office_parts) : 0,
+    payment: draft.payment || null,
+    notes: draft.notes || null,
+    created_by: REMOTE_MARKER,
+  } as any;
+}
+
+// ---------- Parse Tab ----------
+function ParseTab({ opts }: { opts: Options }) {
   const [message, setMessage] = useState("");
   const [parsing, setParsing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -90,27 +296,18 @@ function ParseTab() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [draft, setDraft] = useState<DraftForm>(emptyDraft);
 
-  function updateDraft(k: keyof DraftForm, v: string) {
-    setDraft((p) => ({ ...p, [k]: v }));
-  }
-
   async function parse() {
     const trimmed = message.trim();
     if (!trimmed) { toast.error("Please paste a message first"); return; }
     if (trimmed.length > 5000) { toast.error("Message too long (max 5000 chars)"); return; }
     setParsing(true);
     try {
-      const [companiesRes, techsRes, jobTypesRes] = await Promise.all([
-        supabase.from("companies").select("id, company_name"),
-        supabase.from("technicians").select("tech_name"),
-        supabase.from("job_types").select("name"),
-      ]);
       const { data, error } = await supabase.functions.invoke("parse-job-message", {
         body: {
           message: trimmed,
-          companies: (companiesRes.data || []).map((c: any) => c.company_name),
-          technicians: (techsRes.data || []).map((t) => t.tech_name),
-          jobTypes: (jobTypesRes.data || []).map((j) => j.name),
+          companies: opts.companies.map((c) => c.company_name),
+          technicians: opts.techs.map((t) => t.tech_name),
+          jobTypes: opts.jobTypes.map((j) => j.name),
         },
       });
       if (error) {
@@ -122,23 +319,20 @@ function ParseTab() {
       if (ex.customer_name) noteParts.push(`Customer: ${ex.customer_name}`);
       if (ex.notes) noteParts.push(ex.notes);
 
-      let company_id: string | null = null;
-      let company_1 = ex.company || "";
-      if (ex.company) {
-        const match = (companiesRes.data || []).find(
-          (c: any) => c.company_name?.toLowerCase() === String(ex.company).toLowerCase()
-        );
-        if (match) { company_id = (match as any).id; company_1 = (match as any).company_name; }
-      }
+      const company = opts.companies.find(
+        (c) => c.company_name.toLowerCase() === String(ex.company || "").toLowerCase()
+      );
 
       setDraft({
         job_date: ex.job_date || "",
-        company_1,
-        company_id,
+        company_1: company?.company_name || ex.company || "",
+        company_id: company?.id ?? null,
         tech_name: ex.tech_name || "",
         phone_no: ex.phone_no || "",
         address: ex.address || "",
         job_type: ex.job_type || "",
+        installer_name: "",
+        installer_id: null,
         price: ex.price != null ? String(ex.price) : "",
         parts: ex.parts != null ? String(ex.parts) : "",
         co_parts: ex.co_parts != null ? String(ex.co_parts) : "",
@@ -158,24 +352,7 @@ function ParseTab() {
   async function confirmSubmit() {
     setSubmitting(true);
     try {
-      const payload: any = {
-        job_date: draft.job_date || null,
-        company_id: draft.company_id,
-        company_1: draft.company_1 || null,
-        tech_name: draft.tech_name || null,
-        phone_no: draft.phone_no || null,
-        address: draft.address || null,
-        job_type: draft.job_type || null,
-        status: "Pending",
-        price: draft.price ? parseFloat(draft.price) : 0,
-        parts: draft.parts ? parseFloat(draft.parts) : 0,
-        co_parts: draft.co_parts ? parseFloat(draft.co_parts) : 0,
-        office_parts: draft.office_parts ? parseFloat(draft.office_parts) : 0,
-        payment: draft.payment || null,
-        notes: draft.notes || null,
-        created_by: REMOTE_MARKER,
-      };
-      const { error } = await supabase.from("jobs").insert(payload);
+      const { error } = await supabase.from("jobs").insert(buildPayload(draft));
       if (error) { toast.error("Failed to save job"); return; }
       setReviewOpen(false);
       setDone(true);
@@ -203,7 +380,7 @@ function ParseTab() {
           <span>{message.length} / 5000</span>
         </div>
         <div className="flex justify-end">
-          <Button onClick={parse} disabled={parsing || !message.trim()}>
+          <Button onClick={parse} disabled={parsing || !message.trim() || opts.loading}>
             {parsing ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Parsing...</>) : (<><Sparkles className="h-4 w-4 mr-2" /> Parse & Review</>)}
           </Button>
         </div>
@@ -217,21 +394,8 @@ function ParseTab() {
               We pre-filled the details from your message. Please review, fix anything, and add any missing info before submitting.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <Field label="Job Date"><Input type="date" value={draft.job_date} onChange={(e) => updateDraft("job_date", e.target.value)} /></Field>
-            <Field label="Marketer"><Input value={draft.company_1} onChange={(e) => updateDraft("company_1", e.target.value)} /></Field>
-            <Field label="Technician"><Input value={draft.tech_name} onChange={(e) => updateDraft("tech_name", e.target.value)} /></Field>
-            <Field label="Phone"><Input value={draft.phone_no} onChange={(e) => updateDraft("phone_no", e.target.value)} /></Field>
-            <Field label="Address" full><Input value={draft.address} onChange={(e) => updateDraft("address", e.target.value)} /></Field>
-            <Field label="Job Type"><Input value={draft.job_type} onChange={(e) => updateDraft("job_type", e.target.value)} /></Field>
-            <Field label="Payment"><Input value={draft.payment} onChange={(e) => updateDraft("payment", e.target.value)} /></Field>
-            <Field label="Price ($)"><Input type="number" step="0.01" value={draft.price} onChange={(e) => updateDraft("price", e.target.value)} /></Field>
-            <Field label="Parts ($)"><Input type="number" step="0.01" value={draft.parts} onChange={(e) => updateDraft("parts", e.target.value)} /></Field>
-            <Field label="Co Parts ($)"><Input type="number" step="0.01" value={draft.co_parts} onChange={(e) => updateDraft("co_parts", e.target.value)} /></Field>
-            <Field label="Office Parts ($)"><Input type="number" step="0.01" value={draft.office_parts} onChange={(e) => updateDraft("office_parts", e.target.value)} /></Field>
-            <Field label="Notes" full>
-              <Textarea rows={3} value={draft.notes} onChange={(e) => updateDraft("notes", e.target.value)} />
-            </Field>
+          <div className="mt-2">
+            <JobFields draft={draft} setDraft={setDraft} opts={opts} />
           </div>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setReviewOpen(false)} disabled={submitting}>Back</Button>
@@ -245,46 +409,20 @@ function ParseTab() {
   );
 }
 
-function ManualTab() {
+// ---------- Manual Tab ----------
+function ManualTab({ opts }: { opts: Options }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
-  const [form, setForm] = useState({
-    job_date: "",
-    company_1: "",
-    tech_name: "",
-    phone_no: "",
-    address: "",
-    job_type: "",
-    price: "",
-    parts: "",
-    payment: "",
-    notes: "",
-  });
-
-  function update(k: string, v: string) { setForm((p) => ({ ...p, [k]: v })); }
+  const [draft, setDraft] = useState<DraftForm>(emptyDraft);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload: any = {
-        job_date: form.job_date || null,
-        company_1: form.company_1 || null,
-        tech_name: form.tech_name || null,
-        phone_no: form.phone_no || null,
-        address: form.address || null,
-        job_type: form.job_type || null,
-        status: "Pending",
-        price: form.price ? parseFloat(form.price) : 0,
-        parts: form.parts ? parseFloat(form.parts) : 0,
-        payment: form.payment || null,
-        notes: form.notes || null,
-        created_by: REMOTE_MARKER,
-      };
-      const { error } = await supabase.from("jobs").insert(payload);
+      const { error } = await supabase.from("jobs").insert(buildPayload(draft));
       if (error) { toast.error("Failed to submit"); return; }
       setDone(true);
-      setForm({ job_date: "", company_1: "", tech_name: "", phone_no: "", address: "", job_type: "", price: "", parts: "", payment: "", notes: "" });
+      setDraft(emptyDraft);
     } finally {
       setLoading(false);
     }
@@ -293,31 +431,13 @@ function ManualTab() {
   if (done) return <SuccessCard onAnother={() => setDone(false)} />;
 
   return (
-    <form onSubmit={submit} className="rounded-xl border bg-card p-5 grid grid-cols-2 gap-3">
-      <Field label="Job Date"><Input type="date" value={form.job_date} onChange={(e) => update("job_date", e.target.value)} /></Field>
-      <Field label="Marketer"><Input value={form.company_1} onChange={(e) => update("company_1", e.target.value)} /></Field>
-      <Field label="Technician"><Input value={form.tech_name} onChange={(e) => update("tech_name", e.target.value)} /></Field>
-      <Field label="Phone"><Input value={form.phone_no} onChange={(e) => update("phone_no", e.target.value)} /></Field>
-      <Field label="Address" full><Input value={form.address} onChange={(e) => update("address", e.target.value)} /></Field>
-      <Field label="Job Type"><Input value={form.job_type} onChange={(e) => update("job_type", e.target.value)} /></Field>
-      <Field label="Payment"><Input value={form.payment} onChange={(e) => update("payment", e.target.value)} /></Field>
-      <Field label="Price ($)"><Input type="number" step="0.01" value={form.price} onChange={(e) => update("price", e.target.value)} /></Field>
-      <Field label="Parts ($)"><Input type="number" step="0.01" value={form.parts} onChange={(e) => update("parts", e.target.value)} /></Field>
-      <Field label="Notes" full><Input value={form.notes} onChange={(e) => update("notes", e.target.value)} /></Field>
-      <div className="col-span-2 flex justify-end">
-        <Button type="submit" disabled={loading}>
+    <form onSubmit={submit} className="rounded-xl border bg-card p-5 space-y-3">
+      <JobFields draft={draft} setDraft={setDraft} opts={opts} />
+      <div className="flex justify-end">
+        <Button type="submit" disabled={loading || opts.loading}>
           {loading ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>) : (<><Plus className="h-4 w-4 mr-2" /> Submit Job</>)}
         </Button>
       </div>
     </form>
-  );
-}
-
-function Field({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
-  return (
-    <div className={full ? "col-span-2" : ""}>
-      <label className="text-xs font-medium text-muted-foreground">{label}</label>
-      {children}
-    </div>
   );
 }
