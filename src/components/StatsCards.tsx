@@ -27,8 +27,9 @@ const COLS = 6;
 const MIN_W = 1;
 const MAX_W = 6;
 const MIN_H = 80;
-const MAX_H = 320;
+const MAX_H = 600;
 const DEFAULT_H = 96;
+const ROW_PX = 8; // grid auto-row size; each card spans ceil(h / ROW_PX) rows
 
 const DEFAULT_CONFIG: CardConfig[] = [
   { key: "total_revenue", w: 1, h: DEFAULT_H },
@@ -241,7 +242,7 @@ export function StatsCards({ jobs }: StatsCardsProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">Drag cards to reorder · drag bottom-right corner to resize</span>
+        <span className="text-xs text-muted-foreground">Drag to reorder · drag bottom-right corner to resize width &amp; height</span>
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm"><Settings2 className="h-4 w-4 mr-2" /> Customize</Button>
@@ -262,9 +263,14 @@ export function StatsCards({ jobs }: StatsCardsProps) {
           </PopoverContent>
         </Popover>
       </div>
-      <div ref={gridRef} className="grid grid-cols-6 gap-4">
+      <div
+        ref={gridRef}
+        className="grid grid-cols-6 gap-4"
+        style={{ gridAutoRows: `${ROW_PX}px`, gridAutoFlow: "row dense" }}
+      >
         {config.map((c, i) => {
           const stat = computeStat(c.key, jobs);
+          const rowSpan = Math.max(1, Math.ceil((c.h + 16) / (ROW_PX + 16))); // include gap
           return (
             <Card
               key={c.key}
@@ -273,7 +279,7 @@ export function StatsCards({ jobs }: StatsCardsProps) {
               onDragOver={(e) => onDragOver(e, i)}
               onDrop={() => onDrop(i)}
               onDragEnd={() => { dragIndex.current = null; setOverIndex(null); }}
-              style={{ height: `${c.h}px` }}
+              style={{ gridRow: `span ${rowSpan}` }}
               className={`${colSpanClass(c.w)} ${overIndex === i ? "ring-2 ring-primary" : ""} relative cursor-move transition-shadow`}
             >
               <CardContent className="p-3 h-full">
