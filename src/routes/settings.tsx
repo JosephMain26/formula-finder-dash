@@ -5,8 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users } from "lucide-react";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
+import { UsersManager } from "@/components/UsersManager";
+import { useAuth } from "@/lib/auth-context";
+import { useNavigate } from "@tanstack/react-router";
 import {
   loadPaymentMethods,
   savePaymentMethods,
@@ -41,6 +44,12 @@ function SettingsPage() {
   const [training, setTraining] = useState<AITrainingSetting>(emptyTraining);
   const [loading, setLoading] = useState(true);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const { isAdmin, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && !isAdmin) navigate({ to: "/" });
+  }, [authLoading, isAdmin, navigate]);
 
   useEffect(() => {
     (async () => {
@@ -158,6 +167,7 @@ function SettingsPage() {
             <TabsTrigger value="payment">Payment Methods</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
             <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Message Training Center</TabsTrigger>
+            <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
           </TabsList>
 
           {/* PAYMENT METHODS */}
@@ -383,6 +393,11 @@ function SettingsPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* USERS */}
+          <TabsContent value="users" className="mt-4">
+            <UsersManager />
           </TabsContent>
         </Tabs>
       </main>
