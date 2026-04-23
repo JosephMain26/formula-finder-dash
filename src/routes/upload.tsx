@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
+import { loadAITraining, applyMarketerRules, recordCorrection } from "@/lib/aiTraining";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/upload")({
