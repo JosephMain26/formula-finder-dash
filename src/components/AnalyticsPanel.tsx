@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, X } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -53,51 +54,48 @@ function defaults(): ChartConfig[] {
   ];
 }
 
+const profit = (j: Job) =>
+  Number(j.price || 0) - Number(j.cost || 0) - Number(j.parts || 0) - Number(j.cc_fee || 0);
+
+function keyForJob(j: Job, metric: MetricKey): string | null {
+  switch (metric) {
+    case "popular_job": return j.job_type || "Unknown";
+    case "jobs_per_tech":
+    case "profit_per_tech": return j.tech_name || "Unassigned";
+    case "jobs_per_marketer": return j.company_1 || j.company || "Unknown";
+    case "payment_method": return j.payment || "Unspecified";
+    case "revenue_per_day":
+    case "profit_per_day": return j.job_date || null;
+  }
+}
+
 function aggregate(jobs: Job[], metric: MetricKey): { name: string; value: number }[] {
   const map = new Map<string, number>();
-  const profit = (j: Job) =>
-    Number(j.price || 0) - Number(j.cost || 0) - Number(j.parts || 0) - Number(j.cc_fee || 0);
+  const isDate = metric === "revenue_per_day" || metric === "profit_per_day";
 
-  switch (metric) {
-    case "popular_job":
-      jobs.forEach((j) => { const k = j.job_type || "Unknown"; map.set(k, (map.get(k) || 0) + 1); });
-      break;
-    case "jobs_per_tech":
-      jobs.forEach((j) => { const k = j.tech_name || "Unassigned"; map.set(k, (map.get(k) || 0) + 1); });
-      break;
-    case "jobs_per_marketer":
-      jobs.forEach((j) => { const k = j.company_1 || j.company || "Unknown"; map.set(k, (map.get(k) || 0) + 1); });
-      break;
-    case "payment_method":
-      jobs.forEach((j) => { const k = j.payment || "Unspecified"; map.set(k, (map.get(k) || 0) + 1); });
-      break;
-    case "revenue_per_day":
-      jobs.forEach((j) => {
-        if (!j.job_date) return;
-        map.set(j.job_date, (map.get(j.job_date) || 0) + Number(j.price || 0));
-      });
-      return [...map.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => ({ name, value }));
-    case "profit_per_day":
-      jobs.forEach((j) => {
-        if (!j.job_date) return;
-        map.set(j.job_date, (map.get(j.job_date) || 0) + profit(j));
-      });
-      return [...map.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => ({ name, value }));
-    case "profit_per_tech":
-      jobs.forEach((j) => { const k = j.tech_name || "Unassigned"; map.set(k, (map.get(k) || 0) + profit(j)); });
-      break;
-  }
-  return [...map.entries()]
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 8);
+  jobs.forEach((j) => {
+    const k = keyForJob(j, metric);
+    if (!k) return;
+    let v = 1;
+    if (metric === "revenue_per_day") v = Number(j.price || 0);
+    else if (metric === "profit_per_day" || metric === "profit_per_tech") v = profit(j);
+    map.set(k, (map.get(k) || 0) + v);
+  });
+
+  const arr = [...map.entries()].map(([name, value]) => ({ name, value }));
+  return isDate ? arr.sort((a, b) => a.name.localeCompare(b.name)) : arr.sort((a, b) => b.value - a.value).slice(0, 8);
 }
 
 function ChartCard({
-  config, jobs, onChange, onRemove,
-}: { config: ChartConfig; jobs: Job[]; onChange: (c: ChartConfig) => void; onRemove: () => void }) {
+  config, jobs, onChange, onRemove, onDrill,
+}: {
+  config: ChartConfig; jobs: Job[];
+  onChange: (c: ChartConfig) => void; onRemove: () => void;
+  onDrill: (metric: MetricKey, key: string) => void;
+}) {
   const data = useMemo(() => aggregate(jobs, config.metric), [jobs, config.metric]);
   const label = METRICS.find((m) => m.key === config.metric)?.label || "";
+  const handleClick = (d: any) => { if (d?.name) onDrill(config.metric, d.name); };
 
   return (
     <div className="bg-card border rounded-lg p-3 space-y-2">
@@ -118,33 +116,34 @@ function ChartCard({
         </Select>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRemove}><X className="h-4 w-4" /></Button>
       </div>
-      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-xs text-muted-foreground">{label} · click to drill down</div>
       {data.length === 0 ? (
         <div className="h-[180px] flex items-center justify-center text-xs text-muted-foreground">No data</div>
       ) : (
         <ResponsiveContainer width="100%" height={180}>
           {config.type === "pie" ? (
             <PieChart>
-              <Pie data={data} dataKey="value" nameKey="name" outerRadius={60} label={(e) => e.name}>
+              <Pie data={data} dataKey="value" nameKey="name" outerRadius={60} label={(e) => e.name}
+                onClick={handleClick} className="cursor-pointer">
                 {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip />
             </PieChart>
           ) : config.type === "line" ? (
-            <LineChart data={data}>
+            <LineChart data={data} onClick={(e: any) => e?.activeLabel && onDrill(config.metric, e.activeLabel)}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis dataKey="name" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} />
               <Tooltip />
-              <Line type="monotone" dataKey="value" stroke={COLORS[0]} strokeWidth={2} />
+              <Line type="monotone" dataKey="value" stroke={COLORS[0]} strokeWidth={2} className="cursor-pointer" />
             </LineChart>
           ) : (
-            <BarChart data={data}>
+            <BarChart data={data} onClick={(e: any) => e?.activeLabel && onDrill(config.metric, e.activeLabel)}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis dataKey="name" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} />
               <Tooltip />
-              <Bar dataKey="value" fill={COLORS[0]} />
+              <Bar dataKey="value" fill={COLORS[0]} className="cursor-pointer" />
             </BarChart>
           )}
         </ResponsiveContainer>
@@ -153,8 +152,68 @@ function ChartCard({
   );
 }
 
+function fmt(n: number | null | undefined) {
+  return `$${Number(n || 0).toFixed(2)}`;
+}
+
+function DrillDialog({
+  open, onOpenChange, metric, value, jobs,
+}: {
+  open: boolean; onOpenChange: (o: boolean) => void;
+  metric: MetricKey | null; value: string | null; jobs: Job[];
+}) {
+  const matched = useMemo(() => {
+    if (!metric || !value) return [];
+    return jobs.filter((j) => keyForJob(j, metric) === value);
+  }, [metric, value, jobs]);
+
+  const label = metric ? METRICS.find((m) => m.key === metric)?.label : "";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>{label}: {value} ({matched.length} jobs)</DialogTitle>
+        </DialogHeader>
+        <div className="overflow-auto border rounded-md">
+          <table className="w-full text-xs">
+            <thead className="bg-muted sticky top-0">
+              <tr>
+                <th className="text-left p-2">Date</th>
+                <th className="text-left p-2">Tech</th>
+                <th className="text-left p-2">Marketer</th>
+                <th className="text-left p-2">Job Type</th>
+                <th className="text-left p-2">Payment</th>
+                <th className="text-right p-2">Price</th>
+                <th className="text-right p-2">Profit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {matched.map((j) => (
+                <tr key={j.id} className="border-t">
+                  <td className="p-2">{j.job_date || "-"}</td>
+                  <td className="p-2">{j.tech_name || "-"}</td>
+                  <td className="p-2">{j.company_1 || j.company || "-"}</td>
+                  <td className="p-2">{j.job_type || "-"}</td>
+                  <td className="p-2">{j.payment || "-"}</td>
+                  <td className="p-2 text-right">{fmt(j.price)}</td>
+                  <td className="p-2 text-right">{fmt(profit(j))}</td>
+                </tr>
+              ))}
+              {matched.length === 0 && (
+                <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">No matching jobs</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function AnalyticsPanel({ jobs }: { jobs: Job[] }) {
   const [charts, setCharts] = useState<ChartConfig[]>(loadCharts);
+  const [drill, setDrill] = useState<{ metric: MetricKey; value: string } | null>(null);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(charts)); } catch {}
@@ -170,7 +229,7 @@ export function AnalyticsPanel({ jobs }: { jobs: Job[] }) {
   }
 
   return (
-    <aside className="w-full lg:w-80 shrink-0 space-y-3">
+    <aside className="w-full h-full space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">Analytics</h2>
         <Button variant="outline" size="sm" onClick={add} disabled={charts.length >= 3}>
@@ -178,13 +237,22 @@ export function AnalyticsPanel({ jobs }: { jobs: Job[] }) {
         </Button>
       </div>
       {charts.map((c) => (
-        <ChartCard key={c.id} config={c} jobs={jobs} onChange={(nc) => update(c.id, nc)} onRemove={() => remove(c.id)} />
+        <ChartCard key={c.id} config={c} jobs={jobs}
+          onChange={(nc) => update(c.id, nc)} onRemove={() => remove(c.id)}
+          onDrill={(metric, value) => setDrill({ metric, value })} />
       ))}
       {charts.length === 0 && (
         <div className="text-xs text-muted-foreground border border-dashed rounded-lg p-4 text-center">
           No charts. Click "Add" to create one (max 3).
         </div>
       )}
+      <DrillDialog
+        open={!!drill}
+        onOpenChange={(o) => !o && setDrill(null)}
+        metric={drill?.metric ?? null}
+        value={drill?.value ?? null}
+        jobs={jobs}
+      />
     </aside>
   );
 }
