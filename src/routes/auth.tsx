@@ -27,10 +27,26 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const saved = localStorage.getItem(REMEMBER_KEY);
+    return saved === null ? true : saved === "1";
+  });
+
+  function applyRememberFlag(remember: boolean) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(REMEMBER_KEY, remember ? "1" : "0");
+    if (remember) {
+      sessionStorage.removeItem("lovable.ephemeral");
+    } else {
+      sessionStorage.setItem("lovable.ephemeral", "1");
+    }
+  }
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    applyRememberFlag(rememberMe);
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setBusy(false);
     if (error) {
