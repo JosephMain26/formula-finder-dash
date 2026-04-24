@@ -9,6 +9,7 @@ type AuthCtx = {
   session: Session | null;
   role: AppRole | null;
   roles: AppRole[];
+  displayName: string | null;
   permissions: Set<string>;
   isAdmin: boolean;
   isManager: boolean;
@@ -18,6 +19,18 @@ type AuthCtx = {
   refreshRole: () => Promise<void>;
 };
 
+function deriveDisplayName(u: User | null, profileName?: string | null): string | null {
+  if (!u) return null;
+  if (profileName && profileName.trim()) return profileName.trim();
+  const meta: any = u.user_metadata || {};
+  const fromMeta = meta.full_name || meta.name;
+  if (fromMeta && String(fromMeta).trim()) return String(fromMeta).trim();
+  const email = u.email || "";
+  const local = email.split("@")[0] || "";
+  if (!local) return null;
+  return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
 const Ctx = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -26,13 +39,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [permissions, setPermissions] = useState<Set<string>>(new Set());
+  const [profileName, setProfileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function loadRoleAndPerms(userId: string) {
-    const { data: roleRows } = await (supabase as any)
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    const [{ data: roleRows }, { data: profileRow }] = await Promise.all([
+      (supabase as any).from("user_roles").select("role").eq("user_id", userId),
+      (supabase as any).from("profiles").select("display_name").eq("id", userId).maybeSingle(),
+    ]);
+
+    setProfileName(profileRow?.display_name ?? null);
 
     const userRoles: AppRole[] = (roleRows || []).map((r: any) => r.role as AppRole);
     if (userRoles.length === 0) userRoles.push("user");
@@ -45,7 +61,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Load permissions for these roles
     if (userRoles.includes("admin")) {
-      // Admin: load all permission keys (so can() returns true for everything)
       const { data: allPerms } = await (supabase as any).from("permissions").select("key");
       const set = new Set<string>((allPerms || []).map((p: any) => p.key));
       setPermissions(set);
@@ -68,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRole(null);
         setRoles([]);
         setPermissions(new Set());
+        setProfileName(null);
       }
     });
 
@@ -105,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(null);
     setRoles([]);
     setPermissions(new Set());
+    setProfileName(null);
   }
 
   async function refreshRole() {
@@ -125,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         role,
         roles,
+        displayName: deriveDisplayName(user, profileName),
         permissions,
         isAdmin,
         isManager: isAdmin || roles.includes("manager"),

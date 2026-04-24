@@ -6,6 +6,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { JobDialog } from "@/components/AddJobDialog";
 import { EditableCell } from "@/components/EditableCell";
+import { useAuth } from "@/lib/auth-context";
 import type { Tables } from "@/integrations/supabase/types";
 import type { ColumnKey } from "@/components/ColumnToggle";
 
@@ -39,6 +40,8 @@ function currency(val: number | null) {
 }
 
 export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, onToggleSelect, onToggleSelectAll }: JobsTableProps) {
+  const { displayName } = useAuth();
+  const firstName = (displayName || "").split(" ")[0];
   const show = (key: ColumnKey) => visibleColumns.has(key);
   const selectionEnabled = !!selectedIds && !!onToggleSelect;
   const allSelected = selectionEnabled && jobs.length > 0 && jobs.every((j) => selectedIds!.has(j.id));
@@ -58,8 +61,10 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
   if (jobs.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        <p className="text-lg font-medium">No jobs found</p>
-        <p className="text-sm mt-1">Try adjusting your filters or add a new job.</p>
+        <p className="text-lg font-medium">
+          Nothing here yet{firstName ? `, ${firstName}` : ""}.
+        </p>
+        <p className="text-sm mt-1">Add your first job to get started.</p>
       </div>
     );
   }
