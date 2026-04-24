@@ -43,10 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   async function loadRoleAndPerms(userId: string) {
-    const { data: roleRows } = await (supabase as any)
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    const [{ data: roleRows }, { data: profileRow }] = await Promise.all([
+      (supabase as any).from("user_roles").select("role").eq("user_id", userId),
+      (supabase as any).from("profiles").select("display_name").eq("id", userId).maybeSingle(),
+    ]);
+
+    setProfileName(profileRow?.display_name ?? null);
 
     const userRoles: AppRole[] = (roleRows || []).map((r: any) => r.role as AppRole);
     if (userRoles.length === 0) userRoles.push("user");
@@ -59,7 +61,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Load permissions for these roles
     if (userRoles.includes("admin")) {
-      // Admin: load all permission keys (so can() returns true for everything)
       const { data: allPerms } = await (supabase as any).from("permissions").select("key");
       const set = new Set<string>((allPerms || []).map((p: any) => p.key));
       setPermissions(set);
