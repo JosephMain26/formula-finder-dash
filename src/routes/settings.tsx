@@ -177,7 +177,7 @@ function SettingsPage() {
       </header>
 
       <main className="max-w-[1400px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        <Tabs defaultValue="payment">
+        <Tabs defaultValue="profile">
           <div className="overflow-x-auto -mx-1 px-1">
             <TabsList className="w-max">
               <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" /> My Profile</TabsTrigger>
