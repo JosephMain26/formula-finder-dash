@@ -50,7 +50,7 @@ export type Database = {
       companies: {
         Row: {
           company_name: string
-          company_type: string | null
+          company_type: string[] | null
           contact_name: string | null
           created_at: string
           email: string | null
@@ -60,7 +60,7 @@ export type Database = {
         }
         Insert: {
           company_name: string
-          company_type?: string | null
+          company_type?: string[] | null
           contact_name?: string | null
           created_at?: string
           email?: string | null
@@ -70,7 +70,7 @@ export type Database = {
         }
         Update: {
           company_name?: string
-          company_type?: string | null
+          company_type?: string[] | null
           contact_name?: string | null
           created_at?: string
           email?: string | null
@@ -352,6 +352,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      marketer_types: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       pending_invites: {
         Row: {

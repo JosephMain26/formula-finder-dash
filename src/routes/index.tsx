@@ -135,11 +135,11 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 py-3 sm:py-5 flex items-center justify-between gap-2">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 py-3 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <MobileNav className="lg:hidden" />
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight truncate">
+              <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight truncate">
                 {greeting}{displayName ? `, ${displayName}` : ""} <span aria-hidden>👋</span>
               </h1>
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm text-muted-foreground">
@@ -152,7 +152,7 @@ function Dashboard() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0 w-full sm:w-auto">
             {isAdmin && (
               <Link to="/settings" className="hidden lg:inline-flex">
                 <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Settings</Button>
