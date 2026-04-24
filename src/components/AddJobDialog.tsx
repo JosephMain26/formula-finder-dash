@@ -145,13 +145,13 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
   function handleCompanyChange(companyId: string) {
     const company = companies.find(c => c.id === companyId);
-    const compTypeStr = Array.isArray(company?.company_type)
-      ? company!.company_type.join(", ")
+    const firstType = Array.isArray(company?.company_type)
+      ? (company!.company_type[0] || "")
       : (company?.company_type || "");
     setForm((prev) => ({
       ...prev,
       company_id: companyId,
-      comp_type: compTypeStr || prev.comp_type,
+      comp_type: firstType || prev.comp_type,
       manual_percentage: !useManualPercentage && company?.percentage != null
         ? company.percentage.toString()
         : prev.manual_percentage,
