@@ -5,10 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User } from "lucide-react";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { UsersManager } from "@/components/UsersManager";
+import { MyProfileCard } from "@/components/MyProfileCard";
 import { MobileNav } from "@/components/MobileNav";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useNavigate } from "@tanstack/react-router";
 import {
