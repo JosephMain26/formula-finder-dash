@@ -181,6 +181,32 @@ export function MyProfileCard() {
                 {saving ? "Saving…" : "Save changes"}
               </Button>
             </div>
+
+            {linkedTech && (
+              <div className="border-t pt-4 space-y-2">
+                <Label>My remote upload pincode</Label>
+                <p className="text-xs text-muted-foreground">
+                  You're linked to technician <span className="font-medium">{linkedTech.tech_name}</span>.
+                  Use this 6-digit code on the public upload link to identify yourself.
+                </p>
+                <div className="flex gap-2 max-w-xs">
+                  <Input
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={pinDraft}
+                    onChange={(e) => setPinDraft(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="——————"
+                    className="font-mono tracking-widest text-center"
+                  />
+                  <Button type="button" variant="outline" size="icon" onClick={generatePin} title="Generate new pincode">
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={savePincode} disabled={savingPin}>
+                    {savingPin ? "Saving…" : "Save pin"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </CardContent>
