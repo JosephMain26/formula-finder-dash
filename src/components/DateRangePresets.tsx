@@ -15,8 +15,9 @@ export type DateRange = { from: string; to: string }; // YYYY-MM-DD
 export type DatePreset = {
   id: string;
   name: string;
-  // dynamic = computed from "today", static = absolute dates
-  type: "dynamic" | "static";
+  // dynamic = computed weekly from "today", static = absolute dates,
+  // builtin-range = predefined non-weekly range (today / month / year)
+  type: "dynamic" | "static" | "builtin-range";
   // dynamic config:
   startDay?: number; // 0=Sun..6=Sat
   endDay?: number;
@@ -24,6 +25,8 @@ export type DatePreset = {
   // static config:
   from?: string;
   to?: string;
+  // builtin-range key:
+  rangeKey?: "today" | "this-month" | "this-year";
 };
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
