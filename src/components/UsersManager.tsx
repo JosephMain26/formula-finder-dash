@@ -5,13 +5,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, Plus, Send, RotateCw, X, Lock } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Trash2, Plus, Send, RotateCw, X, Lock, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { inviteUser, resendInvite, cancelInvite } from "@/lib/invites.functions";
 import { useAuth, type AppRole } from "@/lib/auth-context";
 
-type Profile = { id: string; email: string | null; display_name: string | null; created_at: string };
+type Profile = {
+  id: string;
+  email: string | null;
+  display_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  mobile_phone: string | null;
+  job_title: string | null;
+  timezone: string | null;
+  notes: string | null;
+  created_at: string;
+};
 type RoleRow = { user_id: string; role: AppRole };
 type PendingInvite = { id: string; email: string; role: string; created_at: string; expires_at: string };
 type Permission = { key: string; label: string };
