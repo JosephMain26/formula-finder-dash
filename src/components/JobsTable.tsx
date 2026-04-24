@@ -65,8 +65,8 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
   }
 
   return (
-    <div className="rounded-lg border overflow-hidden">
-      <Table>
+    <div className="rounded-lg border overflow-x-auto -mx-1 sm:mx-0">
+      <Table className="min-w-[900px]">
         <TableHeader>
           <TableRow className="bg-muted/50">
             {selectionEnabled && (

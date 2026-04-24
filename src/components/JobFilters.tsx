@@ -37,7 +37,7 @@ export function JobFilters({
 
   return (
     <div className="flex flex-wrap gap-3 items-end">
-      <div className="flex-1 min-w-[200px]">
+      <div className="w-full sm:flex-1 sm:min-w-[200px]">
         <label className="text-xs font-medium text-muted-foreground mb-1 block">Search</label>
         <Input
           placeholder="Search jobs..."
@@ -46,7 +46,7 @@ export function JobFilters({
         />
       </div>
 
-      <div className="min-w-[150px]">
+      <div className="w-[calc(50%-0.375rem)] sm:w-auto sm:min-w-[150px]">
         <label className="text-xs font-medium text-muted-foreground mb-1 block">Status</label>
         <Select value={statusFilter} onValueChange={onStatusChange}>
           <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
@@ -57,7 +57,7 @@ export function JobFilters({
         </Select>
       </div>
 
-      <div className="min-w-[150px]">
+      <div className="w-[calc(50%-0.375rem)] sm:w-auto sm:min-w-[150px]">
         <label className="text-xs font-medium text-muted-foreground mb-1 block">Tech</label>
         <Select value={techFilter} onValueChange={onTechChange}>
           <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
@@ -68,7 +68,7 @@ export function JobFilters({
         </Select>
       </div>
 
-      <div className="min-w-[150px]">
+      <div className="w-[calc(50%-0.375rem)] sm:w-auto sm:min-w-[150px]">
         <label className="text-xs font-medium text-muted-foreground mb-1 block">Marketer</label>
         <Select value={companyFilter} onValueChange={onCompanyChange}>
           <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
@@ -79,7 +79,7 @@ export function JobFilters({
         </Select>
       </div>
 
-      <div className="min-w-[130px]">
+      <div className="w-[calc(50%-0.375rem)] sm:w-auto sm:min-w-[130px]">
         <label className="text-xs font-medium text-muted-foreground mb-1 block">Job Type</label>
         <Select value={jobTypeFilter} onValueChange={onJobTypeChange}>
           <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
@@ -90,7 +90,7 @@ export function JobFilters({
         </Select>
       </div>
 
-      <div className="min-w-[120px]">
+      <div className="w-[calc(50%-0.375rem)] sm:w-auto sm:min-w-[120px]">
         <label className="text-xs font-medium text-muted-foreground mb-1 block">Paid</label>
         <Select value={paidFilter} onValueChange={onPaidChange}>
           <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
