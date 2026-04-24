@@ -110,11 +110,32 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
   const [activeTemplateId, setActiveTemplateId] = useState<string>("");
   const [newTemplateName, setNewTemplateName] = useState("");
 
+  // System date presets (synced from main app)
+  const [datePresets, setDatePresets] = useState<DatePreset[]>(BUILT_IN_PRESETS);
+  const [activePresetId, setActivePresetId] = useState<string>("custom");
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   useEffect(() => {
-    if (open) loadTemplates().then(setTemplates);
+    if (!open) return;
+    loadTemplates().then(setTemplates);
+    (supabase as any)
+      .from("app_settings").select("value").eq("key", "date_range_presets").maybeSingle()
+      .then(({ data }: any) => {
+        const custom = Array.isArray(data?.value?.presets) ? data.value.presets : [];
+        setDatePresets([...BUILT_IN_PRESETS, ...custom]);
+      });
   }, [open]);
+
+  function applyDatePreset(id: string) {
+    setActivePresetId(id);
+    if (id === "custom") return;
+    if (id === "all") { setDateFrom(""); setDateTo(""); return; }
+    const p = datePresets.find((x) => x.id === id);
+    if (!p) return;
+    const r = resolvePreset(p);
+    if (r) { setDateFrom(r.from); setDateTo(r.to); }
+  }
 
   useMemo(() => {
     setSelectedCompanies(prev => prev.size === 0 ? new Set(companies) : prev);
