@@ -316,20 +316,20 @@ function SettingsPage() {
                   <p className="text-sm text-muted-foreground">No rules yet — add your first one below.</p>
                 )}
                 {training.marketerRules.map((r) => (
-                  <div key={r.id} className="grid grid-cols-12 gap-2 items-center border rounded-md p-2">
+                  <div key={r.id} className="flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:items-center border rounded-md p-2">
                     <Input
-                      className="col-span-4 h-9"
+                      className="sm:col-span-4 h-9"
                       placeholder="Marketer name (e.g. ABC Marketing)"
                       value={r.marketerName}
                       onChange={(e) => updateRule(r.id, { marketerName: e.target.value })}
                     />
                     <Input
-                      className="col-span-7 h-9"
+                      className="sm:col-span-7 h-9"
                       placeholder="Keywords / company names that map to this marketer (comma separated)"
                       value={r.patterns.join(", ")}
                       onChange={(e) => updateRule(r.id, { patternsText: e.target.value })}
                     />
-                    <Button variant="ghost" size="icon" onClick={() => removeRule(r.id)} className="h-9 w-9 col-span-1">
+                    <Button variant="ghost" size="icon" onClick={() => removeRule(r.id)} className="h-9 w-9 sm:col-span-1 self-end sm:self-auto">
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
