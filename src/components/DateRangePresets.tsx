@@ -51,6 +51,22 @@ export function resolvePreset(p: DatePreset, today = new Date()): DateRange | nu
     if (!p.from || !p.to) return null;
     return { from: p.from, to: p.to };
   }
+  if (p.type === "builtin-range") {
+    const t = new Date(today);
+    t.setHours(0, 0, 0, 0);
+    if (p.rangeKey === "today") {
+      return { from: fmt(t), to: fmt(t) };
+    }
+    if (p.rangeKey === "this-month") {
+      const start = new Date(t.getFullYear(), t.getMonth(), 1);
+      return { from: fmt(start), to: fmt(t) };
+    }
+    if (p.rangeKey === "this-year") {
+      const start = new Date(t.getFullYear(), 0, 1);
+      return { from: fmt(start), to: fmt(t) };
+    }
+    return null;
+  }
   const startDay = p.startDay ?? 1;
   const endDay = p.endDay ?? 0;
   const offset = p.weekOffset ?? 0;
@@ -63,6 +79,9 @@ export function resolvePreset(p: DatePreset, today = new Date()): DateRange | nu
 }
 
 const BUILT_IN: DatePreset[] = [
+  { id: "builtin-today", name: "Today", type: "builtin-range", rangeKey: "today" },
+  { id: "builtin-this-month", name: "This Month", type: "builtin-range", rangeKey: "this-month" },
+  { id: "builtin-this-year", name: "This Year", type: "builtin-range", rangeKey: "this-year" },
   { id: "builtin-mon-sun", name: "This week (Mon–Sun)", type: "dynamic", startDay: 1, endDay: 0, weekOffset: 0 },
   { id: "builtin-mon-fri", name: "This week (Mon–Fri)", type: "dynamic", startDay: 1, endDay: 5, weekOffset: 0 },
   { id: "builtin-last-mon-sun", name: "Last week (Mon–Sun)", type: "dynamic", startDay: 1, endDay: 0, weekOffset: -1 },
