@@ -351,7 +351,7 @@ function buildPayload(draft: DraftForm, identity: TechIdentity | null) {
 }
 
 // ---------- Parse Tab ----------
-function ParseTab({ opts }: { opts: Options }) {
+function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | null }) {
   const [message, setMessage] = useState("");
   const [parsing, setParsing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -437,7 +437,7 @@ function ParseTab({ opts }: { opts: Options }) {
   async function confirmSubmit() {
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("jobs").insert(buildPayload(draft));
+      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity));
       if (error) { toast.error("Failed to save job"); return; }
       // Auto-learn: record any field the user corrected
       if (parsedSnapshot) {
@@ -482,10 +482,11 @@ function ParseTab({ opts }: { opts: Options }) {
           <span>{message.length} / 5000</span>
         </div>
         <div className="flex justify-end">
-          <Button onClick={parse} disabled={parsing || !message.trim() || opts.loading}>
+          <Button onClick={parse} disabled={parsing || !message.trim() || opts.loading || !identity}>
             {parsing ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Parsing...</>) : (<><Sparkles className="h-4 w-4 mr-2" /> Parse & Review</>)}
           </Button>
         </div>
+        {!identity && <p className="text-xs text-muted-foreground text-right">Enter your pincode above to enable submission.</p>}
       </div>
 
       <Dialog open={reviewOpen} onOpenChange={(o) => { if (!submitting) setReviewOpen(o); }}>
@@ -497,7 +498,7 @@ function ParseTab({ opts }: { opts: Options }) {
             </DialogDescription>
           </DialogHeader>
           <div className="mt-2">
-            <JobFields draft={draft} setDraft={setDraft} opts={opts} />
+            <JobFields draft={draft} setDraft={setDraft} opts={opts} lockedTechName={identity?.tech_name ?? null} />
           </div>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setReviewOpen(false)} disabled={submitting}>Back</Button>
@@ -512,7 +513,7 @@ function ParseTab({ opts }: { opts: Options }) {
 }
 
 // ---------- Manual Tab ----------
-function ManualTab({ opts }: { opts: Options }) {
+function ManualTab({ opts, identity }: { opts: Options; identity: TechIdentity | null }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [draft, setDraft] = useState<DraftForm>(emptyDraft);
@@ -521,7 +522,7 @@ function ManualTab({ opts }: { opts: Options }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.from("jobs").insert(buildPayload(draft));
+      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity));
       if (error) { toast.error("Failed to submit"); return; }
       setDone(true);
       setDraft(emptyDraft);
@@ -534,12 +535,13 @@ function ManualTab({ opts }: { opts: Options }) {
 
   return (
     <form onSubmit={submit} className="rounded-xl border bg-card p-5 space-y-3">
-      <JobFields draft={draft} setDraft={setDraft} opts={opts} />
+      <JobFields draft={draft} setDraft={setDraft} opts={opts} lockedTechName={identity?.tech_name ?? null} />
       <div className="flex justify-end">
-        <Button type="submit" disabled={loading || opts.loading}>
+        <Button type="submit" disabled={loading || opts.loading || !identity}>
           {loading ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>) : (<><Plus className="h-4 w-4 mr-2" /> Submit Job</>)}
         </Button>
       </div>
+      {!identity && <p className="text-xs text-muted-foreground text-right">Enter your pincode above to enable submission.</p>}
     </form>
   );
 }
