@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, X } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
 
 type Job = Tables<"jobs">;
 
