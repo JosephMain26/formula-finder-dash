@@ -134,6 +134,23 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     }
   }, [open]);
 
+  // When user lacks "jobs.add_for_others", auto-assign technician to themselves on new jobs
+  useEffect(() => {
+    if (canAddForOthers || isEdit || !open || technicians.length === 0) return;
+    if (form.technician_id) return;
+    const myName = (displayName || "").trim().toLowerCase();
+    if (!myName) return;
+    const me = technicians.find((t) => (t.tech_name || "").trim().toLowerCase() === myName);
+    if (me) {
+      setForm((prev) => ({
+        ...prev,
+        technician_id: me.id,
+        tech_name: me.tech_name,
+        manual_percentage: useManualPercentage ? prev.manual_percentage : (me.percentage ?? 50).toString(),
+      }));
+    }
+  }, [canAddForOthers, isEdit, open, technicians, displayName]);
+
   async function fetchJobTypes() {
     const { data } = await supabase.from("job_types").select("*").order("name");
     setJobTypes((data as JobType[]) || []);
