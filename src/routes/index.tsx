@@ -31,8 +31,15 @@ export const Route = createFileRoute("/")({
   }),
 });
 
+function getGreeting(d = new Date()) {
+  const h = d.getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 function Dashboard() {
-  const { user, role, isAdmin, signOut } = useAuth();
+  const { user, role, isAdmin, displayName, signOut } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const { visibleColumns, toggle: toggleColumn, showAll: showAllColumns, setVisible: setVisibleColumns } = useColumnVisibility();
   const [loading, setLoading] = useState(true);
@@ -44,6 +51,19 @@ function Dashboard() {
   const [paidFilter, setPaidFilter] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [greeting, setGreeting] = useState<string>(() => getGreeting());
+
+  // Re-evaluate greeting at the next top-of-hour so morning→afternoon→evening flips without reload.
+  useEffect(() => {
+    const now = new Date();
+    const msToNextHour = (60 - now.getMinutes()) * 60_000 - now.getSeconds() * 1000 - now.getMilliseconds() + 50;
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const timeout = setTimeout(() => {
+      setGreeting(getGreeting());
+      interval = setInterval(() => setGreeting(getGreeting()), 60 * 60 * 1000);
+    }, msToNextHour);
+    return () => { clearTimeout(timeout); if (interval) clearInterval(interval); };
+  }, []);
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
