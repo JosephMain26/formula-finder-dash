@@ -121,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(null);
     setRoles([]);
     setPermissions(new Set());
+    setProfileName(null);
   }
 
   async function refreshRole() {
