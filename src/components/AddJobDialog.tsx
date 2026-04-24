@@ -41,6 +41,9 @@ interface JobDialogProps {
 }
 
 export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOpenChange, prefill }: JobDialogProps) {
+  const { can, displayName } = useAuth();
+  const canAddForOthers = can("jobs.add_for_others");
+  const canSeeMarketerPct = can("marketer.view_percentage");
   const isEdit = !!job;
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
