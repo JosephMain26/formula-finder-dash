@@ -332,22 +332,35 @@ export function UsersManager() {
             <p className="text-sm text-muted-foreground">No users yet.</p>
           ) : (
             <div className="border rounded-md divide-y">
-              {profiles.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 p-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{p.display_name || p.email}</div>
-                    <div className="text-xs text-muted-foreground truncate">{p.email}</div>
+              {profiles.map((p) => {
+                const fullName =
+                  [p.first_name, p.last_name].filter(Boolean).join(" ").trim() ||
+                  p.display_name ||
+                  p.email ||
+                  "—";
+                return (
+                  <div key={p.id} className="flex flex-wrap items-center gap-3 p-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{fullName}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {p.email}
+                        {p.job_title ? ` · ${p.job_title}` : ""}
+                      </div>
+                    </div>
+                    <Select value={roles[p.id] || "user"} onValueChange={(v) => changeRole(p.id, v)}>
+                      <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {BUILT_IN_ROLES.map((r) => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button variant="ghost" size="sm" onClick={() => setEditingProfile(p)} className="h-9">
+                      <Pencil className="h-4 w-4 mr-1" /> Edit
+                    </Button>
                   </div>
-                  <Select value={roles[p.id] || "user"} onValueChange={(v) => changeRole(p.id, v)}>
-                    <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {BUILT_IN_ROLES.map((r) => (
-                        <SelectItem key={r} value={r}>{r}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
