@@ -82,6 +82,11 @@ function Dashboard() {
       if (d.dateRange && typeof d.dateRange.from === "string" && typeof d.dateRange.to === "string") {
         setDateRange({ from: d.dateRange.from, to: d.dateRange.to });
       }
+      if (typeof d.sortBy === "string" && SORT_OPTIONS.some((o) => o.key === d.sortBy)) {
+        setSortBy(d.sortBy as SortKey);
+      }
+      const a = getPref<any>("analytics") || {};
+      if (typeof a.hidden === "boolean") setAnalyticsHidden(a.hidden);
       setPrefsHydrated(true);
     });
   }, []);
@@ -93,9 +98,15 @@ function Dashboard() {
       dashboard: {
         search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter,
         dateRange: dateRange ?? null,
+        sortBy,
       },
     });
-  }, [prefsHydrated, search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter, dateRange]);
+  }, [prefsHydrated, search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter, dateRange, sortBy]);
+
+  useEffect(() => {
+    if (!prefsHydrated) return;
+    saveUserPrefs({ analytics: { hidden: analyticsHidden } });
+  }, [prefsHydrated, analyticsHidden]);
 
   // Re-evaluate greeting at the next top-of-hour so morning→afternoon→evening flips without reload.
   useEffect(() => {
