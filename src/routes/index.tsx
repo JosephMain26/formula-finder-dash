@@ -181,6 +181,28 @@ function Dashboard() {
     });
   }, [jobs, search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter, dateRange]);
 
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    const cmpStr = (a: string | null, b: string | null) => (a || "").localeCompare(b || "");
+    const cmpNum = (a: number | null, b: number | null) => (Number(a || 0)) - (Number(b || 0));
+    switch (sortBy) {
+      case "job_date_asc":
+        return arr.sort((a, b) => cmpStr(a.job_date, b.job_date));
+      case "job_date_desc":
+        return arr.sort((a, b) => cmpStr(b.job_date, a.job_date));
+      case "created_asc":
+        return arr.sort((a, b) => cmpStr(a.created_at, b.created_at));
+      case "created_desc":
+        return arr.sort((a, b) => cmpStr(b.created_at, a.created_at));
+      case "price_asc":
+        return arr.sort((a, b) => cmpNum(a.price, b.price));
+      case "price_desc":
+        return arr.sort((a, b) => cmpNum(b.price, a.price));
+      default:
+        return arr;
+    }
+  }, [filtered, sortBy]);
+
   function clearFilters() {
     setSearch("");
     setStatusFilter("");
