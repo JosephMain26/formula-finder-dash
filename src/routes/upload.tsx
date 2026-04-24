@@ -255,8 +255,14 @@ type DraftForm = {
   notes: string;
 };
 
+const todayLocalISO = () => {
+  const d = new Date();
+  const tz = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tz).toISOString().slice(0, 10);
+};
+
 const emptyDraft: DraftForm = {
-  job_date: "", company_1: "", company_id: null, tech_name: "", phone_no: "",
+  job_date: todayLocalISO(), company_1: "", company_id: null, tech_name: "", phone_no: "",
   address: "", job_type: "", installer_name: "", installer_id: null,
   price: "", parts: "", co_parts: "", office_parts: "",
   payment: "", notes: "",
