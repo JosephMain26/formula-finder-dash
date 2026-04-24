@@ -61,6 +61,52 @@ export function UsersManager() {
   const [rolePerms, setRolePerms] = useState<Record<string, Set<string>>>({});
   const [newRoleName, setNewRoleName] = useState("");
 
+  // Edit profile dialog (admin)
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [editForm, setEditForm] = useState({
+    first_name: "", last_name: "", phone: "", mobile_phone: "",
+    job_title: "", timezone: "", notes: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  useEffect(() => {
+    if (editingProfile) {
+      setEditForm({
+        first_name: editingProfile.first_name || "",
+        last_name: editingProfile.last_name || "",
+        phone: editingProfile.phone || "",
+        mobile_phone: editingProfile.mobile_phone || "",
+        job_title: editingProfile.job_title || "",
+        timezone: editingProfile.timezone || "",
+        notes: editingProfile.notes || "",
+      });
+    }
+  }, [editingProfile]);
+
+  async function saveProfileEdit() {
+    if (!editingProfile) return;
+    setSavingEdit(true);
+    const display = `${editForm.first_name} ${editForm.last_name}`.trim() || null;
+    const { error } = await (supabase as any)
+      .from("profiles")
+      .update({
+        first_name: editForm.first_name || null,
+        last_name: editForm.last_name || null,
+        phone: editForm.phone || null,
+        mobile_phone: editForm.mobile_phone || null,
+        job_title: editForm.job_title || null,
+        timezone: editForm.timezone || null,
+        notes: editForm.notes || null,
+        display_name: display,
+      })
+      .eq("id", editingProfile.id);
+    setSavingEdit(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Profile updated");
+    setEditingProfile(null);
+    load();
+  }
+
   const inviteFn = useServerFn(inviteUser);
   const resendFn = useServerFn(resendInvite);
   const cancelFn = useServerFn(cancelInvite);
