@@ -31,7 +31,7 @@ type RoleRow = { user_id: string; role: AppRole };
 type PendingInvite = { id: string; email: string; role: string; created_at: string; expires_at: string };
 type Permission = { key: string; label: string };
 
-const BUILT_IN_ROLES = ["admin", "manager", "user"];
+const BUILT_IN_ROLES = ["admin", "manager", "tech", "user"];
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message) return error.message;
