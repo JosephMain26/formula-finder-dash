@@ -193,7 +193,7 @@ function RemoteUploadPage() {
         {!identity ? (
           <>
             {timedOut && (
-              <p className="text-xs text-center text-amber-600">Session timed out after 30s of inactivity. Please re-enter your pincode.</p>
+              <p className="text-xs text-center text-muted-foreground">Session timed out after 30s of inactivity. Please re-enter your pincode.</p>
             )}
             <PincodeStep onSuccess={(id) => { setIdentity(id); setTimedOut(false); }} />
           </>
