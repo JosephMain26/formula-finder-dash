@@ -13,10 +13,10 @@ import { ParseMessageDialog } from "@/components/ParseMessageDialog";
 import { DateRangePresets, type DateRange } from "@/components/DateRangePresets";
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { Button } from "@/components/ui/button";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Settings, LogOut } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
+import { MobileNav } from "@/components/MobileNav";
 
 type Job = Tables<"jobs">;
 
