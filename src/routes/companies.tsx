@@ -89,8 +89,44 @@ function CompaniesPage() {
 
       <main className="max-w-[1200px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">All Marketers</CardTitle>
+          <CardHeader className="gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-lg">All Marketers</CardTitle>
+              <span className="text-xs text-muted-foreground">
+                {filtered.length} of {companies.length}
+              </span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search name, contact, or email..."
+                  className="pl-8 h-9"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="h-9 w-full sm:w-[200px]">
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All types</SelectItem>
+                  {allTypes.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -99,6 +135,10 @@ function CompaniesPage() {
               <div className="text-center py-12 text-muted-foreground">
                 <p className="text-lg font-medium">No marketers yet</p>
                 <p className="text-sm mt-1">Add your first marketer to get started.</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p className="text-sm">No marketers match your filters.</p>
               </div>
             ) : (
               <div className="rounded-lg border overflow-x-auto">
@@ -114,7 +154,7 @@ function CompaniesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {companies.map((company) => (
+                    {filtered.map((company) => (
                       <TableRow key={company.id}>
                         <TableCell className="font-medium">{company.company_name}</TableCell>
                         <TableCell>{company.contact_name || "—"}</TableCell>
@@ -133,7 +173,7 @@ function CompaniesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <CompanyDialog company={company} onSaved={fetchCompanies} />
+                            <CompanyDialog company={company} onSaved={() => { fetchCompanies(); fetchTypes(); }} />
                             <Button variant="ghost" size="icon" onClick={() => deleteCompany(company.id)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
