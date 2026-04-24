@@ -39,7 +39,7 @@ function getGreeting(d = new Date()) {
 }
 
 function Dashboard() {
-  const { user, role, isAdmin, displayName, signOut } = useAuth();
+  const { role, isAdmin, displayName, signOut } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const { visibleColumns, toggle: toggleColumn, showAll: showAllColumns, setVisible: setVisibleColumns } = useColumnVisibility();
   const [loading, setLoading] = useState(true);
