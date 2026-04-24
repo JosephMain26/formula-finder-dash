@@ -189,6 +189,11 @@ function SettingsPage() {
           </div>
 
           {/* PAYMENT METHODS */}
+          {/* MY PROFILE */}
+          <TabsContent value="profile" className="mt-4">
+            <MyProfileCard />
+          </TabsContent>
+
           <TabsContent value="payment" className="mt-4">
             <Card>
               <CardHeader><CardTitle>Payment Methods</CardTitle></CardHeader>
