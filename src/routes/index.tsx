@@ -14,6 +14,7 @@ import { DateRangePresets, type DateRange } from "@/components/DateRangePresets"
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { Button } from "@/components/ui/button";
 import { Settings, LogOut } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
 import { MobileNav } from "@/components/MobileNav";
