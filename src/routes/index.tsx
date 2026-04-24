@@ -40,6 +40,17 @@ function getGreeting(d = new Date()) {
   return "Good evening";
 }
 
+type SortKey = "job_date_desc" | "job_date_asc" | "created_desc" | "created_asc" | "price_desc" | "price_asc";
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "job_date_desc", label: "Date (newest first)" },
+  { key: "job_date_asc", label: "Date (oldest first)" },
+  { key: "created_desc", label: "Created (newest first)" },
+  { key: "created_asc", label: "Created (oldest first)" },
+  { key: "price_desc", label: "Price (high to low)" },
+  { key: "price_asc", label: "Price (low to high)" },
+];
+
 function Dashboard() {
   const { role, isAdmin, displayName, signOut } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -55,6 +66,8 @@ function Dashboard() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [greeting, setGreeting] = useState<string>(() => getGreeting());
   const [prefsHydrated, setPrefsHydrated] = useState(false);
+  const [sortBy, setSortBy] = useState<SortKey>("job_date_desc");
+  const [analyticsHidden, setAnalyticsHidden] = useState(false);
 
   // Load saved per-user dashboard prefs on mount
   useEffect(() => {
