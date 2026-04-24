@@ -136,20 +136,22 @@ function Dashboard() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="max-w-[1400px] mx-auto px-3 sm:px-6 py-3 sm:py-5 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <MobileNav className="lg:hidden" />
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold tracking-tight truncate">Jobs Dashboard</h1>
-              <p className="hidden sm:block text-sm text-muted-foreground mt-0.5">Track and manage all service jobs</p>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight truncate">
+                {greeting}{displayName ? `, ${displayName}` : ""} <span aria-hidden>👋</span>
+              </h1>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm text-muted-foreground">
+                {role && (
+                  <Badge variant="secondary" className="uppercase tracking-wide text-[10px] sm:text-xs">
+                    {role}
+                  </Badge>
+                )}
+                <span>here is a quick overview</span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            {user && (
-              <div className="hidden md:flex flex-col items-end leading-tight">
-                <span className="text-xs font-medium">{user.email}</span>
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{role || "—"}</span>
-              </div>
-            )}
             {isAdmin && (
               <Link to="/settings" className="hidden lg:inline-flex">
                 <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Settings</Button>
