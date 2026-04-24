@@ -156,3 +156,84 @@ export function MyProfileCard() {
     </Card>
   );
 }
+
+const FALLBACK_TZS = [
+  "UTC",
+  "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+  "America/Phoenix", "America/Anchorage", "Pacific/Honolulu",
+  "America/Toronto", "America/Vancouver", "America/Mexico_City", "America/Sao_Paulo",
+  "Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Madrid", "Europe/Rome",
+  "Europe/Amsterdam", "Europe/Stockholm", "Europe/Athens", "Europe/Moscow",
+  "Africa/Johannesburg", "Africa/Cairo", "Africa/Lagos",
+  "Asia/Dubai", "Asia/Jerusalem", "Asia/Karachi", "Asia/Kolkata", "Asia/Bangkok",
+  "Asia/Singapore", "Asia/Hong_Kong", "Asia/Shanghai", "Asia/Tokyo", "Asia/Seoul",
+  "Australia/Perth", "Australia/Sydney", "Pacific/Auckland",
+];
+
+function getTimezoneList(): string[] {
+  const intl: any = Intl as any;
+  if (typeof intl.supportedValuesOf === "function") {
+    try {
+      const list = intl.supportedValuesOf("timeZone") as string[];
+      if (Array.isArray(list) && list.length > 0) return list;
+    } catch {}
+  }
+  return FALLBACK_TZS;
+}
+
+function TimezoneCombobox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const list = useMemo(getTimezoneList, []);
+  const detected = useMemo(
+    () => (typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : ""),
+    [],
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={cn("w-full justify-between font-normal", !value && "text-muted-foreground")}
+        >
+          <span className="truncate">{value || "Select timezone…"}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search timezone…" />
+          <CommandList>
+            <CommandEmpty>No timezone found.</CommandEmpty>
+            {detected && (
+              <CommandGroup heading="Detected">
+                <CommandItem
+                  value={detected}
+                  onSelect={() => { onChange(detected); setOpen(false); }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4", value === detected ? "opacity-100" : "opacity-0")} />
+                  {detected} (your device)
+                </CommandItem>
+              </CommandGroup>
+            )}
+            <CommandGroup heading="All timezones">
+              {list.map((tz) => (
+                <CommandItem
+                  key={tz}
+                  value={tz}
+                  onSelect={() => { onChange(tz); setOpen(false); }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4", value === tz ? "opacity-100" : "opacity-0")} />
+                  {tz}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
