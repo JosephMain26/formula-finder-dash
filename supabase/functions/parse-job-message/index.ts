@@ -29,7 +29,15 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const systemPrompt = `You extract job/service details from informal WhatsApp/SMS messages sent by technicians or dispatchers. Be flexible — formats vary. Extract only what's clearly present; leave fields empty if unsure.
+    const systemPrompt = `${
+  generalRules && String(generalRules).trim()
+    ? `=== HIGH-PRIORITY ADMIN RULES — ALWAYS FOLLOW (override any default behavior below) ===
+${generalRules}
+=== END ADMIN RULES ===
+
+`
+    : ""
+}You extract job/service details from informal WhatsApp/SMS messages sent by technicians or dispatchers. Be flexible — formats vary. Extract only what's clearly present; leave fields empty if unsure.
 
 Currency: numbers like "255$", "$255", "255" near words like "closed/total/price" are the price. "Parts 15$" means parts cost.
 Phone: extract digits, keep + prefix if present.
@@ -53,8 +61,16 @@ ${
         .map((c: any) => `- ${c.field}: parsed "${c.parsed}" → corrected "${c.corrected}"`)
         .join("\n")}`
     : ""
-}
-${generalRules ? `Additional rules from the admin (always follow):\n${generalRules}` : ""}`;
+}`;
+
+    const messages: any[] = [{ role: "system", content: systemPrompt }];
+    if (generalRules && String(generalRules).trim()) {
+      messages.push({
+        role: "system",
+        content: `REMINDER — these admin rules override everything else and MUST be applied:\n${generalRules}`,
+      });
+    }
+    messages.push({ role: "user", content: message });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
