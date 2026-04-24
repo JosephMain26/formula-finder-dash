@@ -27,6 +27,17 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { loadTemplates, saveTemplates, makeId, type ExportTemplate, type TemplatesSetting } from "@/lib/settings";
 import { DatePickerField } from "@/components/DatePickerField";
+import { resolvePreset, type DatePreset } from "@/components/DateRangePresets";
+import { supabase } from "@/integrations/supabase/client";
+
+const BUILT_IN_PRESETS: DatePreset[] = [
+  { id: "builtin-today", name: "Today", type: "builtin-range", rangeKey: "today" },
+  { id: "builtin-this-month", name: "This Month", type: "builtin-range", rangeKey: "this-month" },
+  { id: "builtin-this-year", name: "This Year", type: "builtin-range", rangeKey: "this-year" },
+  { id: "builtin-mon-sun", name: "This week (Mon–Sun)", type: "dynamic", startDay: 1, endDay: 0, weekOffset: 0 },
+  { id: "builtin-mon-fri", name: "This week (Mon–Fri)", type: "dynamic", startDay: 1, endDay: 5, weekOffset: 0 },
+  { id: "builtin-last-mon-sun", name: "Last week (Mon–Sun)", type: "dynamic", startDay: 1, endDay: 0, weekOffset: -1 },
+];
 
 type Job = Tables<"jobs">;
 
@@ -99,11 +110,32 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
   const [activeTemplateId, setActiveTemplateId] = useState<string>("");
   const [newTemplateName, setNewTemplateName] = useState("");
 
+  // System date presets (synced from main app)
+  const [datePresets, setDatePresets] = useState<DatePreset[]>(BUILT_IN_PRESETS);
+  const [activePresetId, setActivePresetId] = useState<string>("custom");
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   useEffect(() => {
-    if (open) loadTemplates().then(setTemplates);
+    if (!open) return;
+    loadTemplates().then(setTemplates);
+    (supabase as any)
+      .from("app_settings").select("value").eq("key", "date_range_presets").maybeSingle()
+      .then(({ data }: any) => {
+        const custom = Array.isArray(data?.value?.presets) ? data.value.presets : [];
+        setDatePresets([...BUILT_IN_PRESETS, ...custom]);
+      });
   }, [open]);
+
+  function applyDatePreset(id: string) {
+    setActivePresetId(id);
+    if (id === "custom") return;
+    if (id === "all") { setDateFrom(""); setDateTo(""); return; }
+    const p = datePresets.find((x) => x.id === id);
+    if (!p) return;
+    const r = resolvePreset(p);
+    if (r) { setDateFrom(r.from); setDateTo(r.to); }
+  }
 
   useMemo(() => {
     setSelectedCompanies(prev => prev.size === 0 ? new Set(companies) : prev);
@@ -296,14 +328,36 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
             <div>
-              <Label className="text-xs">From date</Label>
-              <DatePickerField value={dateFrom} onChange={setDateFrom} />
+              <Label className="text-xs">Time range</Label>
+              <Select value={activePresetId} onValueChange={applyDatePreset}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Pick a range…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom dates (below)</SelectItem>
+                  <SelectItem value="all">All dates</SelectItem>
+                  {datePresets.map((p) => {
+                    const r = resolvePreset(p);
+                    return (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}{r ? ` (${r.from} → ${r.to})` : ""}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <Label className="text-xs">To date</Label>
-              <DatePickerField value={dateTo} onChange={setDateTo} />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">From date</Label>
+                <DatePickerField value={dateFrom} onChange={(v) => { setDateFrom(v); setActivePresetId("custom"); }} />
+              </div>
+              <div>
+                <Label className="text-xs">To date</Label>
+                <DatePickerField value={dateTo} onChange={(v) => { setDateTo(v); setActivePresetId("custom"); }} />
+              </div>
             </div>
           </div>
 
