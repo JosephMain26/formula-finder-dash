@@ -530,8 +530,10 @@ export type Database = {
           id: string
           percentage: number | null
           phone_number: string | null
+          pincode: string | null
           tech_name: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           city?: string | null
@@ -539,8 +541,10 @@ export type Database = {
           id?: string
           percentage?: number | null
           phone_number?: string | null
+          pincode?: string | null
           tech_name: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           city?: string | null
@@ -548,8 +552,10 @@ export type Database = {
           id?: string
           percentage?: number | null
           phone_number?: string | null
+          pincode?: string | null
           tech_name?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -617,6 +623,13 @@ export type Database = {
         Returns: boolean
       }
       is_authenticated: { Args: never; Returns: boolean }
+      lookup_tech_by_pincode: {
+        Args: { _pin: string }
+        Returns: {
+          id: string
+          tech_name: string
+        }[]
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string

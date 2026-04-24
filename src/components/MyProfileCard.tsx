@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -37,15 +37,17 @@ export function MyProfileCard() {
     timezone: "",
     avatar_url: "",
   });
+  const [linkedTech, setLinkedTech] = useState<{ id: string; tech_name: string; pincode: string | null } | null>(null);
+  const [pinDraft, setPinDraft] = useState("");
+  const [savingPin, setSavingPin] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await (supabase as any)
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
+      const [{ data }, { data: tech }] = await Promise.all([
+        (supabase as any).from("profiles").select("*").eq("id", user.id).maybeSingle(),
+        (supabase as any).from("technicians").select("id, tech_name, pincode").eq("user_id", user.id).maybeSingle(),
+      ]);
       const p = (data as ProfileRow) || null;
       setForm({
         first_name: p?.first_name ?? "",
@@ -58,9 +60,38 @@ export function MyProfileCard() {
           (typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : ""),
         avatar_url: p?.avatar_url ?? "",
       });
+      if (tech) {
+        setLinkedTech(tech as any);
+        setPinDraft((tech as any).pincode ?? "");
+      }
       setLoading(false);
     })();
   }, [user]);
+
+  async function savePincode() {
+    if (!linkedTech) return;
+    if (pinDraft && !/^\d{6}$/.test(pinDraft)) {
+      toast.error("Pincode must be exactly 6 digits");
+      return;
+    }
+    setSavingPin(true);
+    const { error } = await (supabase as any)
+      .from("technicians")
+      .update({ pincode: pinDraft || null })
+      .eq("id", linkedTech.id);
+    setSavingPin(false);
+    if (error) {
+      if (error.message?.includes("technicians_pincode_unique")) toast.error("That pincode is already used by another technician");
+      else toast.error(error.message);
+      return;
+    }
+    toast.success("Pincode updated");
+    setLinkedTech({ ...linkedTech, pincode: pinDraft || null });
+  }
+
+  function generatePin() {
+    setPinDraft(String(Math.floor(100000 + Math.random() * 900000)));
+  }
 
   function update<K extends keyof typeof form>(k: K, v: string) {
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -150,6 +181,32 @@ export function MyProfileCard() {
                 {saving ? "Saving…" : "Save changes"}
               </Button>
             </div>
+
+            {linkedTech && (
+              <div className="border-t pt-4 space-y-2">
+                <Label>My remote upload pincode</Label>
+                <p className="text-xs text-muted-foreground">
+                  You're linked to technician <span className="font-medium">{linkedTech.tech_name}</span>.
+                  Use this 6-digit code on the public upload link to identify yourself.
+                </p>
+                <div className="flex gap-2 max-w-xs">
+                  <Input
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={pinDraft}
+                    onChange={(e) => setPinDraft(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="——————"
+                    className="font-mono tracking-widest text-center"
+                  />
+                  <Button type="button" variant="outline" size="icon" onClick={generatePin} title="Generate new pincode">
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={savePincode} disabled={savingPin}>
+                    {savingPin ? "Saving…" : "Save pin"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </CardContent>

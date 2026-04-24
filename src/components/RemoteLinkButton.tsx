@@ -29,8 +29,9 @@ export function RemoteLinkButton() {
         <div className="space-y-2">
           <p className="text-sm font-medium">Remote upload link</p>
           <p className="text-xs text-muted-foreground">
-            Share this link so others can submit jobs (Parse Message or Manual). Submissions are tagged
-            internally so admins can see they came in remotely.
+            Share this link so technicians can submit jobs (Parse Message or Manual). They'll need
+            their personal 6-digit pincode (set in Technicians) to submit. Each submission is
+            tagged with their name automatically.
           </p>
           <div className="flex gap-1">
             <Input readOnly value={url} className="h-8 text-xs" onFocus={(e) => e.currentTarget.select()} />
