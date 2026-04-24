@@ -46,6 +46,7 @@ function SettingsPage() {
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [templates, setTemplates] = useState<TemplatesSetting>({ dashboardViews: [], exportTemplates: [] });
   const [training, setTraining] = useState<AITrainingSetting>(emptyTraining);
+  const [companyNames, setCompanyNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const { isAdmin, loading: authLoading } = useAuth();
@@ -57,10 +58,16 @@ function SettingsPage() {
 
   useEffect(() => {
     (async () => {
-      const [m, t, ai] = await Promise.all([loadPaymentMethods(), loadTemplates(), loadAITraining()]);
+      const [m, t, ai, c] = await Promise.all([
+        loadPaymentMethods(),
+        loadTemplates(),
+        loadAITraining(),
+        supabase.from("companies").select("company_name").order("company_name"),
+      ]);
       setMethods(m);
       setTemplates(t);
       setTraining(ai);
+      setCompanyNames(((c.data as { company_name: string }[]) || []).map((r) => r.company_name).filter(Boolean));
       setLoading(false);
     })();
   }, []);
