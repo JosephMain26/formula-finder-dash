@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Columns3, Save, Trash2 } from "lucide-react";
 import { loadTemplates, saveTemplates, makeId, type DashboardViewTemplate, type TemplatesSetting } from "@/lib/settings";
+import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
 
 export const ALL_COLUMNS = [
   { key: "actions", label: "Actions" },
