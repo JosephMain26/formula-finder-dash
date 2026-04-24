@@ -55,6 +55,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [editJobTypeName, setEditJobTypeName] = useState("");
   const [managingJobTypes, setManagingJobTypes] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [marketerTypes, setMarketerTypes] = useState<string[]>([]);
 
   const [form, setForm] = useState(emptyForm);
 
@@ -63,6 +64,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       supabase.from("companies").select("*").order("company_name").then(({ data }) => setCompanies(data || []));
       supabase.from("technicians").select("*").order("tech_name").then(({ data }) => setTechnicians((data as Technician[]) || []));
       (supabase as any).from("installers").select("id,name").order("name").then(({ data }: any) => setInstallers((data as Installer[]) || []));
+      (supabase as any).from("marketer_types").select("name").order("name").then(({ data }: any) => {
+        setMarketerTypes(((data as { name: string }[]) || []).map((t) => t.name));
+      });
       fetchJobTypes();
       loadPaymentMethods().then((m) => setPaymentMethods(m));
 
@@ -328,7 +332,18 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Comp Type</label>
-            <Input value={form.comp_type} onChange={(e) => update("comp_type", e.target.value)} />
+            <Input
+              list="marketer-types-list"
+              value={form.comp_type}
+              onChange={(e) => update("comp_type", e.target.value)}
+              placeholder="Type to search..."
+              autoComplete="off"
+            />
+            <datalist id="marketer-types-list">
+              {marketerTypes.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
           </div>
           <div>
             <div className="flex items-center justify-between">
