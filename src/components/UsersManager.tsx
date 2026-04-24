@@ -512,6 +512,49 @@ export function UsersManager() {
           </div>
         </CardContent>
       </Card>
+
+      {/* EDIT PROFILE DIALOG (admin) */}
+      <Dialog open={!!editingProfile} onOpenChange={(o) => !o && setEditingProfile(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit user — {editingProfile?.email}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>First name</Label>
+              <Input value={editForm.first_name} onChange={(e) => setEditForm((f) => ({ ...f, first_name: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Last name</Label>
+              <Input value={editForm.last_name} onChange={(e) => setEditForm((f) => ({ ...f, last_name: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Job title</Label>
+              <Input value={editForm.job_title} onChange={(e) => setEditForm((f) => ({ ...f, job_title: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Timezone</Label>
+              <Input value={editForm.timezone} onChange={(e) => setEditForm((f) => ({ ...f, timezone: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Work phone</Label>
+              <Input value={editForm.phone} onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Mobile / SMS</Label>
+              <Input value={editForm.mobile_phone} onChange={(e) => setEditForm((f) => ({ ...f, mobile_phone: e.target.value }))} />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Admin notes (only visible to admins)</Label>
+              <Textarea rows={3} value={editForm.notes} onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingProfile(null)}>Cancel</Button>
+            <Button onClick={saveProfileEdit} disabled={savingEdit}>{savingEdit ? "Saving…" : "Save"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
