@@ -333,12 +333,25 @@ function SettingsPage() {
                 )}
                 {training.marketerRules.map((r) => (
                   <div key={r.id} className="flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:items-center border rounded-md p-2">
-                    <Input
-                      className="sm:col-span-4 h-9"
-                      placeholder="Marketer name (e.g. ABC Marketing)"
-                      value={r.marketerName}
-                      onChange={(e) => updateRule(r.id, { marketerName: e.target.value })}
-                    />
+                    <div className="sm:col-span-4">
+                      <Select
+                        value={r.marketerName || ""}
+                        onValueChange={(v) => updateRule(r.id, { marketerName: v })}
+                        disabled={companyNames.length === 0}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder={companyNames.length === 0 ? "No marketers — add some first" : "Select marketer"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {companyNames.map((name) => (
+                            <SelectItem key={name} value={name}>{name}</SelectItem>
+                          ))}
+                          {r.marketerName && !companyNames.includes(r.marketerName) && (
+                            <SelectItem value={r.marketerName}>{r.marketerName} (missing)</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Input
                       className="sm:col-span-7 h-9"
                       placeholder="Keywords / company names that map to this marketer (comma separated)"
