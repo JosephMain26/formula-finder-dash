@@ -26,6 +26,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { loadTemplates, saveTemplates, makeId, type ExportTemplate, type TemplatesSetting } from "@/lib/settings";
+import { DatePickerField } from "@/components/DatePickerField";
 
 type Job = Tables<"jobs">;
 
