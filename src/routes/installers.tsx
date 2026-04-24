@@ -83,8 +83,8 @@ function InstallersPage() {
                 <p className="text-sm mt-1">Add your first installer to get started.</p>
               </div>
             ) : (
-              <div className="rounded-lg border overflow-hidden">
-                <Table>
+              <div className="rounded-lg border overflow-x-auto">
+                <Table className="min-w-[700px]">
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead>Name</TableHead>
