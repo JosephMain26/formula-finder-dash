@@ -214,12 +214,29 @@ function DrillDialog({
 }
 
 export function AnalyticsPanel({ jobs }: { jobs: Job[] }) {
-  const [charts, setCharts] = useState<ChartConfig[]>(loadCharts);
+  // Hydrate from localStorage cache if present so first render isn't empty;
+  // then reconcile against per-user prefs once they load.
+  const [charts, setCharts] = useState<ChartConfig[]>(() => loadChartsLS() ?? defaults());
+  const [hydrated, setHydrated] = useState(false);
   const [drill, setDrill] = useState<{ metric: MetricKey; value: string } | null>(null);
 
   useEffect(() => {
+    loadUserPrefs().then(() => {
+      const remote = getPref<ChartConfig[]>("analytics.charts");
+      if (Array.isArray(remote) && remote.length > 0) {
+        setCharts(remote);
+      }
+      setHydrated(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    // Cache locally for instant load next time
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(charts)); } catch {}
-  }, [charts]);
+    // Persist per-user, but only after we've reconciled with the remote prefs
+    // (to avoid overwriting remote with stale localStorage on first paint).
+    if (hydrated) saveUserPrefs({ analytics: { charts } });
+  }, [charts, hydrated]);
 
   function update(id: string, c: ChartConfig) {
     setCharts((prev) => prev.map((x) => (x.id === id ? c : x)));
