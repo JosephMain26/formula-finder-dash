@@ -138,7 +138,7 @@ export function MyProfileCard() {
               </div>
               <div>
                 <Label htmlFor="timezone">Timezone</Label>
-                <Input id="timezone" value={form.timezone} onChange={(e) => update("timezone", e.target.value)} placeholder="America/Los_Angeles" />
+                <TimezoneCombobox value={form.timezone} onChange={(v) => update("timezone", v)} />
               </div>
               <div>
                 <Label htmlFor="avatar_url">Avatar URL</Label>
