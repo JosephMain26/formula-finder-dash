@@ -27,6 +27,17 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { loadTemplates, saveTemplates, makeId, type ExportTemplate, type TemplatesSetting } from "@/lib/settings";
 import { DatePickerField } from "@/components/DatePickerField";
+import { resolvePreset, type DatePreset } from "@/components/DateRangePresets";
+import { supabase } from "@/integrations/supabase/client";
+
+const BUILT_IN_PRESETS: DatePreset[] = [
+  { id: "builtin-today", name: "Today", type: "builtin-range", rangeKey: "today" },
+  { id: "builtin-this-month", name: "This Month", type: "builtin-range", rangeKey: "this-month" },
+  { id: "builtin-this-year", name: "This Year", type: "builtin-range", rangeKey: "this-year" },
+  { id: "builtin-mon-sun", name: "This week (Mon–Sun)", type: "dynamic", startDay: 1, endDay: 0, weekOffset: 0 },
+  { id: "builtin-mon-fri", name: "This week (Mon–Fri)", type: "dynamic", startDay: 1, endDay: 5, weekOffset: 0 },
+  { id: "builtin-last-mon-sun", name: "Last week (Mon–Sun)", type: "dynamic", startDay: 1, endDay: 0, weekOffset: -1 },
+];
 
 type Job = Tables<"jobs">;
 
