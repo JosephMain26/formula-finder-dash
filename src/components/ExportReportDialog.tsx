@@ -328,14 +328,36 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
             <div>
-              <Label className="text-xs">From date</Label>
-              <DatePickerField value={dateFrom} onChange={setDateFrom} />
+              <Label className="text-xs">Time range</Label>
+              <Select value={activePresetId} onValueChange={applyDatePreset}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Pick a range…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Custom dates (below)</SelectItem>
+                  <SelectItem value="all">All dates</SelectItem>
+                  {datePresets.map((p) => {
+                    const r = resolvePreset(p);
+                    return (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}{r ? ` (${r.from} → ${r.to})` : ""}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <Label className="text-xs">To date</Label>
-              <DatePickerField value={dateTo} onChange={setDateTo} />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs">From date</Label>
+                <DatePickerField value={dateFrom} onChange={(v) => { setDateFrom(v); setActivePresetId("custom"); }} />
+              </div>
+              <div>
+                <Label className="text-xs">To date</Label>
+                <DatePickerField value={dateTo} onChange={(v) => { setDateTo(v); setActivePresetId("custom"); }} />
+              </div>
             </div>
           </div>
 
