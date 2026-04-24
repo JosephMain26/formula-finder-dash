@@ -1,72 +1,58 @@
-## Plan: UX polish + per-user persisted preferences
+## Plan: Sorting, Responsive Layout, Tech Role & Permissions
 
-### 1. Timezone dropdown + auto-detect (`src/components/MyProfileCard.tsx`)
-- Replace the free-text `Input` for timezone with a searchable `Command` + `Popover` combobox.
-- Source list from `Intl.supportedValuesOf("timeZone")` with a fallback static list for browsers that don't support it.
-- On first load (no saved value), auto-fill with `Intl.DateTimeFormat().resolvedOptions().timeZone` so the user just confirms.
-- Keep value as IANA string (e.g. `America/Los_Angeles`) — schema unchanged.
+### 1. Jobs table sorting (default newest → oldest + user choice)
+**Files:** `src/routes/index.tsx`, `src/components/JobsTable.tsx`
+- Add a `sortBy` state on the dashboard with options: `job_date_desc` (default), `job_date_asc`, `created_desc`, `created_asc`, `price_desc`, `price_asc`.
+- Default the Supabase fetch order to `job_date desc, created_at desc` (currently only `job_date desc`, which is fine but ties get random order).
+- Apply the selected sort client-side on the `filtered` list before rendering.
+- Persist selection via `userPrefs` under `dashboard.sortBy` (already wired pattern).
+- Add a small `<Select>` next to "Showing X of Y jobs".
 
-### 2. Mobile date picker fix (no auto-open on iOS/Android)
-- **`src/components/AddJobDialog.tsx`**: Replace the native `<Input type="date">` for `job_date` with a Shadcn Datepicker (`Popover` + `Calendar`, `pointer-events-auto`). Native date inputs auto-trigger the OS picker when the dialog autofocuses them on iOS — the popover-based picker only opens when the trigger button is tapped.
-- **`src/components/ExportReportDialog.tsx`**: Same swap for the `from`/`to` date inputs.
-- Keep underlying values as `YYYY-MM-DD` strings so the rest of the codebase is unchanged.
+### 2. Analytics widgets — collapsible / dynamic stretch
+**Files:** `src/routes/index.tsx`, `src/components/AnalyticsPanel.tsx`
+- When `charts.length === 0`, do **not** reserve the right-hand 320–360px column. Conditionally render the side panel only if charts exist.
+- Add a "Hide analytics" toggle button in the panel header (and a "Show analytics" button placed next to ColumnToggle when hidden). Persist `analytics.hidden: boolean` in user prefs.
+- Layout change: replace the fixed `lg:w-[320px]` with a wrapper that becomes `display: none` when hidden/empty, letting the table flex container fill the full width naturally (already `flex-1`).
 
-### 3. Dashboard date presets (`src/components/DateRangePresets.tsx`)
-- Add three built-in presets to the existing list:
-  - **Today** — `from = to = today`
-  - **This Month** — first day of current month → today
-  - **This Year** — Jan 1 of current year → today
-- Insert into the resolution logic and the dropdown UI alongside the existing presets. No schema changes.
+### 3. New "tech" role + per-user job-creation scope permission
+**Files:** new migration, `src/lib/auth-context.tsx`, `src/components/UsersManager.tsx`, `src/components/AddJobDialog.tsx`, `src/routes/index.tsx`
 
-### 4. Per-user persisted dashboard view
-**Database migration** — new table `public.user_preferences`:
+**Migration (schema only):**
 ```sql
-create table public.user_preferences (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  prefs jsonb not null default '{}'::jsonb,
-  updated_at timestamptz not null default now()
-);
-alter table public.user_preferences enable row level security;
-create policy "Users read own prefs" on public.user_preferences
-  for select to authenticated using (auth.uid() = user_id);
-create policy "Users upsert own prefs" on public.user_preferences
-  for insert to authenticated with check (auth.uid() = user_id);
-create policy "Users update own prefs" on public.user_preferences
-  for update to authenticated using (auth.uid() = user_id);
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'tech';
+
+INSERT INTO public.permissions (key, label, description) VALUES
+  ('jobs.add_for_others', 'Add jobs for other techs',
+   'When OFF, the user may only create jobs assigned to themselves'),
+  ('marketer.view_percentage', 'View marketer percentage',
+   'Allows seeing & overriding the marketer % field in job form / table')
+ON CONFLICT (key) DO NOTHING;
+
+-- Default tech role: can add/view their own jobs only
+INSERT INTO public.role_permissions (role_name, permission_key) VALUES
+  ('tech', 'jobs.view'),
+  ('tech', 'jobs.add'),
+  ('tech', 'jobs.edit')
+ON CONFLICT DO NOTHING;
 ```
 
-**New helper `src/lib/userPrefs.ts`**:
-- `loadUserPrefs()` — fetch row for current user, return parsed `prefs` JSON (or `{}`).
-- `saveUserPrefs(partial)` — debounced (~600ms) upsert that deep-merges the partial into existing prefs.
-- Writes-through to `localStorage` as instant cache so the UI hydrates immediately on next login while the network round-trip happens in background.
+**App changes:**
+- `BUILT_IN_ROLES` in `UsersManager.tsx` → add `"tech"`. The two new permissions automatically appear in the Roles & Permissions matrix (it iterates `permissions` table).
+- `AddJobDialog.tsx`:
+  - If `!can("jobs.add_for_others")` and not editing, lock the technician selector to the current user's matching technician (match by `displayName` against `technicians.tech_name`, fallback to disabled select with a notice "You can only add jobs for yourself").
+  - Hide the "Override marketer percentage" block and the company `(percentage%)` suffix when `!can("marketer.view_percentage")`. The default marketer % still applies behind the scenes — only the UI is hidden.
+- `JobsTable.tsx`: hide `total_marketer` column header/cell when `!can("marketer.view_percentage")` (column toggle filtered out as well).
 
-**Wire into existing components** (load on mount, save on change):
-- `src/routes/index.tsx` — date range, active filters, sort state.
-- `src/components/AnalyticsPanel.tsx` — chart visibility / selected views.
-- `src/components/ColumnToggle.tsx` — currently uses `localStorage` for active dashboard view id; switch to `userPrefs` so it follows the user across devices/logouts. Existing `dashboardViews` templates in `app_settings` stay shared (admin-managed); only the *active selection* moves to per-user.
+### 4. Hide marketer percentage option
+Covered by the new `marketer.view_percentage` permission above. Admins can toggle it per role in **Settings → Roles & Permissions**. By default:
+- admin / manager → enabled
+- user / tech → disabled
 
-**Prefs JSON shape** (single source of truth):
-```ts
-{
-  dashboard: {
-    activeViewId?: string,
-    visibleColumns?: ColumnKey[],     // ad-hoc override when no template active
-    dateRange?: { from: string; to: string; presetId?: string },
-    filters?: Record<string, unknown>,
-  },
-  analytics: {
-    visibleCharts?: string[],
-    timeBucket?: 'day' | 'week' | 'month',
-  }
-}
-```
+### Files to be edited / created
+- **New migration**: `supabase/migrations/<ts>_tech_role_permissions.sql`
+- **Edited**: `src/routes/index.tsx`, `src/components/JobsTable.tsx`, `src/components/AnalyticsPanel.tsx`, `src/components/UsersManager.tsx`, `src/components/AddJobDialog.tsx`
 
-### Files to create / edit
-- **Create**: `src/lib/userPrefs.ts`, new migration for `user_preferences`.
-- **Edit**: `MyProfileCard.tsx`, `AddJobDialog.tsx`, `ExportReportDialog.tsx`, `DateRangePresets.tsx`, `routes/index.tsx`, `AnalyticsPanel.tsx`, `ColumnToggle.tsx`.
-
-### Out of scope (intentionally cheap)
-- No redesign of dashboard / analytics — just persistence wiring.
-- No migration of existing `localStorage` keys for other users; current users will simply re-pick their view once and it then persists forever.
-
-Reply **Approved** to implement, or tell me which of the four items to skip.
+### Notes
+- No `ColumnToggle` change needed beyond filtering out hidden-by-permission columns.
+- All persistence reuses existing `userPrefs` infra (zero new tables).
+- Reply **Approved** to implement, or tell me which items to skip.

@@ -13,8 +13,9 @@ import { ParseMessageDialog } from "@/components/ParseMessageDialog";
 import { DateRangePresets, type DateRange } from "@/components/DateRangePresets";
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { Button } from "@/components/ui/button";
-import { Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, BarChart3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
 import { MobileNav } from "@/components/MobileNav";
@@ -39,6 +40,17 @@ function getGreeting(d = new Date()) {
   return "Good evening";
 }
 
+type SortKey = "job_date_desc" | "job_date_asc" | "created_desc" | "created_asc" | "price_desc" | "price_asc";
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "job_date_desc", label: "Date (newest first)" },
+  { key: "job_date_asc", label: "Date (oldest first)" },
+  { key: "created_desc", label: "Created (newest first)" },
+  { key: "created_asc", label: "Created (oldest first)" },
+  { key: "price_desc", label: "Price (high to low)" },
+  { key: "price_asc", label: "Price (low to high)" },
+];
+
 function Dashboard() {
   const { role, isAdmin, displayName, signOut } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -54,6 +66,8 @@ function Dashboard() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [greeting, setGreeting] = useState<string>(() => getGreeting());
   const [prefsHydrated, setPrefsHydrated] = useState(false);
+  const [sortBy, setSortBy] = useState<SortKey>("job_date_desc");
+  const [analyticsHidden, setAnalyticsHidden] = useState(false);
 
   // Load saved per-user dashboard prefs on mount
   useEffect(() => {
@@ -68,6 +82,11 @@ function Dashboard() {
       if (d.dateRange && typeof d.dateRange.from === "string" && typeof d.dateRange.to === "string") {
         setDateRange({ from: d.dateRange.from, to: d.dateRange.to });
       }
+      if (typeof d.sortBy === "string" && SORT_OPTIONS.some((o) => o.key === d.sortBy)) {
+        setSortBy(d.sortBy as SortKey);
+      }
+      const a = getPref<any>("analytics") || {};
+      if (typeof a.hidden === "boolean") setAnalyticsHidden(a.hidden);
       setPrefsHydrated(true);
     });
   }, []);
@@ -79,9 +98,15 @@ function Dashboard() {
       dashboard: {
         search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter,
         dateRange: dateRange ?? null,
+        sortBy,
       },
     });
-  }, [prefsHydrated, search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter, dateRange]);
+  }, [prefsHydrated, search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter, dateRange, sortBy]);
+
+  useEffect(() => {
+    if (!prefsHydrated) return;
+    saveUserPrefs({ analytics: { hidden: analyticsHidden } });
+  }, [prefsHydrated, analyticsHidden]);
 
   // Re-evaluate greeting at the next top-of-hour so morning→afternoon→evening flips without reload.
   useEffect(() => {
@@ -113,7 +138,11 @@ function Dashboard() {
 
   async function fetchJobs() {
     setLoading(true);
-    const { data } = await supabase.from("jobs").select("*").order("job_date", { ascending: false });
+    const { data } = await supabase
+      .from("jobs")
+      .select("*")
+      .order("job_date", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
     setJobs(data || []);
     setLoading(false);
   }
@@ -151,6 +180,28 @@ function Dashboard() {
       return true;
     });
   }, [jobs, search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter, dateRange]);
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    const cmpStr = (a: string | null, b: string | null) => (a || "").localeCompare(b || "");
+    const cmpNum = (a: number | null, b: number | null) => (Number(a || 0)) - (Number(b || 0));
+    switch (sortBy) {
+      case "job_date_asc":
+        return arr.sort((a, b) => cmpStr(a.job_date, b.job_date));
+      case "job_date_desc":
+        return arr.sort((a, b) => cmpStr(b.job_date, a.job_date));
+      case "created_asc":
+        return arr.sort((a, b) => cmpStr(a.created_at, b.created_at));
+      case "created_desc":
+        return arr.sort((a, b) => cmpStr(b.created_at, a.created_at));
+      case "price_asc":
+        return arr.sort((a, b) => cmpNum(a.price, b.price));
+      case "price_desc":
+        return arr.sort((a, b) => cmpNum(b.price, a.price));
+      default:
+        return arr;
+    }
+  }, [filtered, sortBy]);
 
   function clearFilters() {
     setSearch("");
@@ -222,8 +273,21 @@ function Dashboard() {
             ) : (
               <>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs text-muted-foreground">Showing {filtered.length} of {jobs.length} jobs</span>
-                  <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Showing {sorted.length} of {jobs.length} jobs</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+                      <SelectTrigger className="h-9 w-[200px] text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {SORT_OPTIONS.map((o) => (
+                          <SelectItem key={o.key} value={o.key} className="text-xs">{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {analyticsHidden && (
+                      <Button variant="outline" size="sm" className="h-9" onClick={() => setAnalyticsHidden(false)}>
+                        <BarChart3 className="h-4 w-4 mr-2" /> Show analytics
+                      </Button>
+                    )}
                     <ExportReportDialog jobs={jobs} companies={uniqueValues.companies} />
                     <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} onSetVisible={setVisibleColumns} />
                   </div>
@@ -235,7 +299,7 @@ function Dashboard() {
                   statuses={uniqueValues.statuses}
                 />
                 <JobsTable
-                  jobs={filtered}
+                  jobs={sorted}
                   onJobsChanged={fetchJobs}
                   visibleColumns={visibleColumns}
                   selectedIds={selectedIds}
@@ -245,9 +309,11 @@ function Dashboard() {
               </>
             )}
           </div>
-          <div className="w-full lg:w-[320px] xl:w-[360px] shrink-0">
-            <AnalyticsPanel jobs={filtered} />
-          </div>
+          {!analyticsHidden && (
+            <div className="w-full lg:w-[320px] xl:w-[360px] shrink-0">
+              <AnalyticsPanel jobs={sorted} onHide={() => setAnalyticsHidden(true)} />
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -40,9 +40,10 @@ function currency(val: number | null) {
 }
 
 export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, onToggleSelect, onToggleSelectAll }: JobsTableProps) {
-  const { displayName } = useAuth();
+  const { displayName, can } = useAuth();
+  const canSeeMarketerPct = can("marketer.view_percentage");
   const firstName = (displayName || "").split(" ")[0];
-  const show = (key: ColumnKey) => visibleColumns.has(key);
+  const show = (key: ColumnKey) => visibleColumns.has(key) && !(key === "total_marketer" && !canSeeMarketerPct);
   const selectionEnabled = !!selectedIds && !!onToggleSelect;
   const allSelected = selectionEnabled && jobs.length > 0 && jobs.every((j) => selectedIds!.has(j.id));
   const someSelected = selectionEnabled && jobs.some((j) => selectedIds!.has(j.id));

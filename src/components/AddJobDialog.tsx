@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
 import { DatePickerField } from "@/components/DatePickerField";
+import { useAuth } from "@/lib/auth-context";
 
 type Company = Tables<"companies">;
 type Technician = {
@@ -40,6 +41,9 @@ interface JobDialogProps {
 }
 
 export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOpenChange, prefill }: JobDialogProps) {
+  const { can, displayName } = useAuth();
+  const canAddForOthers = can("jobs.add_for_others");
+  const canSeeMarketerPct = can("marketer.view_percentage");
   const isEdit = !!job;
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
@@ -129,6 +133,23 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       }
     }
   }, [open]);
+
+  // When user lacks "jobs.add_for_others", auto-assign technician to themselves on new jobs
+  useEffect(() => {
+    if (canAddForOthers || isEdit || !open || technicians.length === 0) return;
+    if (form.technician_id) return;
+    const myName = (displayName || "").trim().toLowerCase();
+    if (!myName) return;
+    const me = technicians.find((t) => (t.tech_name || "").trim().toLowerCase() === myName);
+    if (me) {
+      setForm((prev) => ({
+        ...prev,
+        technician_id: me.id,
+        tech_name: me.tech_name,
+        manual_percentage: useManualPercentage ? prev.manual_percentage : (me.percentage ?? 50).toString(),
+      }));
+    }
+  }, [canAddForOthers, isEdit, open, technicians, displayName]);
 
   async function fetchJobTypes() {
     const { data } = await supabase.from("job_types").select("*").order("name");
@@ -275,7 +296,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               <SelectTrigger><SelectValue placeholder="Select marketer" /></SelectTrigger>
               <SelectContent>
                 {companies.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.company_name} ({c.percentage}%)</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.company_name}{canSeeMarketerPct ? ` (${c.percentage}%)` : ""}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -290,27 +313,33 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               <span className="ml-auto text-sm text-muted-foreground">Using tech default %</span>
             )}
           </div>
-          <div className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
-            <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
-            <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer">Override marketer percentage for this job</label>
-            {useManualMarketerPercentage ? (
-              <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
-            ) : (
-              <span className="ml-auto text-sm text-muted-foreground">
-                Using marketer default {selectedCompany?.percentage != null ? `(${selectedCompany.percentage}%)` : "%"}
-              </span>
-            )}
-          </div>
+          {canSeeMarketerPct && (
+            <div className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
+              <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
+              <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer">Override marketer percentage for this job</label>
+              {useManualMarketerPercentage ? (
+                <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
+              ) : (
+                <span className="ml-auto text-sm text-muted-foreground">
+                  Using marketer default {selectedCompany?.percentage != null ? `(${selectedCompany.percentage}%)` : "%"}
+                </span>
+              )}
+            </div>
+          )}
           <div>
             <label className="text-xs font-medium text-muted-foreground">Technician</label>
-            <Select value={form.technician_id} onValueChange={(id) => {
-              update("technician_id", id);
-              const tech = technicians.find(t => t.id === id);
-              if (tech) {
-                update("tech_name", tech.tech_name);
-                if (!useManualPercentage) update("manual_percentage", (tech.percentage ?? 50).toString());
-              }
-            }}>
+            <Select
+              value={form.technician_id}
+              disabled={!canAddForOthers && !isEdit}
+              onValueChange={(id) => {
+                update("technician_id", id);
+                const tech = technicians.find(t => t.id === id);
+                if (tech) {
+                  update("tech_name", tech.tech_name);
+                  if (!useManualPercentage) update("manual_percentage", (tech.percentage ?? 50).toString());
+                }
+              }}
+            >
               <SelectTrigger><SelectValue placeholder="Select technician" /></SelectTrigger>
               <SelectContent>
                 {technicians.map(t => (
@@ -318,6 +347,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 ))}
               </SelectContent>
             </Select>
+            {!canAddForOthers && !isEdit && (
+              <p className="text-[11px] text-muted-foreground mt-1">You can only add jobs assigned to yourself.</p>
+            )}
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">PO Number</label>
