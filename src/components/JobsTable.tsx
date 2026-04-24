@@ -6,6 +6,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { JobDialog } from "@/components/AddJobDialog";
 import { EditableCell } from "@/components/EditableCell";
+import { useAuth } from "@/lib/auth-context";
 import type { Tables } from "@/integrations/supabase/types";
 import type { ColumnKey } from "@/components/ColumnToggle";
 
