@@ -82,7 +82,7 @@ function CompaniesPage() {
             </div>
           </div>
           <div className="flex justify-end sm:justify-start">
-            <CompanyDialog onSaved={fetchCompanies} />
+            <CompanyDialog onSaved={() => { fetchCompanies(); fetchTypes(); }} />
           </div>
         </div>
       </header>
