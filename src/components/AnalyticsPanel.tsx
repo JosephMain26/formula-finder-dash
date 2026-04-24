@@ -39,20 +39,21 @@ type ChartConfig = { id: string; metric: MetricKey; type: ChartType };
 
 const STORAGE_KEY = "analytics_panel_charts_v1";
 
-function loadCharts(): ChartConfig[] {
-  if (typeof window === "undefined") return defaults();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return defaults();
-}
 function defaults(): ChartConfig[] {
   return [
     { id: "1", metric: "revenue_per_day", type: "line" },
     { id: "2", metric: "popular_job", type: "pie" },
     { id: "3", metric: "jobs_per_tech", type: "bar" },
   ];
+}
+
+function loadChartsLS(): ChartConfig[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
 }
 
 const profit = (j: Job) =>
