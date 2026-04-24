@@ -180,6 +180,7 @@ function SettingsPage() {
         <Tabs defaultValue="payment">
           <div className="overflow-x-auto -mx-1 px-1">
             <TabsList className="w-max">
+              <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" /> My Profile</TabsTrigger>
               <TabsTrigger value="payment">Payment Methods</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
               <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Training</TabsTrigger>
