@@ -113,88 +113,113 @@ function NameSelect({
 // ---------- Pincode gate ----------
 type TechIdentity = { id: string; tech_name: string };
 
-function PincodeGate({ value, onChange, identity, status }: {
-  value: string;
-  onChange: (v: string) => void;
-  identity: TechIdentity | null;
-  status: "idle" | "checking" | "invalid" | "ok";
-}) {
-  return (
-    <div className="rounded-xl border bg-card p-4 space-y-2">
-      <label className="text-xs font-medium text-muted-foreground">Your 6-digit pincode</label>
-      <Input
-        inputMode="numeric"
-        pattern="\d{6}"
-        maxLength={6}
-        value={value}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
-        placeholder="——————"
-        className="font-mono tracking-widest text-center text-lg"
-        autoFocus
-      />
-      {status === "checking" && <p className="text-xs text-muted-foreground">Checking…</p>}
-      {status === "invalid" && <p className="text-xs text-destructive">Pincode not recognized. Ask the office for your code.</p>}
-      {status === "ok" && identity && (
-        <p className="text-xs text-green-600">Identified as <span className="font-semibold">{identity.tech_name}</span>. Submissions will be tagged with your name.</p>
-      )}
-      {status === "idle" && <p className="text-xs text-muted-foreground">Enter the pincode set for you in Technicians.</p>}
-    </div>
-  );
-}
+const INACTIVITY_MS = 30_000;
 
-function usePincodeIdentity() {
+function PincodeStep({ onSuccess }: { onSuccess: (id: TechIdentity) => void }) {
   const [pin, setPin] = useState("");
-  const [identity, setIdentity] = useState<TechIdentity | null>(null);
-  const [status, setStatus] = useState<"idle" | "checking" | "invalid" | "ok">("idle");
+  const [status, setStatus] = useState<"idle" | "checking" | "invalid">("idle");
 
   useEffect(() => {
-    if (pin.length !== 6) {
-      setIdentity(null);
-      setStatus(pin.length === 0 ? "idle" : "checking");
-      return;
-    }
+    if (pin.length !== 6) { setStatus(pin.length === 0 ? "idle" : "checking"); return; }
     let cancelled = false;
     setStatus("checking");
     (async () => {
       const { data, error } = await (supabase as any).rpc("lookup_tech_by_pincode", { _pin: pin });
       if (cancelled) return;
       const row = Array.isArray(data) && data.length ? data[0] : null;
-      if (error || !row) { setIdentity(null); setStatus("invalid"); return; }
-      setIdentity({ id: row.id, tech_name: row.tech_name });
-      setStatus("ok");
+      if (error || !row) { setStatus("invalid"); return; }
+      onSuccess({ id: row.id, tech_name: row.tech_name });
     })();
     return () => { cancelled = true; };
   }, [pin]);
 
-  return { pin, setPin, identity, status };
+  return (
+    <div className="rounded-xl border bg-card p-6 space-y-3">
+      <div className="text-center space-y-1">
+        <h2 className="text-lg font-semibold">Enter your pincode</h2>
+        <p className="text-xs text-muted-foreground">Type your personal 6-digit code to continue.</p>
+      </div>
+      <Input
+        inputMode="numeric"
+        pattern="\d{6}"
+        maxLength={6}
+        value={pin}
+        onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+        placeholder="——————"
+        className="font-mono tracking-[0.5em] text-center text-2xl h-14"
+        autoFocus
+      />
+      {status === "checking" && <p className="text-xs text-center text-muted-foreground">Checking…</p>}
+      {status === "invalid" && <p className="text-xs text-center text-destructive">Pincode not recognized. Ask the office for your code.</p>}
+    </div>
+  );
 }
 
 // ---------- Page ----------
 function RemoteUploadPage() {
   const opts = useOptions();
-  const gate = usePincodeIdentity();
+  const [identity, setIdentity] = useState<TechIdentity | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
+
+  // Inactivity reset: 30s without user interaction sends back to pincode step.
+  useEffect(() => {
+    if (!identity) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const reset = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        setIdentity(null);
+        setTimedOut(true);
+      }, INACTIVITY_MS);
+    };
+    const events: (keyof WindowEventMap)[] = ["mousemove", "keydown", "click", "touchstart", "scroll"];
+    events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    reset();
+    return () => {
+      clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, reset));
+    };
+  }, [identity]);
+
   return (
     <div className="min-h-screen bg-background flex items-start justify-center py-10 px-4">
       <div className="w-full max-w-xl space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">Submit a Job</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Choose how you'd like to submit. The team will review and finalize the details.
+            The team will review and finalize the details.
           </p>
         </div>
-        <PincodeGate value={gate.pin} onChange={gate.setPin} identity={gate.identity} status={gate.status} />
-        <Tabs defaultValue="parse" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="parse"><Sparkles className="h-4 w-4 mr-2" /> Parse Message</TabsTrigger>
-            <TabsTrigger value="manual"><Plus className="h-4 w-4 mr-2" /> Manual Entry</TabsTrigger>
-          </TabsList>
-          <TabsContent value="parse" className="mt-4">
-            <ParseTab opts={opts} identity={gate.identity} />
-          </TabsContent>
-          <TabsContent value="manual" className="mt-4">
-            <ManualTab opts={opts} identity={gate.identity} />
-          </TabsContent>
-        </Tabs>
+        {!identity ? (
+          <>
+            {timedOut && (
+              <p className="text-xs text-center text-muted-foreground">Session timed out after 30s of inactivity. Please re-enter your pincode.</p>
+            )}
+            <PincodeStep onSuccess={(id) => { setIdentity(id); setTimedOut(false); }} />
+          </>
+        ) : (
+          <>
+            <div className="rounded-xl border bg-card p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm">Welcome, <span className="font-semibold">{identity.tech_name}</span> 👋</p>
+                <p className="text-xs text-muted-foreground">Submissions will be tagged with your name.</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setIdentity(null)}>Sign out</Button>
+            </div>
+            <Tabs defaultValue="parse" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="parse"><Sparkles className="h-4 w-4 mr-2" /> Parse Message</TabsTrigger>
+                <TabsTrigger value="manual"><Plus className="h-4 w-4 mr-2" /> Manual Entry</TabsTrigger>
+              </TabsList>
+              <TabsContent value="parse" className="mt-4">
+                <ParseTab opts={opts} identity={identity} />
+              </TabsContent>
+              <TabsContent value="manual" className="mt-4">
+                <ManualTab opts={opts} identity={identity} />
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
       </div>
     </div>
   );
