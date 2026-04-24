@@ -267,11 +267,11 @@ function PresetCreator({
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs font-medium mb-1 block">From</label>
-                <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                <DatePickerField value={from} onChange={setFrom} />
               </div>
               <div>
                 <label className="text-xs font-medium mb-1 block">To</label>
-                <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                <DatePickerField value={to} onChange={setTo} />
               </div>
             </div>
           )}
