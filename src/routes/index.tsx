@@ -273,8 +273,21 @@ function Dashboard() {
             ) : (
               <>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs text-muted-foreground">Showing {filtered.length} of {jobs.length} jobs</span>
-                  <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Showing {sorted.length} of {jobs.length} jobs</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+                      <SelectTrigger className="h-9 w-[200px] text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {SORT_OPTIONS.map((o) => (
+                          <SelectItem key={o.key} value={o.key} className="text-xs">{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {analyticsHidden && (
+                      <Button variant="outline" size="sm" className="h-9" onClick={() => setAnalyticsHidden(false)}>
+                        <BarChart3 className="h-4 w-4 mr-2" /> Show analytics
+                      </Button>
+                    )}
                     <ExportReportDialog jobs={jobs} companies={uniqueValues.companies} />
                     <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} onSetVisible={setVisibleColumns} />
                   </div>
@@ -286,7 +299,7 @@ function Dashboard() {
                   statuses={uniqueValues.statuses}
                 />
                 <JobsTable
-                  jobs={filtered}
+                  jobs={sorted}
                   onJobsChanged={fetchJobs}
                   visibleColumns={visibleColumns}
                   selectedIds={selectedIds}
@@ -296,9 +309,11 @@ function Dashboard() {
               </>
             )}
           </div>
-          <div className="w-full lg:w-[320px] xl:w-[360px] shrink-0">
-            <AnalyticsPanel jobs={filtered} />
-          </div>
+          {!analyticsHidden && (
+            <div className="w-full lg:w-[320px] xl:w-[360px] shrink-0">
+              <AnalyticsPanel jobs={sorted} onHide={() => setAnalyticsHidden(true)} />
+            </div>
+          )}
         </div>
       </main>
     </div>
