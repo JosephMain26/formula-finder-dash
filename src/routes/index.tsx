@@ -152,6 +152,7 @@ function Dashboard() {
               </div>
             </div>
           </div>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {isAdmin && (
               <Link to="/settings" className="hidden lg:inline-flex">
                 <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Settings</Button>
