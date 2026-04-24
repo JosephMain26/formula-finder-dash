@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
+import { MarketerTypeSelect } from "@/components/MarketerTypeSelect";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Company = Tables<"companies">;
@@ -44,7 +46,7 @@ function CompaniesPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="max-w-[1200px] mx-auto px-3 sm:px-6 py-3 sm:py-5 flex items-center justify-between gap-2">
+        <div className="max-w-[1200px] mx-auto px-3 sm:px-6 py-3 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <MobileNav className="lg:hidden" />
             <Link to="/" className="hidden lg:inline-flex">
@@ -55,7 +57,9 @@ function CompaniesPage() {
               <p className="hidden sm:block text-sm text-muted-foreground mt-0.5">Manage marketers and revenue percentages</p>
             </div>
           </div>
-          <CompanyDialog onSaved={fetchCompanies} />
+          <div className="flex justify-end sm:justify-start">
+            <CompanyDialog onSaved={fetchCompanies} />
+          </div>
         </div>
       </header>
 
@@ -91,7 +95,15 @@ function CompaniesPage() {
                         <TableCell className="font-medium">{company.company_name}</TableCell>
                         <TableCell>{company.contact_name || "—"}</TableCell>
                         <TableCell>{company.email || "—"}</TableCell>
-                        <TableCell>{company.company_type || "—"}</TableCell>
+                        <TableCell>
+                          {Array.isArray(company.company_type) && company.company_type.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {company.company_type.map((t) => (
+                                <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>
+                              ))}
+                            </div>
+                          ) : "—"}
+                        </TableCell>
                         <TableCell className="text-right font-medium text-primary">
                           {company.percentage != null ? `${company.percentage}%` : "—"}
                         </TableCell>
@@ -120,11 +132,17 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
   const isEdit = !!company;
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    company_name: string;
+    contact_name: string;
+    email: string;
+    company_type: string[];
+    percentage: string;
+  }>({
     company_name: company?.company_name || "",
     contact_name: company?.contact_name || "",
     email: company?.email || "",
-    company_type: company?.company_type || "",
+    company_type: Array.isArray(company?.company_type) ? company!.company_type : [],
     percentage: company?.percentage?.toString() || "50",
   });
 
@@ -141,7 +159,7 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
       company_name: form.company_name,
       contact_name: form.contact_name || null,
       email: form.email || null,
-      company_type: form.company_type || null,
+      company_type: form.company_type,
       percentage: form.percentage ? parseFloat(form.percentage) : 50,
     };
 
@@ -184,7 +202,11 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Type</label>
-            <Input value={form.company_type} onChange={(e) => update("company_type", e.target.value)} placeholder="e.g. HVAC, Plumbing, General" />
+            <MarketerTypeSelect
+              value={form.company_type}
+              onChange={(next) => setForm((prev) => ({ ...prev, company_type: next }))}
+            />
+            <p className="text-xs text-muted-foreground mt-1">Select one or more types. Create new tags inline.</p>
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Marketer Percentage (%)</label>
