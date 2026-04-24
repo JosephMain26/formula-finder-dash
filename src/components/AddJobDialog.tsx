@@ -109,10 +109,13 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               c.company_name?.toLowerCase() === prefill._companyName!.toLowerCase()
             );
             if (match) {
+              const matchType = Array.isArray(match.company_type)
+                ? match.company_type.join(", ")
+                : (match.company_type || "");
               setForm((prev) => ({
                 ...prev,
                 company_id: match.id,
-                comp_type: match.company_type || prev.comp_type,
+                comp_type: matchType || prev.comp_type,
                 manual_percentage: prev.manual_percentage || (match.percentage?.toString() ?? "50"),
               }));
             }
@@ -138,10 +141,13 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
   function handleCompanyChange(companyId: string) {
     const company = companies.find(c => c.id === companyId);
+    const compTypeStr = Array.isArray(company?.company_type)
+      ? company!.company_type.join(", ")
+      : (company?.company_type || "");
     setForm((prev) => ({
       ...prev,
       company_id: companyId,
-      comp_type: company?.company_type || prev.comp_type,
+      comp_type: compTypeStr || prev.comp_type,
       manual_percentage: !useManualPercentage && company?.percentage != null
         ? company.percentage.toString()
         : prev.manual_percentage,

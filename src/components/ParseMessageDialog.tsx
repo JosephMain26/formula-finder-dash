@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { JobDialog } from "@/components/AddJobDialog";
 import { toast } from "sonner";
+import { loadAITraining, applyMarketerRules } from "@/lib/aiTraining";
 
 type Prefill = {
   phone_no?: string;
@@ -41,11 +42,12 @@ export function ParseMessageDialog({ onJobSaved }: { onJobSaved: () => void }) {
     }
     setLoading(true);
     try {
-      // Fetch context for better matching
-      const [companiesRes, techsRes, jobTypesRes] = await Promise.all([
+      // Fetch context + training rules for better matching
+      const [companiesRes, techsRes, jobTypesRes, training] = await Promise.all([
         supabase.from("companies").select("company_name"),
         supabase.from("technicians").select("tech_name"),
         supabase.from("job_types").select("name"),
+        loadAITraining(),
       ]);
 
       const { data, error } = await supabase.functions.invoke("parse-job-message", {
@@ -54,6 +56,9 @@ export function ParseMessageDialog({ onJobSaved }: { onJobSaved: () => void }) {
           companies: (companiesRes.data || []).map((c) => c.company_name),
           technicians: (techsRes.data || []).map((t) => t.tech_name),
           jobTypes: (jobTypesRes.data || []).map((j) => j.name),
+          generalRules: training.generalRules || "",
+          marketerRules: training.marketerRules || [],
+          recentCorrections: (training.corrections || []).slice(0, 25),
         },
       });
 
@@ -66,6 +71,17 @@ export function ParseMessageDialog({ onJobSaved }: { onJobSaved: () => void }) {
       }
 
       const ex = data?.extracted || {};
+
+      // Local fallback: apply marketer rules client-side too, in case LLM missed them
+      const ruleMatch = applyMarketerRules(
+        { company: ex.company, customer_name: ex.customer_name, notes: ex.notes },
+        trimmed,
+        training.marketerRules || []
+      );
+      if (ruleMatch && (!ex.company || ex.company.toLowerCase() !== ruleMatch.toLowerCase())) {
+        ex.company = ruleMatch;
+      }
+
       const noteParts: string[] = [];
       if (ex.customer_name) noteParts.push(`Customer: ${ex.customer_name}`);
       if (ex.notes) noteParts.push(ex.notes);
