@@ -327,12 +327,13 @@ function JobFields({
   );
 }
 
-function buildPayload(draft: DraftForm) {
+function buildPayload(draft: DraftForm, identity: TechIdentity | null) {
+  const techName = identity?.tech_name || draft.tech_name || null;
   return {
     job_date: draft.job_date || null,
     company_id: draft.company_id,
     company_1: draft.company_1 || null,
-    tech_name: draft.tech_name || null,
+    tech_name: techName,
     phone_no: draft.phone_no || null,
     address: draft.address || null,
     job_type: draft.job_type || null,
@@ -345,7 +346,7 @@ function buildPayload(draft: DraftForm) {
     office_parts: draft.office_parts ? parseFloat(draft.office_parts) : 0,
     payment: draft.payment || null,
     notes: draft.notes || null,
-    created_by: REMOTE_MARKER,
+    created_by: identity ? `remote_link:${identity.tech_name}` : REMOTE_MARKER,
   } as any;
 }
 
