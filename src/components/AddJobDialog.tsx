@@ -114,7 +114,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             );
             if (match) {
               const matchType = Array.isArray(match.company_type)
-                ? match.company_type.join(", ")
+                ? (match.company_type[0] || "")
                 : (match.company_type || "");
               setForm((prev) => ({
                 ...prev,
