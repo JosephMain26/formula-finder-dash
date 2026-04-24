@@ -279,7 +279,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               <SelectTrigger><SelectValue placeholder="Select marketer" /></SelectTrigger>
               <SelectContent>
                 {companies.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.company_name} ({c.percentage}%)</SelectItem>
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.company_name}{canSeeMarketerPct ? ` (${c.percentage}%)` : ""}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
