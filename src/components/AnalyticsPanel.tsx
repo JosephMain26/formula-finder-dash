@@ -213,7 +213,7 @@ function DrillDialog({
   );
 }
 
-export function AnalyticsPanel({ jobs }: { jobs: Job[] }) {
+export function AnalyticsPanel({ jobs, onHide }: { jobs: Job[]; onHide?: () => void }) {
   // Hydrate from localStorage cache if present so first render isn't empty;
   // then reconcile against per-user prefs once they load.
   const [charts, setCharts] = useState<ChartConfig[]>(() => loadChartsLS() ?? defaults());
@@ -249,11 +249,18 @@ export function AnalyticsPanel({ jobs }: { jobs: Job[] }) {
 
   return (
     <aside className="w-full h-full space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">Analytics</h2>
-        <Button variant="outline" size="sm" onClick={add} disabled={charts.length >= 3}>
-          <Plus className="h-3.5 w-3.5 mr-1" /> Add
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="sm" onClick={add} disabled={charts.length >= 3}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Add
+          </Button>
+          {onHide && (
+            <Button variant="ghost" size="sm" onClick={onHide} title="Hide analytics">
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
       </div>
       {charts.map((c) => (
         <ChartCard key={c.id} config={c} jobs={jobs}
