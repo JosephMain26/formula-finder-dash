@@ -241,12 +241,21 @@ function JobFields({
   draft,
   setDraft,
   opts,
+  lockedTechName,
 }: {
   draft: DraftForm;
   setDraft: React.Dispatch<React.SetStateAction<DraftForm>>;
   opts: Options;
+  lockedTechName?: string | null;
 }) {
   function update(k: keyof DraftForm, v: string) { setDraft((p) => ({ ...p, [k]: v })); }
+
+  // If locked, force the tech_name in draft so submission carries it
+  useEffect(() => {
+    if (lockedTechName && draft.tech_name !== lockedTechName) {
+      setDraft((p) => ({ ...p, tech_name: lockedTechName }));
+    }
+  }, [lockedTechName]);
 
   function pickCompany(name: string) {
     const c = opts.companies.find((x) => x.company_name === name);
