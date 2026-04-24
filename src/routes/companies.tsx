@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Pencil, Trash2, ArrowLeft, Search, X } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 import { MarketerTypeSelect } from "@/components/MarketerTypeSelect";
 import type { Tables } from "@/integrations/supabase/types";
@@ -27,6 +28,9 @@ export const Route = createFileRoute("/companies")({
 function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
+  const [allTypes, setAllTypes] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("__all__");
 
   async function fetchCompanies() {
     setLoading(true);
@@ -35,7 +39,27 @@ function CompaniesPage() {
     setLoading(false);
   }
 
-  useEffect(() => { fetchCompanies(); }, []);
+  async function fetchTypes() {
+    const { data } = await (supabase as any).from("marketer_types").select("name").order("name");
+    setAllTypes(((data as { name: string }[]) || []).map((t) => t.name));
+  }
+
+  useEffect(() => { fetchCompanies(); fetchTypes(); }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return companies.filter((c) => {
+      if (q) {
+        const hay = [c.company_name, c.contact_name, c.email].filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (typeFilter !== "__all__") {
+        const types = Array.isArray(c.company_type) ? c.company_type : [];
+        if (!types.includes(typeFilter)) return false;
+      }
+      return true;
+    });
+  }, [companies, search, typeFilter]);
 
   async function deleteCompany(id: string) {
     if (!confirm("Are you sure you want to delete this company?")) return;
