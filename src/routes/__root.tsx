@@ -33,14 +33,18 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Jobs Dashboard" },
+      { title: "Leadz | Real time crm for service field jobs" },
       { name: "description", content: "Track and manage service jobs with real-time calculations" },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Jobs Dashboard" },
-      { property: "og:description", content: "Track and manage service jobs" },
+      { property: "og:title", content: "Leadz | Real time crm for service field jobs" },
+      { property: "og:description", content: "Track and manage service jobs with real-time calculations" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Leadz | Real time crm for service field jobs" },
+      { name: "twitter:description", content: "Track and manage service jobs with real-time calculations" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f4cf891e-89d0-4fcc-8e9c-846436d8c1ac/id-preview-6558003f--4cb4e9e4-f9f8-4c6c-8feb-d039de612a19.lovable.app-1777060071788.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f4cf891e-89d0-4fcc-8e9c-846436d8c1ac/id-preview-6558003f--4cb4e9e4-f9f8-4c6c-8feb-d039de612a19.lovable.app-1777060071788.png" },
     ],
     links: [
       {
