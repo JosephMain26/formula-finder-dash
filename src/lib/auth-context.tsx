@@ -122,6 +122,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoles([]);
     setPermissions(new Set());
     setProfileName(null);
+    try {
+      const m = await import("@/lib/userPrefs");
+      m.resetUserPrefsCache();
+    } catch {}
   }
 
   async function refreshRole() {

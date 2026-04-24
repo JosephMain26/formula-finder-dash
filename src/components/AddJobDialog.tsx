@@ -8,6 +8,7 @@ import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
+import { DatePickerField } from "@/components/DatePickerField";
 
 type Company = Tables<"companies">;
 type Technician = {
@@ -266,7 +267,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 mt-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground">Job Date</label>
-            <Input type="date" value={form.job_date} onChange={(e) => update("job_date", e.target.value)} />
+            <DatePickerField value={form.job_date} onChange={(v) => update("job_date", v)} />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Marketer</label>

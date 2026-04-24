@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, X } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
 
 type Job = Tables<"jobs">;
 
@@ -38,20 +39,21 @@ type ChartConfig = { id: string; metric: MetricKey; type: ChartType };
 
 const STORAGE_KEY = "analytics_panel_charts_v1";
 
-function loadCharts(): ChartConfig[] {
-  if (typeof window === "undefined") return defaults();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return defaults();
-}
 function defaults(): ChartConfig[] {
   return [
     { id: "1", metric: "revenue_per_day", type: "line" },
     { id: "2", metric: "popular_job", type: "pie" },
     { id: "3", metric: "jobs_per_tech", type: "bar" },
   ];
+}
+
+function loadChartsLS(): ChartConfig[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
 }
 
 const profit = (j: Job) =>
@@ -212,12 +214,29 @@ function DrillDialog({
 }
 
 export function AnalyticsPanel({ jobs }: { jobs: Job[] }) {
-  const [charts, setCharts] = useState<ChartConfig[]>(loadCharts);
+  // Hydrate from localStorage cache if present so first render isn't empty;
+  // then reconcile against per-user prefs once they load.
+  const [charts, setCharts] = useState<ChartConfig[]>(() => loadChartsLS() ?? defaults());
+  const [hydrated, setHydrated] = useState(false);
   const [drill, setDrill] = useState<{ metric: MetricKey; value: string } | null>(null);
 
   useEffect(() => {
+    loadUserPrefs().then(() => {
+      const remote = getPref<ChartConfig[]>("analytics.charts");
+      if (Array.isArray(remote) && remote.length > 0) {
+        setCharts(remote);
+      }
+      setHydrated(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    // Cache locally for instant load next time
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(charts)); } catch {}
-  }, [charts]);
+    // Persist per-user, but only after we've reconciled with the remote prefs
+    // (to avoid overwriting remote with stale localStorage on first paint).
+    if (hydrated) saveUserPrefs({ analytics: { charts } });
+  }, [charts, hydrated]);
 
   function update(id: string, c: ChartConfig) {
     setCharts((prev) => prev.map((x) => (x.id === id ? c : x)));

@@ -6,6 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Columns3, Save, Trash2 } from "lucide-react";
 import { loadTemplates, saveTemplates, makeId, type DashboardViewTemplate, type TemplatesSetting } from "@/lib/settings";
+import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
 
 export const ALL_COLUMNS = [
   { key: "actions", label: "Actions" },
@@ -71,22 +72,27 @@ export function ColumnToggle({ visibleColumns, onToggle, onShowAll, onSetVisible
   const [newName, setNewName] = useState("");
 
   useEffect(() => {
-    loadTemplates().then((t) => {
+    Promise.all([loadTemplates(), loadUserPrefs()]).then(([t]) => {
       setTemplates(t);
-      const savedId = typeof window !== "undefined" ? localStorage.getItem(ACTIVE_VIEW_KEY) || "" : "";
+      // Per-user pref takes priority; fall back to legacy localStorage for migration.
+      const savedId =
+        (getPref<string>("dashboard.activeViewId")) ||
+        (typeof window !== "undefined" ? localStorage.getItem(ACTIVE_VIEW_KEY) || "" : "");
       const match = savedId ? t.dashboardViews.find(v => v.id === savedId) : null;
       if (match) {
         setActiveId(match.id);
         onSetVisible(match.visibleColumns as ColumnKey[]);
       } else if (savedId) {
         // template no longer exists — clear stale id
-        localStorage.removeItem(ACTIVE_VIEW_KEY);
+        if (typeof window !== "undefined") localStorage.removeItem(ACTIVE_VIEW_KEY);
+        saveUserPrefs({ dashboard: { activeViewId: null } });
       }
     });
   }, []);
 
   function applyTemplate(id: string) {
     setActiveId(id);
+    saveUserPrefs({ dashboard: { activeViewId: id || null } });
     if (typeof window !== "undefined") {
       if (id) localStorage.setItem(ACTIVE_VIEW_KEY, id);
       else localStorage.removeItem(ACTIVE_VIEW_KEY);
@@ -108,6 +114,7 @@ export function ColumnToggle({ visibleColumns, onToggle, onShowAll, onSetVisible
     setTemplates(next);
     await saveTemplates(next);
     setActiveId(tpl.id);
+    saveUserPrefs({ dashboard: { activeViewId: tpl.id } });
     if (typeof window !== "undefined") localStorage.setItem(ACTIVE_VIEW_KEY, tpl.id);
     setNewName("");
   }
@@ -118,6 +125,7 @@ export function ColumnToggle({ visibleColumns, onToggle, onShowAll, onSetVisible
     setTemplates(next);
     await saveTemplates(next);
     setActiveId("");
+    saveUserPrefs({ dashboard: { activeViewId: null } });
     if (typeof window !== "undefined") localStorage.removeItem(ACTIVE_VIEW_KEY);
   }
 

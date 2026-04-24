@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
 import { MobileNav } from "@/components/MobileNav";
+import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
 
 type Job = Tables<"jobs">;
 
@@ -52,6 +53,35 @@ function Dashboard() {
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [greeting, setGreeting] = useState<string>(() => getGreeting());
+  const [prefsHydrated, setPrefsHydrated] = useState(false);
+
+  // Load saved per-user dashboard prefs on mount
+  useEffect(() => {
+    loadUserPrefs().then(() => {
+      const d = getPref<any>("dashboard") || {};
+      if (typeof d.search === "string") setSearch(d.search);
+      if (typeof d.statusFilter === "string") setStatusFilter(d.statusFilter);
+      if (typeof d.techFilter === "string") setTechFilter(d.techFilter);
+      if (typeof d.companyFilter === "string") setCompanyFilter(d.companyFilter);
+      if (typeof d.jobTypeFilter === "string") setJobTypeFilter(d.jobTypeFilter);
+      if (typeof d.paidFilter === "string") setPaidFilter(d.paidFilter);
+      if (d.dateRange && typeof d.dateRange.from === "string" && typeof d.dateRange.to === "string") {
+        setDateRange({ from: d.dateRange.from, to: d.dateRange.to });
+      }
+      setPrefsHydrated(true);
+    });
+  }, []);
+
+  // Persist filter/date-range changes after hydration
+  useEffect(() => {
+    if (!prefsHydrated) return;
+    saveUserPrefs({
+      dashboard: {
+        search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter,
+        dateRange: dateRange ?? null,
+      },
+    });
+  }, [prefsHydrated, search, statusFilter, techFilter, companyFilter, jobTypeFilter, paidFilter, dateRange]);
 
   // Re-evaluate greeting at the next top-of-hour so morning→afternoon→evening flips without reload.
   useEffect(() => {

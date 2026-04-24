@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar as CalendarIcon, Plus, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { DatePickerField } from "@/components/DatePickerField";
 
 const PRESET_KEY = "date_range_presets";
 
@@ -15,8 +16,9 @@ export type DateRange = { from: string; to: string }; // YYYY-MM-DD
 export type DatePreset = {
   id: string;
   name: string;
-  // dynamic = computed from "today", static = absolute dates
-  type: "dynamic" | "static";
+  // dynamic = computed weekly from "today", static = absolute dates,
+  // builtin-range = predefined non-weekly range (today / month / year)
+  type: "dynamic" | "static" | "builtin-range";
   // dynamic config:
   startDay?: number; // 0=Sun..6=Sat
   endDay?: number;
@@ -24,6 +26,8 @@ export type DatePreset = {
   // static config:
   from?: string;
   to?: string;
+  // builtin-range key:
+  rangeKey?: "today" | "this-month" | "this-year";
 };
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -48,6 +52,22 @@ export function resolvePreset(p: DatePreset, today = new Date()): DateRange | nu
     if (!p.from || !p.to) return null;
     return { from: p.from, to: p.to };
   }
+  if (p.type === "builtin-range") {
+    const t = new Date(today);
+    t.setHours(0, 0, 0, 0);
+    if (p.rangeKey === "today") {
+      return { from: fmt(t), to: fmt(t) };
+    }
+    if (p.rangeKey === "this-month") {
+      const start = new Date(t.getFullYear(), t.getMonth(), 1);
+      return { from: fmt(start), to: fmt(t) };
+    }
+    if (p.rangeKey === "this-year") {
+      const start = new Date(t.getFullYear(), 0, 1);
+      return { from: fmt(start), to: fmt(t) };
+    }
+    return null;
+  }
   const startDay = p.startDay ?? 1;
   const endDay = p.endDay ?? 0;
   const offset = p.weekOffset ?? 0;
@@ -60,6 +80,9 @@ export function resolvePreset(p: DatePreset, today = new Date()): DateRange | nu
 }
 
 const BUILT_IN: DatePreset[] = [
+  { id: "builtin-today", name: "Today", type: "builtin-range", rangeKey: "today" },
+  { id: "builtin-this-month", name: "This Month", type: "builtin-range", rangeKey: "this-month" },
+  { id: "builtin-this-year", name: "This Year", type: "builtin-range", rangeKey: "this-year" },
   { id: "builtin-mon-sun", name: "This week (Mon–Sun)", type: "dynamic", startDay: 1, endDay: 0, weekOffset: 0 },
   { id: "builtin-mon-fri", name: "This week (Mon–Fri)", type: "dynamic", startDay: 1, endDay: 5, weekOffset: 0 },
   { id: "builtin-last-mon-sun", name: "Last week (Mon–Sun)", type: "dynamic", startDay: 1, endDay: 0, weekOffset: -1 },
@@ -245,11 +268,11 @@ function PresetCreator({
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs font-medium mb-1 block">From</label>
-                <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                <DatePickerField value={from} onChange={setFrom} />
               </div>
               <div>
                 <label className="text-xs font-medium mb-1 block">To</label>
-                <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                <DatePickerField value={to} onChange={setTo} />
               </div>
             </div>
           )}
