@@ -37,15 +37,17 @@ export function MyProfileCard() {
     timezone: "",
     avatar_url: "",
   });
+  const [linkedTech, setLinkedTech] = useState<{ id: string; tech_name: string; pincode: string | null } | null>(null);
+  const [pinDraft, setPinDraft] = useState("");
+  const [savingPin, setSavingPin] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await (supabase as any)
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
+      const [{ data }, { data: tech }] = await Promise.all([
+        (supabase as any).from("profiles").select("*").eq("id", user.id).maybeSingle(),
+        (supabase as any).from("technicians").select("id, tech_name, pincode").eq("user_id", user.id).maybeSingle(),
+      ]);
       const p = (data as ProfileRow) || null;
       setForm({
         first_name: p?.first_name ?? "",
@@ -58,9 +60,38 @@ export function MyProfileCard() {
           (typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : ""),
         avatar_url: p?.avatar_url ?? "",
       });
+      if (tech) {
+        setLinkedTech(tech as any);
+        setPinDraft((tech as any).pincode ?? "");
+      }
       setLoading(false);
     })();
   }, [user]);
+
+  async function savePincode() {
+    if (!linkedTech) return;
+    if (pinDraft && !/^\d{6}$/.test(pinDraft)) {
+      toast.error("Pincode must be exactly 6 digits");
+      return;
+    }
+    setSavingPin(true);
+    const { error } = await (supabase as any)
+      .from("technicians")
+      .update({ pincode: pinDraft || null })
+      .eq("id", linkedTech.id);
+    setSavingPin(false);
+    if (error) {
+      if (error.message?.includes("technicians_pincode_unique")) toast.error("That pincode is already used by another technician");
+      else toast.error(error.message);
+      return;
+    }
+    toast.success("Pincode updated");
+    setLinkedTech({ ...linkedTech, pincode: pinDraft || null });
+  }
+
+  function generatePin() {
+    setPinDraft(String(Math.floor(100000 + Math.random() * 900000)));
+  }
 
   function update<K extends keyof typeof form>(k: K, v: string) {
     setForm((prev) => ({ ...prev, [k]: v }));
