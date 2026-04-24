@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
 import { DatePickerField } from "@/components/DatePickerField";
+import { useAuth } from "@/lib/auth-context";
 
 type Company = Tables<"companies">;
 type Technician = {
