@@ -9,6 +9,7 @@ type AuthCtx = {
   session: Session | null;
   role: AppRole | null;
   roles: AppRole[];
+  displayName: string | null;
   permissions: Set<string>;
   isAdmin: boolean;
   isManager: boolean;
@@ -17,6 +18,18 @@ type AuthCtx = {
   signOut: () => Promise<void>;
   refreshRole: () => Promise<void>;
 };
+
+function deriveDisplayName(u: User | null, profileName?: string | null): string | null {
+  if (!u) return null;
+  if (profileName && profileName.trim()) return profileName.trim();
+  const meta: any = u.user_metadata || {};
+  const fromMeta = meta.full_name || meta.name;
+  if (fromMeta && String(fromMeta).trim()) return String(fromMeta).trim();
+  const email = u.email || "";
+  const local = email.split("@")[0] || "";
+  if (!local) return null;
+  return local.charAt(0).toUpperCase() + local.slice(1);
+}
 
 const Ctx = createContext<AuthCtx | null>(null);
 
