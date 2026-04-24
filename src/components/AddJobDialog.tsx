@@ -332,18 +332,17 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Comp Type</label>
-            <Input
-              list="marketer-types-list"
-              value={form.comp_type}
-              onChange={(e) => update("comp_type", e.target.value)}
-              placeholder="Type to search..."
-              autoComplete="off"
-            />
-            <datalist id="marketer-types-list">
-              {marketerTypes.map((t) => (
-                <option key={t} value={t} />
-              ))}
-            </datalist>
+            <Select value={form.comp_type || ""} onValueChange={(v) => update("comp_type", v)}>
+              <SelectTrigger><SelectValue placeholder="Select comp type" /></SelectTrigger>
+              <SelectContent>
+                {marketerTypes.map((t) => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                ))}
+                {form.comp_type && !marketerTypes.includes(form.comp_type) && (
+                  <SelectItem value={form.comp_type}>{form.comp_type} (missing)</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <div className="flex items-center justify-between">
