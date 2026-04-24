@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users } from "lucide-react";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { UsersManager } from "@/components/UsersManager";
+import { MobileNav } from "@/components/MobileNav";
 import { useAuth } from "@/lib/auth-context";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -135,17 +136,18 @@ function SettingsPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="max-w-[1400px] mx-auto px-6 py-5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Link to="/">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 py-3 sm:py-5 flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <MobileNav className="lg:hidden" />
+            <Link to="/" className="hidden lg:inline-flex">
               <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">Configure application preferences</p>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold tracking-tight truncate">Settings</h1>
+              <p className="hidden sm:block text-sm text-muted-foreground mt-0.5">Configure application preferences</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="hidden md:flex items-center gap-2 flex-wrap justify-end">
             {savedAt && <span className="text-sm text-muted-foreground mr-2">{savedAt}</span>}
             <Link to="/companies">
               <Button variant="outline" size="sm"><Building2 className="h-4 w-4 mr-2" /> Marketers</Button>
@@ -158,17 +160,22 @@ function SettingsPage() {
             </Link>
             <RemoteLinkButton />
           </div>
+          <div className="md:hidden">
+            <RemoteLinkButton />
+          </div>
         </div>
       </header>
 
-      <main className="max-w-[1400px] mx-auto px-6 py-6">
+      <main className="max-w-[1400px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <Tabs defaultValue="payment">
-          <TabsList>
-            <TabsTrigger value="payment">Payment Methods</TabsTrigger>
-            <TabsTrigger value="templates">Templates</TabsTrigger>
-            <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Message Training Center</TabsTrigger>
-            <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-1 px-1">
+            <TabsList className="w-max">
+              <TabsTrigger value="payment">Payment Methods</TabsTrigger>
+              <TabsTrigger value="templates">Templates</TabsTrigger>
+              <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Training</TabsTrigger>
+              <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* PAYMENT METHODS */}
           <TabsContent value="payment" className="mt-4">
@@ -309,20 +316,20 @@ function SettingsPage() {
                   <p className="text-sm text-muted-foreground">No rules yet — add your first one below.</p>
                 )}
                 {training.marketerRules.map((r) => (
-                  <div key={r.id} className="grid grid-cols-12 gap-2 items-center border rounded-md p-2">
+                  <div key={r.id} className="flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:items-center border rounded-md p-2">
                     <Input
-                      className="col-span-4 h-9"
+                      className="sm:col-span-4 h-9"
                       placeholder="Marketer name (e.g. ABC Marketing)"
                       value={r.marketerName}
                       onChange={(e) => updateRule(r.id, { marketerName: e.target.value })}
                     />
                     <Input
-                      className="col-span-7 h-9"
+                      className="sm:col-span-7 h-9"
                       placeholder="Keywords / company names that map to this marketer (comma separated)"
                       value={r.patterns.join(", ")}
                       onChange={(e) => updateRule(r.id, { patternsText: e.target.value })}
                     />
-                    <Button variant="ghost" size="icon" onClick={() => removeRule(r.id)} className="h-9 w-9 col-span-1">
+                    <Button variant="ghost" size="icon" onClick={() => removeRule(r.id)} className="h-9 w-9 sm:col-span-1 self-end sm:self-auto">
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>

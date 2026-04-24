@@ -13,10 +13,10 @@ import { ParseMessageDialog } from "@/components/ParseMessageDialog";
 import { DateRangePresets, type DateRange } from "@/components/DateRangePresets";
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { Button } from "@/components/ui/button";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Settings, LogOut } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
+import { MobileNav } from "@/components/MobileNav";
 
 type Job = Tables<"jobs">;
 
@@ -114,89 +114,87 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="max-w-[1400px] mx-auto px-6 py-5 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Jobs Dashboard</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Track and manage all service jobs</p>
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 py-3 sm:py-5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <MobileNav className="lg:hidden" />
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold tracking-tight truncate">Jobs Dashboard</h1>
+              <p className="hidden sm:block text-sm text-muted-foreground mt-0.5">Track and manage all service jobs</p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {user && (
-              <div className="hidden sm:flex flex-col items-end leading-tight">
+              <div className="hidden md:flex flex-col items-end leading-tight">
                 <span className="text-xs font-medium">{user.email}</span>
                 <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{role || "—"}</span>
               </div>
             )}
             {isAdmin && (
-              <Link to="/settings">
+              <Link to="/settings" className="hidden lg:inline-flex">
                 <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Settings</Button>
               </Link>
             )}
             <ParseMessageDialog onJobSaved={fetchJobs} />
             <AddJobDialog onJobAdded={fetchJobs} />
-            <Button variant="ghost" size="icon" onClick={signOut} title="Sign out"><LogOut className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={signOut} title="Sign out" className="hidden lg:inline-flex"><LogOut className="h-4 w-4" /></Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
+      <main className="max-w-[1400px] mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <StatsCards jobs={filtered} />
 
-        <ResizablePanelGroup orientation="horizontal" className="min-h-[600px] gap-0">
-          <ResizablePanel defaultSize={75} minSize={40}>
-            <div className="bg-card rounded-xl border p-5 space-y-5 h-full overflow-auto">
-              <div className="flex flex-wrap gap-3 items-end">
-                <DateRangePresets range={dateRange} onChange={setDateRange} />
-              </div>
-              <JobFilters
-                search={search} onSearchChange={setSearch}
-                statusFilter={statusFilter} onStatusChange={setStatusFilter}
-                techFilter={techFilter} onTechChange={setTechFilter}
-                companyFilter={companyFilter} onCompanyChange={setCompanyFilter}
-                jobTypeFilter={jobTypeFilter} onJobTypeChange={setJobTypeFilter}
-                paidFilter={paidFilter} onPaidChange={setPaidFilter}
-                onClear={clearFilters}
-                techs={uniqueValues.techs}
-                companies={uniqueValues.companies}
-                jobTypes={uniqueValues.jobTypes}
-                statuses={uniqueValues.statuses}
-              />
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+          <div className="flex-1 min-w-0 bg-card rounded-xl border p-3 sm:p-5 space-y-4 sm:space-y-5">
+            <div className="flex flex-wrap gap-3 items-end">
+              <DateRangePresets range={dateRange} onChange={setDateRange} />
+            </div>
+            <JobFilters
+              search={search} onSearchChange={setSearch}
+              statusFilter={statusFilter} onStatusChange={setStatusFilter}
+              techFilter={techFilter} onTechChange={setTechFilter}
+              companyFilter={companyFilter} onCompanyChange={setCompanyFilter}
+              jobTypeFilter={jobTypeFilter} onJobTypeChange={setJobTypeFilter}
+              paidFilter={paidFilter} onPaidChange={setPaidFilter}
+              onClear={clearFilters}
+              techs={uniqueValues.techs}
+              companies={uniqueValues.companies}
+              jobTypes={uniqueValues.jobTypes}
+              statuses={uniqueValues.statuses}
+            />
 
-              {loading ? (
-                <div className="text-center py-12 text-muted-foreground">Loading jobs...</div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Showing {filtered.length} of {jobs.length} jobs</span>
-                    <div className="flex items-center gap-2">
-                      <ExportReportDialog jobs={jobs} companies={uniqueValues.companies} />
-                      <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} onSetVisible={setVisibleColumns} />
-                    </div>
+            {loading ? (
+              <div className="text-center py-12 text-muted-foreground">Loading jobs...</div>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">Showing {filtered.length} of {jobs.length} jobs</span>
+                  <div className="flex items-center gap-2">
+                    <ExportReportDialog jobs={jobs} companies={uniqueValues.companies} />
+                    <ColumnToggle visibleColumns={visibleColumns} onToggle={toggleColumn} onShowAll={showAllColumns} onSetVisible={setVisibleColumns} />
                   </div>
-                  <BulkEditBar
-                    selectedIds={[...selectedIds].filter((id) => filtered.some((j) => j.id === id))}
-                    onClear={clearSelection}
-                    onChanged={() => { clearSelection(); fetchJobs(); }}
-                    statuses={uniqueValues.statuses}
-                  />
-                  <JobsTable
-                    jobs={filtered}
-                    onJobsChanged={fetchJobs}
-                    visibleColumns={visibleColumns}
-                    selectedIds={selectedIds}
-                    onToggleSelect={toggleSelect}
-                    onToggleSelectAll={toggleSelectAll}
-                  />
-                </>
-              )}
-            </div>
-          </ResizablePanel>
-          <ResizableHandle withHandle className="mx-3" />
-          <ResizablePanel defaultSize={25} minSize={15}>
-            <div className="h-full overflow-auto pr-1">
-              <AnalyticsPanel jobs={filtered} />
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+                </div>
+                <BulkEditBar
+                  selectedIds={[...selectedIds].filter((id) => filtered.some((j) => j.id === id))}
+                  onClear={clearSelection}
+                  onChanged={() => { clearSelection(); fetchJobs(); }}
+                  statuses={uniqueValues.statuses}
+                />
+                <JobsTable
+                  jobs={filtered}
+                  onJobsChanged={fetchJobs}
+                  visibleColumns={visibleColumns}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                  onToggleSelectAll={toggleSelectAll}
+                />
+              </>
+            )}
+          </div>
+          <div className="w-full lg:w-[320px] xl:w-[360px] shrink-0">
+            <AnalyticsPanel jobs={filtered} />
+          </div>
+        </div>
       </main>
     </div>
   );

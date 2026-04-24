@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { MobileNav } from "@/components/MobileNav";
 
 type Technician = {
   id: string;
@@ -50,21 +51,22 @@ function TechniciansPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="max-w-[1200px] mx-auto px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link to="/">
+        <div className="max-w-[1200px] mx-auto px-3 sm:px-6 py-3 sm:py-5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <MobileNav className="lg:hidden" />
+            <Link to="/" className="hidden lg:inline-flex">
               <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Technicians</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">Manage technicians and revenue percentages</p>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold tracking-tight truncate">Technicians</h1>
+              <p className="hidden sm:block text-sm text-muted-foreground mt-0.5">Manage technicians and revenue percentages</p>
             </div>
           </div>
           <TechnicianDialog onSaved={fetchTechnicians} />
         </div>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-6 py-6">
+      <main className="max-w-[1200px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">All Technicians</CardTitle>
@@ -78,8 +80,8 @@ function TechniciansPage() {
                 <p className="text-sm mt-1">Add your first technician to get started.</p>
               </div>
             ) : (
-              <div className="rounded-lg border overflow-hidden">
-                <Table>
+              <div className="rounded-lg border overflow-x-auto">
+                <Table className="min-w-[700px]">
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead>Tech Name</TableHead>

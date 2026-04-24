@@ -241,8 +241,8 @@ export function StatsCards({ jobs }: StatsCardsProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">Drag to reorder · drag bottom-right corner to resize width &amp; height</span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="hidden md:inline text-xs text-muted-foreground">Drag to reorder · drag bottom-right corner to resize width &amp; height</span>
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm"><Settings2 className="h-4 w-4 mr-2" /> Customize</Button>
@@ -265,7 +265,7 @@ export function StatsCards({ jobs }: StatsCardsProps) {
       </div>
       <div
         ref={gridRef}
-        className="grid grid-cols-6 gap-4"
+        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4"
         style={{ gridAutoRows: `${ROW_PX}px`, gridAutoFlow: "row dense" }}
       >
         {config.map((c, i) => {
@@ -304,7 +304,7 @@ export function StatsCards({ jobs }: StatsCardsProps) {
               <div
                 onPointerDown={(e) => startResize(e, i)}
                 title="Drag to resize"
-                className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-60 hover:opacity-100"
+                className="hidden md:block absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-60 hover:opacity-100"
                 style={{
                   background:
                     "linear-gradient(135deg, transparent 0 50%, hsl(var(--muted-foreground) / 0.6) 50% 60%, transparent 60% 70%, hsl(var(--muted-foreground) / 0.6) 70% 80%, transparent 80%)",
