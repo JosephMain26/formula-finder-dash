@@ -280,12 +280,16 @@ function JobFields({
         />
       </Field>
       <Field label="Technician">
-        <NameSelect
-          value={draft.tech_name}
-          onChange={(v) => update("tech_name", v)}
-          options={opts.techs.map((t) => t.tech_name)}
-          placeholder="Select technician"
-        />
+        {lockedTechName ? (
+          <Input value={lockedTechName} disabled readOnly className="bg-muted" />
+        ) : (
+          <NameSelect
+            value={draft.tech_name}
+            onChange={(v) => update("tech_name", v)}
+            options={opts.techs.map((t) => t.tech_name)}
+            placeholder="Select technician"
+          />
+        )}
       </Field>
       <Field label="Phone">
         <Input value={draft.phone_no} onChange={(e) => update("phone_no", e.target.value)} />
