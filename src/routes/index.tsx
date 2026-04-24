@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
 import { MobileNav } from "@/components/MobileNav";
+import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
 
 type Job = Tables<"jobs">;
 
