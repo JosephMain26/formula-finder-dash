@@ -1,58 +1,69 @@
-## Plan: Sorting, Responsive Layout, Tech Role & Permissions
+## Goal
+1. Link technicians to a system user (so each tech row can map to a user/role).
+2. Add an editable 6-digit **pincode** per technician (admin or the tech themselves can edit).
+3. On the **remote upload** page, require entering a pincode → that locks the **Technician** field to the matching tech, and the submitted job records *who* added it.
+4. Show "Added by" on the resulting job (visible in the jobs list / when viewed via remote link context).
 
-### 1. Jobs table sorting (default newest → oldest + user choice)
-**Files:** `src/routes/index.tsx`, `src/components/JobsTable.tsx`
-- Add a `sortBy` state on the dashboard with options: `job_date_desc` (default), `job_date_asc`, `created_desc`, `created_asc`, `price_desc`, `price_asc`.
-- Default the Supabase fetch order to `job_date desc, created_at desc` (currently only `job_date desc`, which is fine but ties get random order).
-- Apply the selected sort client-side on the `filtered` list before rendering.
-- Persist selection via `userPrefs` under `dashboard.sortBy` (already wired pattern).
-- Add a small `<Select>` next to "Showing X of Y jobs".
+---
 
-### 2. Analytics widgets — collapsible / dynamic stretch
-**Files:** `src/routes/index.tsx`, `src/components/AnalyticsPanel.tsx`
-- When `charts.length === 0`, do **not** reserve the right-hand 320–360px column. Conditionally render the side panel only if charts exist.
-- Add a "Hide analytics" toggle button in the panel header (and a "Show analytics" button placed next to ColumnToggle when hidden). Persist `analytics.hidden: boolean` in user prefs.
-- Layout change: replace the fixed `lg:w-[320px]` with a wrapper that becomes `display: none` when hidden/empty, letting the table flex container fill the full width naturally (already `flex-1`).
+## 1. Database migration (single file)
+- `ALTER TABLE public.technicians ADD COLUMN user_id uuid NULL REFERENCES auth.users(id) ON DELETE SET NULL;`
+- `ALTER TABLE public.technicians ADD COLUMN pincode text NULL;`
+- `ALTER TABLE public.technicians ADD CONSTRAINT technicians_pincode_format CHECK (pincode IS NULL OR pincode ~ '^[0-9]{6}$');`
+- Unique partial index so two techs can't share a pincode: `CREATE UNIQUE INDEX technicians_pincode_unique ON public.technicians (pincode) WHERE pincode IS NOT NULL;`
+- New RPC (SECURITY DEFINER) used by the public upload page:
+  ```sql
+  create or replace function public.lookup_tech_by_pincode(_pin text)
+  returns table(id uuid, tech_name text)
+  language sql stable security definer set search_path = public as $$
+    select id, tech_name from public.technicians
+    where pincode = _pin limit 1;
+  $$;
+  grant execute on function public.lookup_tech_by_pincode(text) to anon, authenticated;
+  ```
+  This avoids exposing the whole pincode column via RLS while still allowing pincode validation from the unauthenticated `/upload` page.
+- RLS for the new columns stays under existing technicians policies (already permissive for read; updates are allowed for authenticated). No policy change needed.
 
-### 3. New "tech" role + per-user job-creation scope permission
-**Files:** new migration, `src/lib/auth-context.tsx`, `src/components/UsersManager.tsx`, `src/components/AddJobDialog.tsx`, `src/routes/index.tsx`
+## 2. `src/routes/technicians.tsx`
+- Add columns **User** (linked profile) and **Pincode** to the table.
+- In `TechnicianDialog`:
+  - `user_id` → searchable Select populated from `profiles` (id + display_name/email). Allow "— None —".
+  - `pincode` → numeric Input (maxLength 6, pattern `\d{6}`) with a small "Generate" button (`Math.floor(100000 + Math.random()*900000)`).
+  - Validate uniqueness client-side via the unique index error → toast.
+- Show pincode masked by default with a 👁 toggle; admins always see it.
 
-**Migration (schema only):**
-```sql
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'tech';
+## 3. `src/components/MyProfileCard.tsx` (tech self-edit)
+- If the current user is linked to a technician row (`technicians.user_id = auth.uid()`), show a **"My remote pincode"** field they can view/edit (same 6-digit validation + Generate button). One row update via `.eq("user_id", uid)`.
 
-INSERT INTO public.permissions (key, label, description) VALUES
-  ('jobs.add_for_others', 'Add jobs for other techs',
-   'When OFF, the user may only create jobs assigned to themselves'),
-  ('marketer.view_percentage', 'View marketer percentage',
-   'Allows seeing & overriding the marketer % field in job form / table')
-ON CONFLICT (key) DO NOTHING;
+## 4. `src/routes/upload.tsx` (the public page)
+- Add a **PIN gate** at the top of both tabs (Parse & Manual): a single 6-digit input.
+- On change, when length === 6, call `supabase.rpc("lookup_tech_by_pincode", { _pin })`.
+  - If found → store `{ tech_id, tech_name }` in state, lock the Technician select to that name (disabled, value preset).
+  - If not found → show "Invalid pincode" and disable Submit.
+- `buildPayload` updates:
+  - `tech_name`: forced to the matched tech.
+  - `created_by`: change marker from `"remote_link"` to `` `remote_link:${tech_name}` `` so admins immediately see *who* submitted.
+- Pincode is required to submit (block both Parse and Manual submit buttons until a tech is matched).
 
--- Default tech role: can add/view their own jobs only
-INSERT INTO public.role_permissions (role_name, permission_key) VALUES
-  ('tech', 'jobs.view'),
-  ('tech', 'jobs.add'),
-  ('tech', 'jobs.edit')
-ON CONFLICT DO NOTHING;
-```
+## 5. `src/components/JobsTable.tsx` (display "Added by")
+- The `created_by` column already exists. Add a small visual treatment: if value starts with `remote_link:`, render badge `Remote · {name}`; else render the raw value. No schema change.
+- Also expose it in the column toggle list if not already.
 
-**App changes:**
-- `BUILT_IN_ROLES` in `UsersManager.tsx` → add `"tech"`. The two new permissions automatically appear in the Roles & Permissions matrix (it iterates `permissions` table).
-- `AddJobDialog.tsx`:
-  - If `!can("jobs.add_for_others")` and not editing, lock the technician selector to the current user's matching technician (match by `displayName` against `technicians.tech_name`, fallback to disabled select with a notice "You can only add jobs for yourself").
-  - Hide the "Override marketer percentage" block and the company `(percentage%)` suffix when `!can("marketer.view_percentage")`. The default marketer % still applies behind the scenes — only the UI is hidden.
-- `JobsTable.tsx`: hide `total_marketer` column header/cell when `!can("marketer.view_percentage")` (column toggle filtered out as well).
+## 6. `src/components/RemoteLinkButton.tsx`
+- Update the helper text in the popover: *"Recipients will need their personal 6-digit pincode (set in Technicians) to submit. Submissions are tagged with their name automatically."*
 
-### 4. Hide marketer percentage option
-Covered by the new `marketer.view_percentage` permission above. Admins can toggle it per role in **Settings → Roles & Permissions**. By default:
-- admin / manager → enabled
-- user / tech → disabled
+## 7. `src/components/UsersManager.tsx`
+- No structural change required for the role linking itself (roles still live in `user_roles`). But add a small badge next to each user showing "Tech: {tech_name}" when a `technicians.user_id` row is linked, so admins can see the connection at a glance. (One extra query in `load()`.)
 
-### Files to be edited / created
-- **New migration**: `supabase/migrations/<ts>_tech_role_permissions.sql`
-- **Edited**: `src/routes/index.tsx`, `src/components/JobsTable.tsx`, `src/components/AnalyticsPanel.tsx`, `src/components/UsersManager.tsx`, `src/components/AddJobDialog.tsx`
+---
 
-### Notes
-- No `ColumnToggle` change needed beyond filtering out hidden-by-permission columns.
-- All persistence reuses existing `userPrefs` infra (zero new tables).
-- Reply **Approved** to implement, or tell me which items to skip.
+## Files touched
+- **New migration**: `supabase/migrations/<timestamp>_tech_user_link_and_pincode.sql`
+- **Edited**: `src/routes/technicians.tsx`, `src/routes/upload.tsx`, `src/components/MyProfileCard.tsx`, `src/components/JobsTable.tsx`, `src/components/RemoteLinkButton.tsx`, `src/components/UsersManager.tsx`
+
+## Out of scope (to keep credit usage low)
+- No new "Tech portal" page — the existing pincode + remote upload flow is enough.
+- No changes to the in-app `AddJobDialog` flow (already authenticated, already records `created_by`).
+- No SMS/email delivery of the pincode — admin shares it manually or the tech sees it on their profile card.
+
+Reply **Approved** to implement, or tell me which steps to drop.
