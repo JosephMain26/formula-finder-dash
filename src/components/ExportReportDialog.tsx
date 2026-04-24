@@ -299,11 +299,11 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">From date</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              <DatePickerField value={dateFrom} onChange={setDateFrom} />
             </div>
             <div>
               <Label className="text-xs">To date</Label>
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              <DatePickerField value={dateTo} onChange={setDateTo} />
             </div>
           </div>
 
