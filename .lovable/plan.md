@@ -1,80 +1,54 @@
-# Implementation Plan
+## Plan
 
-## 1. AI Training rules actually applied (no extra credits — fixing prior bug)
+### 1. Job Form — single-select Comp Type (`src/components/AddJobDialog.tsx`)
+- Replace the current free-text input + datalist for "Comp Type" with a `<Select>` populated from the `marketer_types` table.
+- If a saved job has a legacy comp_type not in the list, render it as a `"{value} (missing)"` selectable option so editing doesn't lose data.
+- Single-selection only (no multi-select, no free text).
 
-**`src/components/ParseMessageDialog.tsx`**
-- Import `loadAITraining` and `applyMarketerRules` from `@/lib/aiTraining` and `recordCorrection` is already wired elsewhere.
-- Before invoking `parse-job-message`, load the training settings and pass `generalRules`, `marketerRules`, and `corrections` (sliced to last ~25) in the request body — these fields already exist on the edge function but the client never sent them.
-- After receiving the AI result, run `applyMarketerRules(extracted, message, training.marketerRules)` locally as a fallback. If a rule matches and the AI didn't already set the same company, override `extracted.company` with the rule's marketer name. This guarantees marketer rules work even if the LLM misses them.
+### 2. AI Training — make General Rules actually apply (`supabase/functions/parse-job-message/index.ts`)
+- Reorganize the system prompt so `generalRules` are placed at the TOP under a "HIGH-PRIORITY ADMIN RULES — ALWAYS FOLLOW" header instead of being appended at the bottom (currently they get diluted by mapping/correction context).
+- Send `generalRules` as a second dedicated system message right before the user message to reinforce them.
+- No schema changes.
 
-No DB or edge function changes needed (the function already accepts these fields).
+### 3. Marketer Mapping dropdown (`src/routes/settings.tsx`)
+- Replace the free-text "Marketer name" `<Input>` in AI Training mapping rules with a `<Select>` sourced from the `companies` table (`company_name`).
+- Stale rule values shown as `"{name} (missing)"`.
+- If no companies exist, show a link to `/companies` and disable the select.
+- Saved value remains a string — no edge function or schema changes needed.
 
-## 2. Mobile header — fix button/headline overlap
+### 4. User Profile — split name + new contact fields
+**Database migration** — add columns to `profiles`:
+- `first_name text`, `last_name text`
+- `phone text` (work)
+- `mobile_phone text` (personal/SMS)
+- `job_title text`
+- `timezone text`
+- `avatar_url text`
+- `notes text` (admin-only visibility)
 
-**`src/routes/index.tsx`** (Dashboard header)
-- Restructure header into a stacked layout on small screens: greeting block on top, action buttons on a second row, both inside one container.
-  - Outer wrapper: `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3`.
-  - Greeting block keeps `min-w-0 flex-1` and `truncate` on the name.
-  - Drop greeting font on mobile to `text-lg` (keep `sm:text-2xl lg:text-3xl`) so long names + emoji never push buttons off-screen.
-- Action group (`ParseMessageDialog`, `AddJobDialog`, Settings, Sign out):
-  - On mobile, render compact icon-only variants for "Parse Message" and "Add Job" (text hidden via `hidden sm:inline` inside the buttons; icons remain visible). Settings + Sign-out stay in `MobileNav`, no duplication.
-  - Action row uses `flex items-center justify-end gap-2 w-full sm:w-auto` so it wraps cleanly under the greeting on phones.
+Backfill: split existing `display_name` into `first_name` / `last_name` on best-effort basis (first token = first_name, rest = last_name). Keep `display_name` in sync going forward.
 
-**`src/routes/companies.tsx`, `src/routes/technicians.tsx`, `src/routes/installers.tsx`, `src/routes/settings.tsx`** (light polish only)
-- Same `flex-col sm:flex-row` pattern for the header bars where the action button currently squeezes the title. Keeps the visual language consistent without touching internal page logic.
+**New component `src/components/MyProfileCard.tsx`**:
+- Lets the signed-in user edit their own: first_name, last_name, phone, mobile_phone, job_title, timezone, avatar_url.
+- `notes` is hidden from self-edit (admin-only field).
+- Saves via Supabase update on `profiles` where `id = auth.uid()`.
 
-## 3. Marketer types → multi-select tag field with create/edit/delete
+**Update `src/components/UsersManager.tsx`**:
+- Show first/last name as separate columns.
+- Add an "Edit" action per user (admin only) opening a dialog to edit all profile fields including `notes`.
+- Existing role assignment UI remains unchanged.
 
-### Database migration
-- Create `marketer_types` table:
-  ```sql
-  create table public.marketer_types (
-    id uuid primary key default gen_random_uuid(),
-    name text not null unique,
-    created_at timestamptz not null default now()
-  );
-  alter table public.marketer_types enable row level security;
-  create policy "Public view marketer_types" on public.marketer_types for select using (true);
-  create policy "Authenticated manage marketer_types" on public.marketer_types
-    for all to authenticated using (true) with check (true);
-  ```
-- Convert `companies.company_type` from `text` to `text[]`, preserving existing values:
-  ```sql
-  alter table public.companies
-    alter column company_type type text[]
-    using case
-      when company_type is null or company_type = '' then '{}'::text[]
-      else string_to_array(company_type, ',')
-    end;
-  alter table public.companies alter column company_type set default '{}'::text[];
-  ```
-- Seed `marketer_types` with any distinct values currently present on companies so existing data immediately appears as tags.
+**Mount `MyProfileCard`** at the top of `src/routes/settings.tsx` so every signed-in user can manage their own contact info.
 
-### New component: `src/components/MarketerTypeSelect.tsx`
-- Multi-select using shadcn `Popover` + `Command` (already in project) showing checkable items for every row in `marketer_types`.
-- Selected tags render as removable `Badge` chips above the trigger.
-- Inline "+ Create tag" input inside the popover when the typed query has no exact match → inserts into `marketer_types` and selects it.
-- Inline rename (pencil) and delete (trash) icons per item, restricted to admins (use `useAuth().isAdmin`). Deletion only removes the tag definition — existing companies keep the value in their array unless the admin re-saves.
-- Props: `value: string[]`, `onChange: (next: string[]) => void`.
+### Files touched
+- `src/components/AddJobDialog.tsx`
+- `supabase/functions/parse-job-message/index.ts`
+- `src/routes/settings.tsx`
+- `src/components/UsersManager.tsx`
+- `src/components/MyProfileCard.tsx` (new)
+- One migration adding columns to `profiles`
 
-### `src/routes/companies.tsx`
-- Replace the single `Input` for `company_type` in `CompanyDialog` with `<MarketerTypeSelect value={form.company_type} onChange={…} />`.
-- Update local form state to use `string[]` instead of `string`. Save as `text[]` directly.
-- In the table row, render `company.company_type` as a wrapped row of small `Badge`s (fallback "—" when empty).
-
-### `src/components/AddJobDialog.tsx` (minimal compat tweak)
-- `comp_type` on jobs stays a `text` column (jobs table is unchanged). When a marketer is selected and its `company_type` is now an array, join with `", "` for the `comp_type` field default, so existing job logic keeps working without a jobs-table migration.
-- Lines touched: ~115 and ~144 only (the two places `match.company_type` / `company.company_type` is read).
-
-## Files
-
-**Created:** `src/components/MarketerTypeSelect.tsx`
-**Edited:** `src/components/ParseMessageDialog.tsx`, `src/routes/index.tsx`, `src/routes/companies.tsx`, `src/routes/technicians.tsx`, `src/routes/installers.tsx`, `src/routes/settings.tsx`, `src/components/AddJobDialog.tsx`
-**Migration:** new `marketer_types` table + alter `companies.company_type` to `text[]` (with data preservation)
-
-## Out of scope
-- No edge function redeploy needed (it already accepts the rule fields).
-- No changes to jobs schema — `comp_type` remains free text.
-- No bulk back-fill of company_type across the rest of the app beyond the companies page rendering.
-
-Reply **Approved** to apply, or **Approved without page-X polish** if you want to skip the secondary header tweaks.
+### Out of scope / notes
+- No changes to RLS (existing "Users update own profile" + "Admins update any profile" policies cover all new columns).
+- No changes to auth flow.
+- `display_name` retained for backwards compatibility; computed as `${first_name} ${last_name}` on save.

@@ -5,10 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User } from "lucide-react";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { UsersManager } from "@/components/UsersManager";
+import { MyProfileCard } from "@/components/MyProfileCard";
 import { MobileNav } from "@/components/MobileNav";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -43,6 +46,7 @@ function SettingsPage() {
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [templates, setTemplates] = useState<TemplatesSetting>({ dashboardViews: [], exportTemplates: [] });
   const [training, setTraining] = useState<AITrainingSetting>(emptyTraining);
+  const [companyNames, setCompanyNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const { isAdmin, loading: authLoading } = useAuth();
@@ -54,10 +58,16 @@ function SettingsPage() {
 
   useEffect(() => {
     (async () => {
-      const [m, t, ai] = await Promise.all([loadPaymentMethods(), loadTemplates(), loadAITraining()]);
+      const [m, t, ai, c] = await Promise.all([
+        loadPaymentMethods(),
+        loadTemplates(),
+        loadAITraining(),
+        supabase.from("companies").select("company_name").order("company_name"),
+      ]);
       setMethods(m);
       setTemplates(t);
       setTraining(ai);
+      setCompanyNames(((c.data as { company_name: string }[]) || []).map((r) => r.company_name).filter(Boolean));
       setLoading(false);
     })();
   }, []);
@@ -167,9 +177,10 @@ function SettingsPage() {
       </header>
 
       <main className="max-w-[1400px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        <Tabs defaultValue="payment">
+        <Tabs defaultValue="profile">
           <div className="overflow-x-auto -mx-1 px-1">
             <TabsList className="w-max">
+              <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" /> My Profile</TabsTrigger>
               <TabsTrigger value="payment">Payment Methods</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
               <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Training</TabsTrigger>
@@ -178,6 +189,11 @@ function SettingsPage() {
           </div>
 
           {/* PAYMENT METHODS */}
+          {/* MY PROFILE */}
+          <TabsContent value="profile" className="mt-4">
+            <MyProfileCard />
+          </TabsContent>
+
           <TabsContent value="payment" className="mt-4">
             <Card>
               <CardHeader><CardTitle>Payment Methods</CardTitle></CardHeader>
@@ -317,12 +333,25 @@ function SettingsPage() {
                 )}
                 {training.marketerRules.map((r) => (
                   <div key={r.id} className="flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:items-center border rounded-md p-2">
-                    <Input
-                      className="sm:col-span-4 h-9"
-                      placeholder="Marketer name (e.g. ABC Marketing)"
-                      value={r.marketerName}
-                      onChange={(e) => updateRule(r.id, { marketerName: e.target.value })}
-                    />
+                    <div className="sm:col-span-4">
+                      <Select
+                        value={r.marketerName || ""}
+                        onValueChange={(v) => updateRule(r.id, { marketerName: v })}
+                        disabled={companyNames.length === 0}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder={companyNames.length === 0 ? "No marketers — add some first" : "Select marketer"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {companyNames.map((name) => (
+                            <SelectItem key={name} value={name}>{name}</SelectItem>
+                          ))}
+                          {r.marketerName && !companyNames.includes(r.marketerName) && (
+                            <SelectItem value={r.marketerName}>{r.marketerName} (missing)</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Input
                       className="sm:col-span-7 h-9"
                       placeholder="Keywords / company names that map to this marketer (comma separated)"

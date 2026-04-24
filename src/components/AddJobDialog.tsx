@@ -114,7 +114,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             );
             if (match) {
               const matchType = Array.isArray(match.company_type)
-                ? match.company_type.join(", ")
+                ? (match.company_type[0] || "")
                 : (match.company_type || "");
               setForm((prev) => ({
                 ...prev,
@@ -145,13 +145,13 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
   function handleCompanyChange(companyId: string) {
     const company = companies.find(c => c.id === companyId);
-    const compTypeStr = Array.isArray(company?.company_type)
-      ? company!.company_type.join(", ")
+    const firstType = Array.isArray(company?.company_type)
+      ? (company!.company_type[0] || "")
       : (company?.company_type || "");
     setForm((prev) => ({
       ...prev,
       company_id: companyId,
-      comp_type: compTypeStr || prev.comp_type,
+      comp_type: firstType || prev.comp_type,
       manual_percentage: !useManualPercentage && company?.percentage != null
         ? company.percentage.toString()
         : prev.manual_percentage,
@@ -332,18 +332,17 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Comp Type</label>
-            <Input
-              list="marketer-types-list"
-              value={form.comp_type}
-              onChange={(e) => update("comp_type", e.target.value)}
-              placeholder="Type to search..."
-              autoComplete="off"
-            />
-            <datalist id="marketer-types-list">
-              {marketerTypes.map((t) => (
-                <option key={t} value={t} />
-              ))}
-            </datalist>
+            <Select value={form.comp_type || ""} onValueChange={(v) => update("comp_type", v)}>
+              <SelectTrigger><SelectValue placeholder="Select comp type" /></SelectTrigger>
+              <SelectContent>
+                {marketerTypes.map((t) => (
+                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                ))}
+                {form.comp_type && !marketerTypes.includes(form.comp_type) && (
+                  <SelectItem value={form.comp_type}>{form.comp_type} (missing)</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <div className="flex items-center justify-between">

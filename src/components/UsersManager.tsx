@@ -5,13 +5,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, Plus, Send, RotateCw, X, Lock } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Trash2, Plus, Send, RotateCw, X, Lock, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { inviteUser, resendInvite, cancelInvite } from "@/lib/invites.functions";
 import { useAuth, type AppRole } from "@/lib/auth-context";
 
-type Profile = { id: string; email: string | null; display_name: string | null; created_at: string };
+type Profile = {
+  id: string;
+  email: string | null;
+  display_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  mobile_phone: string | null;
+  job_title: string | null;
+  timezone: string | null;
+  notes: string | null;
+  created_at: string;
+};
 type RoleRow = { user_id: string; role: AppRole };
 type PendingInvite = { id: string; email: string; role: string; created_at: string; expires_at: string };
 type Permission = { key: string; label: string };
@@ -45,6 +60,52 @@ export function UsersManager() {
   const [customRoles, setCustomRoles] = useState<{ name: string }[]>([]);
   const [rolePerms, setRolePerms] = useState<Record<string, Set<string>>>({});
   const [newRoleName, setNewRoleName] = useState("");
+
+  // Edit profile dialog (admin)
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [editForm, setEditForm] = useState({
+    first_name: "", last_name: "", phone: "", mobile_phone: "",
+    job_title: "", timezone: "", notes: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  useEffect(() => {
+    if (editingProfile) {
+      setEditForm({
+        first_name: editingProfile.first_name || "",
+        last_name: editingProfile.last_name || "",
+        phone: editingProfile.phone || "",
+        mobile_phone: editingProfile.mobile_phone || "",
+        job_title: editingProfile.job_title || "",
+        timezone: editingProfile.timezone || "",
+        notes: editingProfile.notes || "",
+      });
+    }
+  }, [editingProfile]);
+
+  async function saveProfileEdit() {
+    if (!editingProfile) return;
+    setSavingEdit(true);
+    const display = `${editForm.first_name} ${editForm.last_name}`.trim() || null;
+    const { error } = await (supabase as any)
+      .from("profiles")
+      .update({
+        first_name: editForm.first_name || null,
+        last_name: editForm.last_name || null,
+        phone: editForm.phone || null,
+        mobile_phone: editForm.mobile_phone || null,
+        job_title: editForm.job_title || null,
+        timezone: editForm.timezone || null,
+        notes: editForm.notes || null,
+        display_name: display,
+      })
+      .eq("id", editingProfile.id);
+    setSavingEdit(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Profile updated");
+    setEditingProfile(null);
+    load();
+  }
 
   const inviteFn = useServerFn(inviteUser);
   const resendFn = useServerFn(resendInvite);
@@ -317,22 +378,35 @@ export function UsersManager() {
             <p className="text-sm text-muted-foreground">No users yet.</p>
           ) : (
             <div className="border rounded-md divide-y">
-              {profiles.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 p-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{p.display_name || p.email}</div>
-                    <div className="text-xs text-muted-foreground truncate">{p.email}</div>
+              {profiles.map((p) => {
+                const fullName =
+                  [p.first_name, p.last_name].filter(Boolean).join(" ").trim() ||
+                  p.display_name ||
+                  p.email ||
+                  "—";
+                return (
+                  <div key={p.id} className="flex flex-wrap items-center gap-3 p-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{fullName}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {p.email}
+                        {p.job_title ? ` · ${p.job_title}` : ""}
+                      </div>
+                    </div>
+                    <Select value={roles[p.id] || "user"} onValueChange={(v) => changeRole(p.id, v)}>
+                      <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {BUILT_IN_ROLES.map((r) => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button variant="ghost" size="sm" onClick={() => setEditingProfile(p)} className="h-9">
+                      <Pencil className="h-4 w-4 mr-1" /> Edit
+                    </Button>
                   </div>
-                  <Select value={roles[p.id] || "user"} onValueChange={(v) => changeRole(p.id, v)}>
-                    <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {BUILT_IN_ROLES.map((r) => (
-                        <SelectItem key={r} value={r}>{r}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -438,6 +512,49 @@ export function UsersManager() {
           </div>
         </CardContent>
       </Card>
+
+      {/* EDIT PROFILE DIALOG (admin) */}
+      <Dialog open={!!editingProfile} onOpenChange={(o) => !o && setEditingProfile(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit user — {editingProfile?.email}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>First name</Label>
+              <Input value={editForm.first_name} onChange={(e) => setEditForm((f) => ({ ...f, first_name: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Last name</Label>
+              <Input value={editForm.last_name} onChange={(e) => setEditForm((f) => ({ ...f, last_name: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Job title</Label>
+              <Input value={editForm.job_title} onChange={(e) => setEditForm((f) => ({ ...f, job_title: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Timezone</Label>
+              <Input value={editForm.timezone} onChange={(e) => setEditForm((f) => ({ ...f, timezone: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Work phone</Label>
+              <Input value={editForm.phone} onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Mobile / SMS</Label>
+              <Input value={editForm.mobile_phone} onChange={(e) => setEditForm((f) => ({ ...f, mobile_phone: e.target.value }))} />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Admin notes (only visible to admins)</Label>
+              <Textarea rows={3} value={editForm.notes} onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingProfile(null)}>Cancel</Button>
+            <Button onClick={saveProfileEdit} disabled={savingEdit}>{savingEdit ? "Saving…" : "Save"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
