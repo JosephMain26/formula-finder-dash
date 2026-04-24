@@ -140,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         role,
         roles,
+        displayName: deriveDisplayName(user, profileName),
         permissions,
         isAdmin,
         isManager: isAdmin || roles.includes("manager"),
