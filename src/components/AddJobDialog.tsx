@@ -328,14 +328,18 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           )}
           <div>
             <label className="text-xs font-medium text-muted-foreground">Technician</label>
-            <Select value={form.technician_id} onValueChange={(id) => {
-              update("technician_id", id);
-              const tech = technicians.find(t => t.id === id);
-              if (tech) {
-                update("tech_name", tech.tech_name);
-                if (!useManualPercentage) update("manual_percentage", (tech.percentage ?? 50).toString());
-              }
-            }}>
+            <Select
+              value={form.technician_id}
+              disabled={!canAddForOthers && !isEdit}
+              onValueChange={(id) => {
+                update("technician_id", id);
+                const tech = technicians.find(t => t.id === id);
+                if (tech) {
+                  update("tech_name", tech.tech_name);
+                  if (!useManualPercentage) update("manual_percentage", (tech.percentage ?? 50).toString());
+                }
+              }}
+            >
               <SelectTrigger><SelectValue placeholder="Select technician" /></SelectTrigger>
               <SelectContent>
                 {technicians.map(t => (
@@ -343,6 +347,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 ))}
               </SelectContent>
             </Select>
+            {!canAddForOthers && !isEdit && (
+              <p className="text-[11px] text-muted-foreground mt-1">You can only add jobs assigned to yourself.</p>
+            )}
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">PO Number</label>
