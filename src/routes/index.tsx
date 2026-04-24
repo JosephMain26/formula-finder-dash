@@ -138,7 +138,11 @@ function Dashboard() {
 
   async function fetchJobs() {
     setLoading(true);
-    const { data } = await supabase.from("jobs").select("*").order("job_date", { ascending: false });
+    const { data } = await supabase
+      .from("jobs")
+      .select("*")
+      .order("job_date", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
     setJobs(data || []);
     setLoading(false);
   }
