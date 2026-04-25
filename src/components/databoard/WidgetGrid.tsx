@@ -132,27 +132,44 @@ export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, on
   }
 
   return (
-    <ResponsiveGridLayout
-      key={editing ? "edit" : "view"}
-      className="layout"
-      layouts={computedLayouts}
-      breakpoints={BREAKPOINTS}
-      cols={COLS}
-      rowHeight={50}
-      margin={[8, 8]}
-      isDraggable={editing}
-      isResizable={editing}
-      draggableHandle={editing ? ".drag-handle" : undefined}
-      resizeHandles={editing ? ["se", "e", "s"] : []}
-      onLayoutChange={handleChange}
-    >
-      {widgets.map((w) => (
-        <div key={w.i}>
-          <WidgetCard title={w.title} editing={editing} onRemove={() => onRemove(w.i)}>
-            {renderWidget(w)}
-          </WidgetCard>
-        </div>
-      ))}
-    </ResponsiveGridLayout>
+    <>
+      <ResponsiveGridLayout
+        key={editing ? "edit" : "view"}
+        className="layout"
+        layouts={computedLayouts}
+        breakpoints={BREAKPOINTS}
+        cols={COLS}
+        rowHeight={50}
+        margin={[8, 8]}
+        isDraggable={editing}
+        isResizable={editing}
+        draggableHandle={editing ? ".drag-handle" : undefined}
+        resizeHandles={editing ? ["se", "e", "s"] : []}
+        onLayoutChange={handleChange}
+      >
+        {widgets.map((w) => (
+          <div key={w.i}>
+            <WidgetCard
+              title={w.title}
+              editing={editing}
+              onRemove={() => onRemove(w.i)}
+              onConfigure={editing && w.type === "insight" && onUpdate ? () => setConfiguring(w.i) : undefined}
+            >
+              {renderWidget(w)}
+            </WidgetCard>
+          </div>
+        ))}
+      </ResponsiveGridLayout>
+
+      {configWidget && configWidget.type === "insight" && onUpdate && (
+        <InsightSettingsDialog
+          open={!!configuring}
+          onOpenChange={(v) => { if (!v) setConfiguring(null); }}
+          title={configWidget.title}
+          settings={configWidget.settings as any}
+          onSave={(title, settings) => onUpdate(configWidget.i, { title, settings })}
+        />
+      )}
+    </>
   );
 }
