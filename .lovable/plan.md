@@ -1,69 +1,128 @@
-## Goal
-1. Link technicians to a system user (so each tech row can map to a user/role).
-2. Add an editable 6-digit **pincode** per technician (admin or the tech themselves can edit).
-3. On the **remote upload** page, require entering a pincode → that locks the **Technician** field to the matching tech, and the submitted job records *who* added it.
-4. Show "Added by" on the resulting job (visible in the jobs list / when viewed via remote link context).
+# DataBoard — Draggable & Resizable Widget Dashboard
+
+A new `/databoard` section where users build a live, customizable dashboard of KPIs, charts, tables and goals. **Every widget is draggable and resizable** on a grid, and layouts are persisted per user.
 
 ---
 
-## 1. Database migration (single file)
-- `ALTER TABLE public.technicians ADD COLUMN user_id uuid NULL REFERENCES auth.users(id) ON DELETE SET NULL;`
-- `ALTER TABLE public.technicians ADD COLUMN pincode text NULL;`
-- `ALTER TABLE public.technicians ADD CONSTRAINT technicians_pincode_format CHECK (pincode IS NULL OR pincode ~ '^[0-9]{6}$');`
-- Unique partial index so two techs can't share a pincode: `CREATE UNIQUE INDEX technicians_pincode_unique ON public.technicians (pincode) WHERE pincode IS NOT NULL;`
-- New RPC (SECURITY DEFINER) used by the public upload page:
-  ```sql
-  create or replace function public.lookup_tech_by_pincode(_pin text)
-  returns table(id uuid, tech_name text)
-  language sql stable security definer set search_path = public as $$
-    select id, tech_name from public.technicians
-    where pincode = _pin limit 1;
-  $$;
-  grant execute on function public.lookup_tech_by_pincode(text) to anon, authenticated;
-  ```
-  This avoids exposing the whole pincode column via RLS while still allowing pincode validation from the unauthenticated `/upload` page.
-- RLS for the new columns stays under existing technicians policies (already permissive for read; updates are allowed for authenticated). No policy change needed.
+## 1. Grid & Widget Engine (the core of this update)
 
-## 2. `src/routes/technicians.tsx`
-- Add columns **User** (linked profile) and **Pincode** to the table.
-- In `TechnicianDialog`:
-  - `user_id` → searchable Select populated from `profiles` (id + display_name/email). Allow "— None —".
-  - `pincode` → numeric Input (maxLength 6, pattern `\d{6}`) with a small "Generate" button (`Math.floor(100000 + Math.random()*900000)`).
-  - Validate uniqueness client-side via the unique index error → toast.
-- Show pincode masked by default with a 👁 toggle; admins always see it.
+**Library**: `react-grid-layout` (small, battle-tested, no heavy deps; works with our Tailwind setup). Added via `bun add react-grid-layout` + `@types/react-grid-layout`.
 
-## 3. `src/components/MyProfileCard.tsx` (tech self-edit)
-- If the current user is linked to a technician row (`technicians.user_id = auth.uid()`), show a **"My remote pincode"** field they can view/edit (same 6-digit validation + Generate button). One row update via `.eq("user_id", uid)`.
+Why this lib:
+- Drag handle on widget header, resize handle on bottom-right corner (and edges).
+- Snap-to-grid with collision avoidance.
+- Built-in `WidthProvider` for responsive column counts.
+- Serializable layout (`{i, x, y, w, h, minW, minH}`) → trivial to save into `user_preferences`.
 
-## 4. `src/routes/upload.tsx` (the public page)
-- Add a **PIN gate** at the top of both tabs (Parse & Manual): a single 6-digit input.
-- On change, when length === 6, call `supabase.rpc("lookup_tech_by_pincode", { _pin })`.
-  - If found → store `{ tech_id, tech_name }` in state, lock the Technician select to that name (disabled, value preset).
-  - If not found → show "Invalid pincode" and disable Submit.
-- `buildPayload` updates:
-  - `tech_name`: forced to the matched tech.
-  - `created_by`: change marker from `"remote_link"` to `` `remote_link:${tech_name}` `` so admins immediately see *who* submitted.
-- Pincode is required to submit (block both Parse and Manual submit buttons until a tech is matched).
+### Widget shell (`src/components/databoard/WidgetCard.tsx`)
+Every widget — **KPI, chart, table, goal, anything we add later** — is wrapped in this shell so they all get the same drag/resize behavior automatically:
 
-## 5. `src/components/JobsTable.tsx` (display "Added by")
-- The `created_by` column already exists. Add a small visual treatment: if value starts with `remote_link:`, render badge `Remote · {name}`; else render the raw value. No schema change.
-- Also expose it in the column toggle list if not already.
+```tsx
+<div className="group relative h-full rounded-xl border bg-card">
+  <div className="drag-handle cursor-move flex items-center justify-between px-3 py-2 border-b">
+    <span className="text-sm font-medium">{title}</span>
+    <WidgetMenu onRemove={...} onConfigure={...} />
+  </div>
+  <div className="p-3 h-[calc(100%-40px)] overflow-auto">{children}</div>
+  {/* react-grid-layout injects the resize handle in the bottom-right */}
+</div>
+```
 
-## 6. `src/components/RemoteLinkButton.tsx`
-- Update the helper text in the popover: *"Recipients will need their personal 6-digit pincode (set in Technicians) to submit. Submissions are tagged with their name automatically."*
+- Drag is restricted to the header (`draggableHandle=".drag-handle"`) so inner controls (filters, dropdowns) stay clickable.
+- Resize handles on `["se","e","s"]` (corner + right + bottom edges).
+- `minW/minH` defined per widget type (e.g. KPI min 2×2, chart min 4×3).
 
-## 7. `src/components/UsersManager.tsx`
-- No structural change required for the role linking itself (roles still live in `user_roles`). But add a small badge next to each user showing "Tech: {tech_name}" when a `technicians.user_id` row is linked, so admins can see the connection at a glance. (One extra query in `load()`.)
+### Layout persistence
+- Stored in `user_preferences.prefs.databoard.layouts` (already have `userPrefs.ts` infra).
+- Shape: `{ lg: Layout[], md: Layout[], sm: Layout[] }` for responsive breakpoints.
+- Debounced save on every drag/resize stop (reuses existing `saveUserPrefs` debounce).
+- Also store `widgets: WidgetConfig[]` (id, type, title, settings like which metric/chart/filter).
+
+### Edit vs View mode
+- Toggle button in DataBoard toolbar: **"Edit layout"**.
+- When OFF: `isDraggable=false`, `isResizable=false`, drag handle hidden — clean view.
+- When ON: handles + dashed grid background appear.
+- Prevents accidental layout changes during normal use.
 
 ---
 
-## Files touched
-- **New migration**: `supabase/migrations/<timestamp>_tech_user_link_and_pincode.sql`
-- **Edited**: `src/routes/technicians.tsx`, `src/routes/upload.tsx`, `src/components/MyProfileCard.tsx`, `src/components/JobsTable.tsx`, `src/components/RemoteLinkButton.tsx`, `src/components/UsersManager.tsx`
+## 2. Widget Types (all share the draggable/resizable shell)
 
-## Out of scope (to keep credit usage low)
-- No new "Tech portal" page — the existing pincode + remote upload flow is enough.
-- No changes to the in-app `AddJobDialog` flow (already authenticated, already records `created_by`).
-- No SMS/email delivery of the pincode — admin shares it manually or the tech sees it on their profile card.
+1. **KPI Card** — Revenue, Profit, Job count, Avg ticket, Conversion %, Active techs.
+2. **Line/Area Chart** — Revenue over time (recharts, already in project).
+3. **Bar Chart** — Top techs / marketers / job types by revenue or count.
+4. **Pie/Donut** — Job status breakdown, payment method split.
+5. **Table widget** — Recent jobs, top customers (compact, sortable).
+6. **Goal widget** — Progress bar toward a monthly/weekly revenue target (user sets target, stored in prefs).
+7. **Comparison widget** — This period vs previous period (delta + sparkline).
+8. **Live activity feed** — Last N jobs added (auto-refresh in Live mode).
 
-Reply **Approved** to implement, or tell me which steps to drop.
+User can add any widget via "+ Add widget" menu, configure it (metric + filter), and place it anywhere on the grid.
+
+---
+
+## 3. Time-Range Bar (`src/components/databoard/TimeRangeBar.tsx`)
+
+Sticky toolbar at the top with:
+- **Live (Today)** — auto-refresh every 30s, pulsing dot indicator.
+- **Yesterday**
+- **This week** / **Last week**
+- **This month** / **Last month**
+- **This year**
+- **Custom** — opens date pickers.
+- **Saved presets** — loaded from `app_settings.date_range_presets` (existing) + user-personal presets in `user_preferences.prefs.databoard.savedRanges`.
+- **"Save current range"** button → prompts for a name, stores in user prefs.
+
+Range is global to the page and applied to every widget's query.
+
+---
+
+## 4. Data Scoping & Permissions
+
+- Add permission keys: `databoard.view`, `databoard.view_all`, `databoard.edit_layout`.
+- Default role mapping:
+  - **Admin/Manager**: all three.
+  - **Tech**: `databoard.view` only — and queries are auto-filtered by `tech_name` (resolved via `technicians.user_id = auth.uid()`, already exists).
+  - **Marketer**: `databoard.view` + scoped to their own marketer name (mirrors how marketer % is handled today).
+- Marketer-percentage widgets are hidden for users without the existing `marketer.view_percentage` permission (from earlier work).
+
+---
+
+## 5. Extra value-adds I'd recommend
+
+These cost almost nothing on top of the engine above and round the feature out:
+
+- **Period-over-period deltas** on every KPI (e.g. "+12% vs last week") — single SQL with two date windows.
+- **Export DataBoard snapshot to PDF** — reuse `ExportReportDialog` infrastructure; renders current widgets to a printable layout.
+- **Per-widget filter override** — a widget can pin itself to a different range (e.g. "Always show This Year" on one chart while the page is on Today).
+- **Dashboard presets** — save a whole layout+widgets combo as a named view (e.g. "Sales focus", "Tech performance"); switch via dropdown.
+- **Empty state** with a "Start from template" picker (Sales, Operations, Tech personal) so users don't face a blank grid.
+
+---
+
+## 6. Files to create / edit
+
+**New**
+- `src/routes/databoard.tsx` — page, toolbar, grid, edit-mode toggle.
+- `src/components/databoard/WidgetCard.tsx` — universal draggable/resizable shell.
+- `src/components/databoard/WidgetGrid.tsx` — `react-grid-layout` wrapper, persists layout.
+- `src/components/databoard/TimeRangeBar.tsx` — presets + custom + save preset.
+- `src/components/databoard/AddWidgetMenu.tsx` — picker for new widgets.
+- `src/components/databoard/widgets/` — `KpiWidget.tsx`, `ChartWidget.tsx`, `TableWidget.tsx`, `GoalWidget.tsx`, `ActivityWidget.tsx`.
+- `src/lib/databoard/queries.ts` — single place that builds the scoped Supabase query (applies range + tech/marketer filter).
+- New migration: add `databoard.*` permission keys to roles config.
+
+**Edited**
+- `src/components/MobileNav.tsx` — add "DataBoard" entry (gated by `databoard.view`).
+- `src/lib/userPrefs.ts` — no code change, just new `databoard` namespace inside prefs.
+- `src/styles.css` — import `react-grid-layout/css/styles.css` + `react-resizable/css/styles.css` and a small override so handles match our theme.
+
+**Dependencies**
+- `bun add react-grid-layout react-resizable`
+- `bun add -d @types/react-grid-layout @types/react-resizable`
+
+---
+
+## Outcome
+
+One coherent DataBoard where the user freely drags widgets around, resizes them by dragging the corner/edges, picks a time range (including Live), saves custom ranges, and gets data automatically scoped to their role — with everything persisted per user.
