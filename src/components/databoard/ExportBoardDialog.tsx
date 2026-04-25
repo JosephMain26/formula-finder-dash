@@ -32,6 +32,35 @@ const SECTION_LABELS: Record<ExportSectionId, string> = {
 
 const EXPORTABLE_COLUMNS = ALL_COLUMNS.filter((c) => c.key !== "actions") as { key: ColumnKey; label: string }[];
 
+type KpiKey = "revenue" | "profit" | "jobs" | "avg_ticket" | "tech_pay" | "marketer_pay" | "parts" | "tip" | "paid_count";
+const ALL_KPIS: { key: KpiKey; label: string }[] = [
+  { key: "revenue", label: "Revenue" },
+  { key: "profit", label: "Profit" },
+  { key: "jobs", label: "Jobs" },
+  { key: "avg_ticket", label: "Avg ticket" },
+  { key: "tech_pay", label: "Tech pay" },
+  { key: "marketer_pay", label: "Marketer pay" },
+  { key: "parts", label: "Parts" },
+  { key: "tip", label: "Tip" },
+  { key: "paid_count", label: "Paid jobs" },
+];
+const DEFAULT_KPIS: KpiKey[] = ["revenue", "jobs", "avg_ticket", "tech_pay"];
+
+function kpiCell(key: KpiKey, jobs: Job[]): string {
+  const sum = (sel: (j: Job) => number) => jobs.reduce((a, j) => a + sel(j), 0);
+  switch (key) {
+    case "revenue": return `$${sum((j) => Number(j.price || 0)).toFixed(0)}`;
+    case "profit": return `$${sum((j) => Number(j.price || 0) - Number(j.cost || 0) - Number(j.parts || 0) - Number(j.cc_fee || 0) - Number(j.total_tech || 0) - Number(j.total_marketer || 0)).toFixed(0)}`;
+    case "jobs": return String(jobs.length);
+    case "avg_ticket": return jobs.length ? `$${(sum((j) => Number(j.price || 0)) / jobs.length).toFixed(0)}` : "$0";
+    case "tech_pay": return `$${sum((j) => Number(j.total_tech || 0)).toFixed(0)}`;
+    case "marketer_pay": return `$${sum((j) => Number(j.total_marketer || 0)).toFixed(0)}`;
+    case "parts": return `$${sum((j) => Number(j.parts || 0) + Number(j.office_parts || 0)).toFixed(0)}`;
+    case "tip": return `$${sum((j) => Number(j.tip || 0)).toFixed(0)}`;
+    case "paid_count": return String(jobs.filter((j) => j.paid).length);
+  }
+}
+
 interface Props {
   greeting: string;
   jobs: Job[];
@@ -81,6 +110,7 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
   const [name, setName] = useState("");
   const [sections, setSections] = useState(DEFAULT_EXPORT_SECTIONS);
   const [columns, setColumns] = useState<ColumnKey[]>(EXPORTABLE_COLUMNS.map((c) => c.key));
+  const [kpiCols, setKpiCols] = useState<KpiKey[]>(DEFAULT_KPIS);
   const [attachJobs, setAttachJobs] = useState(true);
   const [pageSize, setPageSize] = useState<"a4" | "letter">("letter");
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("landscape");
@@ -98,6 +128,7 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
     if (!t) return;
     setSections(t.sections);
     setColumns(t.columns as ColumnKey[]);
+    setKpiCols((t.kpiColumns as KpiKey[]) || DEFAULT_KPIS);
     setAttachJobs(t.attachJobs);
     setPageSize(t.pageSize);
     setOrientation(t.orientation);
@@ -112,7 +143,8 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
     if (!name.trim()) return;
     const t: ExportTemplate = {
       id: makeId(), name: name.trim(),
-      sections, columns: columns as string[], attachJobs, pageSize, orientation,
+      sections, columns: columns as string[], kpiColumns: kpiCols as string[],
+      attachJobs, pageSize, orientation,
     };
     persist([...templates, t]);
     setActiveId(t.id);
@@ -130,6 +162,9 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
   }
   function toggleCol(k: ColumnKey) {
     setColumns((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
+  }
+  function toggleKpi(k: KpiKey) {
+    setKpiCols((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
   }
 
   async function runExport() {
@@ -151,15 +186,14 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
           const txt = doc.splitTextToSize(activeFiltersText(filters), W - 80);
           doc.text(txt, 40, y); y += txt.length * 11 + 8;
         } else if (s.id === "kpis") {
-          const totalRev = jobs.reduce((a, j) => a + Number(j.price || 0), 0);
-          const totalCount = jobs.length;
-          const avg = totalCount ? totalRev / totalCount : 0;
-          const techPay = jobs.reduce((a, j) => a + Number(j.total_tech || 0), 0);
+          if (!kpiCols.length) continue;
           doc.setFontSize(11); doc.text("Snapshot", 40, y); y += 14;
+          const labels = kpiCols.map((k) => ALL_KPIS.find((x) => x.key === k)!.label);
+          const values = kpiCols.map((k) => kpiCell(k, jobs));
           autoTable(doc, {
             startY: y,
-            head: [["Revenue", "Jobs", "Avg ticket", "Tech pay"]],
-            body: [[`$${totalRev.toFixed(0)}`, String(totalCount), `$${avg.toFixed(0)}`, `$${techPay.toFixed(0)}`]],
+            head: [labels],
+            body: [values],
             theme: "grid", styles: { fontSize: 10 },
           });
           y = (doc as any).lastAutoTable.finalY + 12;
@@ -262,6 +296,19 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
               <label key={s.id} className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox checked={s.enabled} onCheckedChange={() => toggleSection(s.id)} />
                 {SECTION_LABELS[s.id]}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* KPI columns */}
+        <div>
+          <div className="text-sm font-medium mb-2">KPI snapshot columns ({kpiCols.length}/{ALL_KPIS.length})</div>
+          <div className="grid grid-cols-3 gap-1.5 border rounded p-2">
+            {ALL_KPIS.map((k) => (
+              <label key={k.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={kpiCols.includes(k.key)} onCheckedChange={() => toggleKpi(k.key)} />
+                <span className="truncate">{k.label}</span>
               </label>
             ))}
           </div>
