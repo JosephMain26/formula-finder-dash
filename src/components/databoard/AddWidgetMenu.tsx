@@ -48,6 +48,8 @@ export function AddWidgetMenu({ onAdd, canSeeMarketerPay }: Props) {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "goal", title: "Revenue goal", settings: { target: 10000, metric: "revenue" } })}>Goal widget</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "activity", title: "Recent jobs", settings: { limit: 20 } })}>Activity feed</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "calendar", title: "Calendar", settings: {} })}>Calendar</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "map", title: "Map", settings: {} })}>Map</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
