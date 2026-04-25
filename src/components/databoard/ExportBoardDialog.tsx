@@ -301,6 +301,19 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
           </div>
         </div>
 
+        {/* KPI columns */}
+        <div>
+          <div className="text-sm font-medium mb-2">KPI snapshot columns ({kpiCols.length}/{ALL_KPIS.length})</div>
+          <div className="grid grid-cols-3 gap-1.5 border rounded p-2">
+            {ALL_KPIS.map((k) => (
+              <label key={k.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={kpiCols.includes(k.key)} onCheckedChange={() => toggleKpi(k.key)} />
+                <span className="truncate">{k.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
         {/* Columns */}
         <div>
           <div className="text-sm font-medium mb-2">Table columns ({columns.length}/{EXPORTABLE_COLUMNS.length})</div>
