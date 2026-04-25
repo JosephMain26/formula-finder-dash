@@ -1,8 +1,5 @@
-import { useMemo, useCallback } from "react";
-import RGL from "react-grid-layout";
-
-const Responsive = (RGL as any).Responsive;
-const WidthProvider = (RGL as any).WidthProvider;
+import { useMemo, useCallback, useEffect, useRef, useState, forwardRef } from "react";
+import { Responsive as ResponsiveBase } from "react-grid-layout";
 
 type Layout = { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number };
 type Layouts = Record<string, Layout[]>;
@@ -14,7 +11,32 @@ import { TableWidget } from "./widgets/TableWidget";
 import { GoalWidget } from "./widgets/GoalWidget";
 import { ActivityWidget } from "./widgets/ActivityWidget";
 
-const ResponsiveGridLayout = WidthProvider(Responsive);
+// Lightweight WidthProvider replacement (the installed react-grid-layout no longer exports WidthProvider)
+const ResponsiveGridLayout = forwardRef<any, any>(function ResponsiveGridLayout(props, ref) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState<number>(1200);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const el = containerRef.current;
+    const update = () => setWidth(el.offsetWidth || 1200);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  const Comp: any = ResponsiveBase;
+  return (
+    <div ref={containerRef} style={{ width: "100%" }}>
+      <Comp {...props} ref={ref} width={width} />
+    </div>
+  );
+});
 
 type Job = Tables<"jobs">;
 
