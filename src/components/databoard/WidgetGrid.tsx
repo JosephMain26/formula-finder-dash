@@ -1,6 +1,8 @@
 import { useMemo, useCallback } from "react";
-// @ts-ignore - using runtime-only import to bypass strict type mismatches
-import { Responsive, WidthProvider } from "react-grid-layout";
+import RGL from "react-grid-layout";
+
+const Responsive = (RGL as any).Responsive;
+const WidthProvider = (RGL as any).WidthProvider;
 
 type Layout = { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number };
 type Layouts = Record<string, Layout[]>;
