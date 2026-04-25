@@ -234,6 +234,11 @@ function Dashboard() {
             </div>
           </div>
           <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0 w-full sm:w-auto">
+            {can("databoard.view") && (
+              <Link to="/databoard" className="hidden lg:inline-flex">
+                <Button variant="outline"><BarChart3 className="h-4 w-4 mr-2" /> DataBoard</Button>
+              </Link>
+            )}
             {isAdmin && (
               <Link to="/settings" className="hidden lg:inline-flex">
                 <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Settings</Button>
