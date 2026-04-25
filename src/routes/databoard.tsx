@@ -207,6 +207,7 @@ function DataBoardPage() {
             editing={editing}
             onLayoutChange={(l) => setLayouts(l)}
             onRemove={(id) => setWidgets((prev) => prev.filter((w) => w.i !== id))}
+            onUpdate={(id, patch) => setWidgets((prev) => prev.map((w) => w.i === id ? { ...w, ...patch } : w))}
             onOpenJob={handleOpenJob}
           />
         </div>
