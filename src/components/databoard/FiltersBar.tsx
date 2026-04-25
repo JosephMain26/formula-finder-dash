@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Filter, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { loadPaymentMethods } from "@/lib/settings";
 import type { Tables } from "@/integrations/supabase/types";
 import type { DataBoardFilters } from "@/lib/databoard/templates";
 import { EMPTY_FILTERS } from "@/lib/databoard/templates";
 
 type Job = Tables<"jobs">;
+
+const EMPTY_TOKEN = "__empty__";
+const EMPTY_LABEL = "(empty)";
 
 interface Props {
   jobs: Job[];
@@ -39,7 +40,7 @@ function MultiSelect({
         {options.map((o) => (
           <label key={o} className="flex items-center gap-2 py-1 cursor-pointer text-sm">
             <Checkbox checked={has(o)} onCheckedChange={() => toggle(o)} />
-            <span className="truncate">{o}</span>
+            <span className="truncate">{o === EMPTY_TOKEN ? EMPTY_LABEL : o}</span>
           </label>
         ))}
         {selected.length > 0 && (
@@ -50,27 +51,28 @@ function MultiSelect({
   );
 }
 
+/** Build option list from a job-field. Adds "(empty)" sentinel when null/empty rows exist. */
+function optionsFromJobs(jobs: Job[], key: keyof Job): string[] {
+  let hasEmpty = false;
+  const set = new Set<string>();
+  for (const j of jobs) {
+    const v = j[key];
+    if (v == null || v === "") { hasEmpty = true; continue; }
+    set.add(String(v));
+  }
+  const arr = Array.from(set).sort((a, b) => a.localeCompare(b));
+  if (hasEmpty) arr.push(EMPTY_TOKEN);
+  return arr;
+}
+
 export function FiltersBar({ jobs, filters, onChange, canSeeMarketers }: Props) {
-  const [marketers, setMarketers] = useState<string[]>([]);
-  const [installers, setInstallers] = useState<string[]>([]);
-  const [payments, setPayments] = useState<string[]>([]);
-
-  useEffect(() => {
-    (async () => {
-      const [{ data: c }, { data: ins }, pm] = await Promise.all([
-        (supabase as any).from("companies").select("company_name").order("company_name"),
-        (supabase as any).from("installers").select("name").order("name"),
-        loadPaymentMethods(),
-      ]);
-      setMarketers((c || []).map((x: any) => x.company_name).filter(Boolean));
-      setInstallers((ins || []).map((x: any) => x.name).filter(Boolean));
-      setPayments(pm.map((p) => p.name).filter(Boolean));
-    })();
-  }, []);
-
-  const techs = useMemo(() => Array.from(new Set(jobs.map((j) => j.tech_name).filter(Boolean) as string[])).sort(), [jobs]);
-  const jobTypes = useMemo(() => Array.from(new Set(jobs.map((j) => j.job_type).filter(Boolean) as string[])).sort(), [jobs]);
-  const statuses = useMemo(() => Array.from(new Set(jobs.map((j) => j.status).filter(Boolean) as string[])).sort(), [jobs]);
+  // All option lists derived from the jobs actually loaded — guarantees options match the data.
+  const techs = useMemo(() => optionsFromJobs(jobs, "tech_name"), [jobs]);
+  const marketers = useMemo(() => optionsFromJobs(jobs, "company"), [jobs]);
+  const installers = useMemo(() => optionsFromJobs(jobs, "installer_name"), [jobs]);
+  const jobTypes = useMemo(() => optionsFromJobs(jobs, "job_type"), [jobs]);
+  const statuses = useMemo(() => optionsFromJobs(jobs, "status"), [jobs]);
+  const payments = useMemo(() => optionsFromJobs(jobs, "payment"), [jobs]);
 
   const activeCount =
     filters.techs.length + filters.marketers.length + filters.installers.length +
@@ -119,17 +121,25 @@ export function FiltersBar({ jobs, filters, onChange, canSeeMarketers }: Props) 
   );
 }
 
+/** Match a job's value against a multi-select that may include the EMPTY_TOKEN sentinel. */
+function matchesMulti(value: unknown, selected: string[]): boolean {
+  if (!selected.length) return true;
+  const isEmpty = value == null || value === "";
+  if (isEmpty) return selected.includes(EMPTY_TOKEN);
+  return selected.includes(String(value));
+}
+
 export function applyFilters(jobs: Job[], f: DataBoardFilters): Job[] {
   const min = f.minPrice ? Number(f.minPrice) : null;
   const max = f.maxPrice ? Number(f.maxPrice) : null;
   const city = f.city.trim().toLowerCase();
   return jobs.filter((j) => {
-    if (f.techs.length && !f.techs.includes(j.tech_name || "")) return false;
-    if (f.marketers.length && !f.marketers.includes(j.company || "")) return false;
-    if (f.installers.length && !f.installers.includes(j.installer_name || "")) return false;
-    if (f.jobTypes.length && !f.jobTypes.includes(j.job_type || "")) return false;
-    if (f.statuses.length && !f.statuses.includes(j.status || "")) return false;
-    if (f.payments.length && !f.payments.includes(j.payment || "")) return false;
+    if (!matchesMulti(j.tech_name, f.techs)) return false;
+    if (!matchesMulti(j.company, f.marketers)) return false;
+    if (!matchesMulti(j.installer_name, f.installers)) return false;
+    if (!matchesMulti(j.job_type, f.jobTypes)) return false;
+    if (!matchesMulti(j.status, f.statuses)) return false;
+    if (!matchesMulti(j.payment, f.payments)) return false;
     if (f.paid === "paid" && !j.paid) return false;
     if (f.paid === "unpaid" && j.paid) return false;
     if (min != null && Number(j.price || 0) < min) return false;

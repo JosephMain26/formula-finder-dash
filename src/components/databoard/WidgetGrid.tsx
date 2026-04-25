@@ -157,7 +157,7 @@ export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, on
         onLayoutChange={handleChange}
       >
         {widgets.map((w) => (
-          <div key={w.i}>
+          <div key={w.i} data-pdf-section data-widget-type={w.type}>
             <WidgetCard
               title={w.title}
               editing={editing}
