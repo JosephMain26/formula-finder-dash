@@ -126,6 +126,7 @@ export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, on
 
   return (
     <ResponsiveGridLayout
+      key={editing ? "edit" : "view"}
       className="layout"
       layouts={computedLayouts}
       breakpoints={BREAKPOINTS}
@@ -134,8 +135,8 @@ export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, on
       margin={[8, 8]}
       isDraggable={editing}
       isResizable={editing}
-      draggableHandle=".drag-handle"
-      resizeHandles={["se", "e", "s"]}
+      draggableHandle={editing ? ".drag-handle" : undefined}
+      resizeHandles={editing ? ["se", "e", "s"] : []}
       onLayoutChange={handleChange}
     >
       {widgets.map((w) => (
