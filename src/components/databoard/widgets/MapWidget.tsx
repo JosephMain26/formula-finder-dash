@@ -72,7 +72,12 @@ export function MapWidget({ jobs, onOpenJob }: Props) {
   const center: [number, number] = pins.length ? [pins[0].lat, pins[0].lng] : [39.5, -98.35]; // US center
 
   return (
-    <div className="h-full w-full relative">
+    <div
+      className="h-full w-full relative"
+      onMouseDownCapture={(e) => e.stopPropagation()}
+      onTouchStartCapture={(e) => e.stopPropagation()}
+      onPointerDownCapture={(e) => e.stopPropagation()}
+    >
       {pending > 0 && (
         <div className="absolute top-2 right-2 z-[1000] text-xs bg-background/90 border rounded px-2 py-1 shadow">
           Geocoding… {pending} left
