@@ -32,6 +32,35 @@ const SECTION_LABELS: Record<ExportSectionId, string> = {
 
 const EXPORTABLE_COLUMNS = ALL_COLUMNS.filter((c) => c.key !== "actions") as { key: ColumnKey; label: string }[];
 
+type KpiKey = "revenue" | "profit" | "jobs" | "avg_ticket" | "tech_pay" | "marketer_pay" | "parts" | "tip" | "paid_count";
+const ALL_KPIS: { key: KpiKey; label: string }[] = [
+  { key: "revenue", label: "Revenue" },
+  { key: "profit", label: "Profit" },
+  { key: "jobs", label: "Jobs" },
+  { key: "avg_ticket", label: "Avg ticket" },
+  { key: "tech_pay", label: "Tech pay" },
+  { key: "marketer_pay", label: "Marketer pay" },
+  { key: "parts", label: "Parts" },
+  { key: "tip", label: "Tip" },
+  { key: "paid_count", label: "Paid jobs" },
+];
+const DEFAULT_KPIS: KpiKey[] = ["revenue", "jobs", "avg_ticket", "tech_pay"];
+
+function kpiCell(key: KpiKey, jobs: Job[]): string {
+  const sum = (sel: (j: Job) => number) => jobs.reduce((a, j) => a + sel(j), 0);
+  switch (key) {
+    case "revenue": return `$${sum((j) => Number(j.price || 0)).toFixed(0)}`;
+    case "profit": return `$${sum((j) => Number(j.price || 0) - Number(j.cost || 0) - Number(j.parts || 0) - Number(j.cc_fee || 0) - Number(j.total_tech || 0) - Number(j.total_marketer || 0)).toFixed(0)}`;
+    case "jobs": return String(jobs.length);
+    case "avg_ticket": return jobs.length ? `$${(sum((j) => Number(j.price || 0)) / jobs.length).toFixed(0)}` : "$0";
+    case "tech_pay": return `$${sum((j) => Number(j.total_tech || 0)).toFixed(0)}`;
+    case "marketer_pay": return `$${sum((j) => Number(j.total_marketer || 0)).toFixed(0)}`;
+    case "parts": return `$${sum((j) => Number(j.parts || 0) + Number(j.office_parts || 0)).toFixed(0)}`;
+    case "tip": return `$${sum((j) => Number(j.tip || 0)).toFixed(0)}`;
+    case "paid_count": return String(jobs.filter((j) => j.paid).length);
+  }
+}
+
 interface Props {
   greeting: string;
   jobs: Job[];
@@ -81,6 +110,7 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
   const [name, setName] = useState("");
   const [sections, setSections] = useState(DEFAULT_EXPORT_SECTIONS);
   const [columns, setColumns] = useState<ColumnKey[]>(EXPORTABLE_COLUMNS.map((c) => c.key));
+  const [kpiCols, setKpiCols] = useState<KpiKey[]>(DEFAULT_KPIS);
   const [attachJobs, setAttachJobs] = useState(true);
   const [pageSize, setPageSize] = useState<"a4" | "letter">("letter");
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("landscape");
