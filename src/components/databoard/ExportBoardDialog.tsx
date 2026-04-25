@@ -169,25 +169,43 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
 
   async function runExport() {
     setBusy(true);
+    const root = document.getElementById(boardElementId);
+    // Map enabled widget-snapshot sections to widget types
+    const wantedTypes = new Set<string>();
+    for (const s of sections) {
+      if (!s.enabled) continue;
+      if (s.id === "charts") ["kpi", "chart", "insight", "goal", "table", "activity"].forEach((t) => wantedTypes.add(t));
+      else if (s.id === "calendar") wantedTypes.add("calendar");
+      else if (s.id === "map") wantedTypes.add("map");
+    }
+    const willSnapshot = root && wantedTypes.size > 0;
+    if (willSnapshot) root.classList.add("pdf-capturing");
+    // brief paint tick so layout settles before capture
+    if (willSnapshot) await new Promise((r) => requestAnimationFrame(() => r(null)));
+
     try {
       const doc = new jsPDF({ orientation, unit: "pt", format: pageSize });
       const W = doc.internal.pageSize.getWidth();
-      let y = 40;
+      const H = doc.internal.pageSize.getHeight();
+      const MARGIN = 40;
+      let y = MARGIN;
+
+      const snapshotsDone = new Set<Element>(); // dedupe: never capture the same widget twice
 
       for (const s of sections) {
         if (!s.enabled) continue;
 
         if (s.id === "greeting") {
-          doc.setFontSize(18); doc.text(greeting, 40, y); y += 22;
-          if (range) { doc.setFontSize(10); doc.setTextColor(120); doc.text(`Range: ${range.from} → ${range.to}`, 40, y); doc.setTextColor(0); y += 16; }
+          doc.setFontSize(18); doc.text(greeting, MARGIN, y); y += 22;
+          if (range) { doc.setFontSize(10); doc.setTextColor(120); doc.text(`Range: ${range.from} → ${range.to}`, MARGIN, y); doc.setTextColor(0); y += 16; }
         } else if (s.id === "filters") {
-          doc.setFontSize(11); doc.text("Filters", 40, y); y += 14;
+          doc.setFontSize(11); doc.text("Filters", MARGIN, y); y += 14;
           doc.setFontSize(9);
-          const txt = doc.splitTextToSize(activeFiltersText(filters), W - 80);
-          doc.text(txt, 40, y); y += txt.length * 11 + 8;
+          const txt = doc.splitTextToSize(activeFiltersText(filters), W - MARGIN * 2);
+          doc.text(txt, MARGIN, y); y += txt.length * 11 + 8;
         } else if (s.id === "kpis") {
           if (!kpiCols.length) continue;
-          doc.setFontSize(11); doc.text("Snapshot", 40, y); y += 14;
+          doc.setFontSize(11); doc.text("Snapshot", MARGIN, y); y += 14;
           const labels = kpiCols.map((k) => ALL_KPIS.find((x) => x.key === k)!.label);
           const values = kpiCols.map((k) => kpiCell(k, jobs));
           autoTable(doc, {
@@ -198,24 +216,41 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
           });
           y = (doc as any).lastAutoTable.finalY + 12;
         } else if (s.id === "charts" || s.id === "calendar" || s.id === "map") {
-          // Snapshot from DOM
-          const root = document.getElementById(boardElementId);
-          if (root) {
+          // Per-widget snapshot. Each widget is captured at most once across all three
+          // sections (charts/calendar/map) to prevent duplicated images on multiple pages.
+          if (!root) continue;
+          const sectionTypes = s.id === "charts"
+            ? ["kpi", "chart", "insight", "goal", "table", "activity"]
+            : s.id === "calendar" ? ["calendar"] : ["map"];
+          const els = Array.from(
+            root.querySelectorAll<HTMLElement>("[data-pdf-section]")
+          ).filter((el) => sectionTypes.includes(el.dataset.widgetType || "") && !snapshotsDone.has(el));
+
+          for (const el of els) {
             try {
-              const png = await htmlToImage.toPng(root, { cacheBust: true, pixelRatio: 1.5, backgroundColor: "#ffffff" });
+              const png = await htmlToImage.toPng(el, { cacheBust: true, pixelRatio: 1.5, backgroundColor: "#ffffff" });
               const img = new Image();
-              await new Promise<void>((r, rej) => { img.onload = () => r(); img.onerror = rej; img.src = png; });
+              await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = rej; img.src = png; });
               const ratio = img.width / img.height;
-              let w = W - 80, h = w / ratio;
-              if (y + h > doc.internal.pageSize.getHeight() - 40) { doc.addPage(); y = 40; }
-              doc.addImage(png, "PNG", 40, y, w, h);
-              y += h + 14;
+              const maxW = W - MARGIN * 2;
+              const maxH = H - MARGIN * 2;
+              let w = maxW;
+              let h = w / ratio;
+              if (h > maxH) { h = maxH; w = h * ratio; }
+              // Smart page break: if the widget won't fit on the rest of the current page, start a new one.
+              if (y + h > H - MARGIN) {
+                doc.addPage();
+                y = MARGIN;
+              }
+              doc.addImage(png, "PNG", MARGIN, y, w, h);
+              y += h + 10;
+              snapshotsDone.add(el);
             } catch (e) {
-              console.warn("snapshot failed", e);
+              console.warn("widget snapshot failed", e);
             }
           }
         } else if (s.id === "table") {
-          if (y > doc.internal.pageSize.getHeight() - 100) { doc.addPage(); y = 40; }
+          if (y > H - 100) { doc.addPage(); y = MARGIN; }
           autoTable(doc, {
             startY: y,
             head: [columns.map((k) => EXPORTABLE_COLUMNS.find((c) => c.key === k)?.label || k)],
@@ -224,8 +259,8 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
           });
           y = (doc as any).lastAutoTable.finalY + 12;
         } else if (s.id === "appendix") {
-          doc.addPage(); y = 40;
-          doc.setFontSize(13); doc.text("Appendix — Full job data", 40, y); y += 18;
+          doc.addPage(); y = MARGIN;
+          doc.setFontSize(13); doc.text("Appendix — Full job data", MARGIN, y); y += 18;
           autoTable(doc, {
             startY: y,
             head: [columns.map((k) => EXPORTABLE_COLUMNS.find((c) => c.key === k)?.label || k)],
@@ -251,6 +286,7 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
       }
       setOpen(false);
     } finally {
+      if (willSnapshot && root) root.classList.remove("pdf-capturing");
       setBusy(false);
     }
   }
