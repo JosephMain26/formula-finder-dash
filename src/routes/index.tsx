@@ -52,7 +52,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ];
 
 function Dashboard() {
-  const { role, isAdmin, displayName, signOut } = useAuth();
+  const { role, isAdmin, displayName, signOut, can } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const { visibleColumns, toggle: toggleColumn, showAll: showAllColumns, setVisible: setVisibleColumns } = useColumnVisibility();
   const [loading, setLoading] = useState(true);
