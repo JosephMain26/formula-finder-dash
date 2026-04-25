@@ -40,18 +40,18 @@ export function AddWidgetMenu({ onAdd, canSeeMarketerPay }: Props) {
         })}>Add insight (configure after)</DropdownMenuItem>
 
         <DropdownMenuSeparator />
-        <DropdownMenuLabel>Charts</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "chart", title: "Revenue over time", settings: { variant: "revenue_over_time" } })}>Revenue over time</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "chart", title: "Top techs", settings: { variant: "top_techs" } })}>Top techs</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "chart", title: "Top marketers", settings: { variant: "top_companies" } })}>Top marketers</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "chart", title: "Status breakdown", settings: { variant: "status_breakdown" } })}>Status breakdown</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "chart", title: "Payment split", settings: { variant: "payment_split" } })}>Payment split</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "chart", title: "Job types", settings: { variant: "top_companies" } })}>Job types (use Insight for full control)</DropdownMenuItem>
+        <DropdownMenuLabel>Charts (configurable)</DropdownMenuLabel>
+        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Revenue over time", settings: { dimension: "day", metric: "revenue", viz: "area", limit: 0, sort: "desc" } })}>Revenue over time</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Top techs", settings: { dimension: "tech_name", metric: "revenue", viz: "bar", limit: 8, sort: "desc" } })}>Top techs</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Top marketers", settings: { dimension: "company", metric: "revenue", viz: "bar", limit: 8, sort: "desc" } })}>Top marketers</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Status breakdown", settings: { dimension: "status", metric: "count", viz: "pie", limit: 10, sort: "desc" } })}>Status breakdown</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Payment split", settings: { dimension: "payment", metric: "revenue", viz: "donut", limit: 10, sort: "desc" } })}>Payment split</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Job types", settings: { dimension: "job_type", metric: "count", viz: "bar", limit: 10, sort: "desc" } })}>Job types</DropdownMenuItem>
 
         <DropdownMenuSeparator />
-        <DropdownMenuLabel>Tables</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "table", title: "Top techs (table)", settings: { groupBy: "tech_name", metric: "revenue" } })}>Top techs</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "table", title: "Top job types", settings: { groupBy: "job_type", metric: "count" } })}>Top job types</DropdownMenuItem>
+        <DropdownMenuLabel>Tables (configurable)</DropdownMenuLabel>
+        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Top techs (table)", settings: { dimension: "tech_name", metric: "revenue", viz: "table", limit: 15, sort: "desc" } })}>Top techs</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Top job types", settings: { dimension: "job_type", metric: "count", viz: "table", limit: 15, sort: "desc" } })}>Top job types</DropdownMenuItem>
 
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "goal", title: "Revenue goal", settings: { target: 10000, metric: "revenue" } })}>Goal widget</DropdownMenuItem>

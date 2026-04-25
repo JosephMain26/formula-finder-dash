@@ -64,19 +64,19 @@ interface Props {
   onOpenJob?: (job: Job) => void;
 }
 
-const COLS = { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 };
-const BREAKPOINTS = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
+const COLS = { lg: 24, md: 20, sm: 12, xs: 8, xxs: 4 };
+const BREAKPOINTS = { lg: 1400, md: 1100, sm: 800, xs: 520, xxs: 0 };
 
 function defaultSize(type: WidgetType): { w: number; h: number; minW: number; minH: number } {
   switch (type) {
-    case "kpi": return { w: 3, h: 3, minW: 2, minH: 2 };
-    case "chart": return { w: 6, h: 5, minW: 3, minH: 3 };
-    case "table": return { w: 4, h: 5, minW: 3, minH: 3 };
-    case "goal": return { w: 4, h: 3, minW: 2, minH: 2 };
-    case "activity": return { w: 4, h: 6, minW: 3, minH: 3 };
-    case "calendar": return { w: 6, h: 7, minW: 4, minH: 5 };
-    case "map": return { w: 6, h: 7, minW: 4, minH: 5 };
-    case "insight": return { w: 6, h: 5, minW: 3, minH: 3 };
+    case "kpi": return { w: 6, h: 4, minW: 3, minH: 3 };
+    case "chart": return { w: 12, h: 8, minW: 5, minH: 5 };
+    case "table": return { w: 8, h: 8, minW: 4, minH: 4 };
+    case "goal": return { w: 8, h: 5, minW: 4, minH: 3 };
+    case "activity": return { w: 8, h: 10, minW: 4, minH: 5 };
+    case "calendar": return { w: 12, h: 12, minW: 6, minH: 8 };
+    case "map": return { w: 12, h: 12, minW: 6, minH: 8 };
+    case "insight": return { w: 12, h: 8, minW: 4, minH: 4 };
   }
 }
 
@@ -92,8 +92,17 @@ export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, on
       let y = 0;
       const merged: Layout[] = widgets.map((w, idx) => {
         const found = map.get(w.i);
-        if (found) return found;
         const sz = defaultSize(w.type);
+        if (found) {
+          // Clamp legacy layouts (saved against old smaller grid) up to new minimums
+          return {
+            ...found,
+            w: Math.max(found.w, sz.minW),
+            h: Math.max(found.h, sz.minH),
+            minW: sz.minW,
+            minH: sz.minH,
+          };
+        }
         const item: Layout = { i: w.i, x: (idx * sz.w) % COLS[bp], y, w: sz.w, h: sz.h, minW: sz.minW, minH: sz.minH };
         y += sz.h;
         return item;
@@ -139,12 +148,12 @@ export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, on
         layouts={computedLayouts}
         breakpoints={BREAKPOINTS}
         cols={COLS}
-        rowHeight={50}
+        rowHeight={30}
         margin={[8, 8]}
         isDraggable={editing}
         isResizable={editing}
-        draggableHandle={editing ? ".drag-handle" : undefined}
-        resizeHandles={editing ? ["se", "e", "s"] : []}
+        draggableHandle=".drag-handle"
+        resizeHandles={editing ? ["s", "w", "e", "n", "sw", "nw", "se", "ne"] : []}
         onLayoutChange={handleChange}
       >
         {widgets.map((w) => (
