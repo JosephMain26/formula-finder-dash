@@ -13,6 +13,7 @@ import { Route as UploadRouteImport } from './routes/upload'
 import { Route as TechniciansRouteImport } from './routes/technicians'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as InstallersRouteImport } from './routes/installers'
+import { Route as DataboardRouteImport } from './routes/databoard'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -36,6 +37,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const InstallersRoute = InstallersRouteImport.update({
   id: '/installers',
   path: '/installers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataboardRoute = DataboardRouteImport.update({
+  id: '/databoard',
+  path: '/databoard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CompaniesRoute = CompaniesRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/companies': typeof CompaniesRoute
+  '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/companies': typeof CompaniesRoute
+  '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/companies': typeof CompaniesRoute
+  '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/companies'
+    | '/databoard'
     | '/installers'
     | '/settings'
     | '/technicians'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/companies'
+    | '/databoard'
     | '/installers'
     | '/settings'
     | '/technicians'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/companies'
+    | '/databoard'
     | '/installers'
     | '/settings'
     | '/technicians'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   CompaniesRoute: typeof CompaniesRoute
+  DataboardRoute: typeof DataboardRoute
   InstallersRoute: typeof InstallersRoute
   SettingsRoute: typeof SettingsRoute
   TechniciansRoute: typeof TechniciansRoute
@@ -165,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InstallersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/databoard': {
+      id: '/databoard'
+      path: '/databoard'
+      fullPath: '/databoard'
+      preLoaderRoute: typeof DataboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/companies': {
       id: '/companies'
       path: '/companies'
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   CompaniesRoute: CompaniesRoute,
+  DataboardRoute: DataboardRoute,
   InstallersRoute: InstallersRoute,
   SettingsRoute: SettingsRoute,
   TechniciansRoute: TechniciansRoute,

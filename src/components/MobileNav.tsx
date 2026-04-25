@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Home, Settings, Building2, Wrench, LogOut } from "lucide-react";
+import { Menu, Home, Settings, Building2, Wrench, LogOut, BarChart3 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 interface MobileNavProps {
@@ -11,7 +11,7 @@ interface MobileNavProps {
 
 export function MobileNav({ className }: MobileNavProps) {
   const [open, setOpen] = useState(false);
-  const { user, role, isAdmin, signOut } = useAuth();
+  const { user, role, isAdmin, signOut, can } = useAuth();
 
   const close = () => setOpen(false);
 
@@ -36,6 +36,11 @@ export function MobileNav({ className }: MobileNavProps) {
           <Link to="/" onClick={close} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm">
             <Home className="h-4 w-4" /> Dashboard
           </Link>
+          {can("databoard.view") && (
+            <Link to="/databoard" onClick={close} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm">
+              <BarChart3 className="h-4 w-4" /> DataBoard
+            </Link>
+          )}
           {isAdmin && (
             <>
               <Link to="/settings" onClick={close} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm">
