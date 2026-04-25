@@ -297,7 +297,10 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
         <Button size="sm" variant="outline"><FileDown className="h-4 w-4 mr-1" /> Export</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Export DataBoard report</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Export DataBoard report</DialogTitle>
+          <DialogDescription className="sr-only">Configure sections, KPIs, columns and templates for your PDF report.</DialogDescription>
+        </DialogHeader>
 
         {/* Templates */}
         <div className="space-y-2 pb-3 border-b">
