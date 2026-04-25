@@ -37,7 +37,7 @@ export function WidgetCard({ title, children, editing, onRemove, onConfigure, ri
           )}
         </div>
       </div>
-      <div className="flex-1 min-h-0 overflow-auto p-3">{children}</div>
+      <div className="flex-1 min-h-0 overflow-auto p-3 [.pdf-capturing_&]:overflow-hidden [.pdf-capturing_&]:min-h-fit">{children}</div>
     </div>
   );
 }
