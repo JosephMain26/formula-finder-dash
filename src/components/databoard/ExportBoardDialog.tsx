@@ -128,6 +128,7 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
     if (!t) return;
     setSections(t.sections);
     setColumns(t.columns as ColumnKey[]);
+    setKpiCols((t.kpiColumns as KpiKey[]) || DEFAULT_KPIS);
     setAttachJobs(t.attachJobs);
     setPageSize(t.pageSize);
     setOrientation(t.orientation);
@@ -142,7 +143,8 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
     if (!name.trim()) return;
     const t: ExportTemplate = {
       id: makeId(), name: name.trim(),
-      sections, columns: columns as string[], attachJobs, pageSize, orientation,
+      sections, columns: columns as string[], kpiColumns: kpiCols as string[],
+      attachJobs, pageSize, orientation,
     };
     persist([...templates, t]);
     setActiveId(t.id);
