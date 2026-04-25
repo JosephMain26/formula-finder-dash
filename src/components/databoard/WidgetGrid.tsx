@@ -1,6 +1,9 @@
 import { useMemo, useCallback } from "react";
-// @ts-ignore - missing types for sub-imports
-import { Responsive, WidthProvider, type Layout, type Layouts } from "react-grid-layout";
+// @ts-ignore - using runtime-only import to bypass strict type mismatches
+import { Responsive, WidthProvider } from "react-grid-layout";
+
+type Layout = { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number };
+type Layouts = Record<string, Layout[]>;
 import type { Tables } from "@/integrations/supabase/types";
 import { WidgetCard } from "./WidgetCard";
 import { KpiWidget } from "./widgets/KpiWidget";
