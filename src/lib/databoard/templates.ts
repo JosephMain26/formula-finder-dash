@@ -39,6 +39,7 @@ export type ExportTemplate = {
   name: string;
   sections: { id: ExportSectionId; enabled: boolean }[];
   columns: string[];
+  kpiColumns?: string[];
   attachJobs: boolean;
   pageSize: "a4" | "letter";
   orientation: "portrait" | "landscape";
