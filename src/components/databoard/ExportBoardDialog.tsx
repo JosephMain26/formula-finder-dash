@@ -163,6 +163,9 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
   function toggleCol(k: ColumnKey) {
     setColumns((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
   }
+  function toggleKpi(k: KpiKey) {
+    setKpiCols((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
+  }
 
   async function runExport() {
     setBusy(true);
@@ -183,15 +186,14 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
           const txt = doc.splitTextToSize(activeFiltersText(filters), W - 80);
           doc.text(txt, 40, y); y += txt.length * 11 + 8;
         } else if (s.id === "kpis") {
-          const totalRev = jobs.reduce((a, j) => a + Number(j.price || 0), 0);
-          const totalCount = jobs.length;
-          const avg = totalCount ? totalRev / totalCount : 0;
-          const techPay = jobs.reduce((a, j) => a + Number(j.total_tech || 0), 0);
+          if (!kpiCols.length) continue;
           doc.setFontSize(11); doc.text("Snapshot", 40, y); y += 14;
+          const labels = kpiCols.map((k) => ALL_KPIS.find((x) => x.key === k)!.label);
+          const values = kpiCols.map((k) => kpiCell(k, jobs));
           autoTable(doc, {
             startY: y,
-            head: [["Revenue", "Jobs", "Avg ticket", "Tech pay"]],
-            body: [[`$${totalRev.toFixed(0)}`, String(totalCount), `$${avg.toFixed(0)}`, `$${techPay.toFixed(0)}`]],
+            head: [labels],
+            body: [values],
             theme: "grid", styles: { fontSize: 10 },
           });
           y = (doc as any).lastAutoTable.finalY + 12;
