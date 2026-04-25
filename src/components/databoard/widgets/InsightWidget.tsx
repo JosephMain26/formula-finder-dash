@@ -136,7 +136,7 @@ export function InsightWidget({ jobs, settings }: Props) {
   if (viz === "bar") {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
+        <BarChart data={data} className="font-medium">
           <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
           <XAxis dataKey="name" fontSize={10} />
           <YAxis fontSize={10} />
@@ -150,7 +150,7 @@ export function InsightWidget({ jobs, settings }: Props) {
   if (viz === "line") {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
+        <LineChart data={data} className="font-medium">
           <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
           <XAxis dataKey="name" fontSize={10} />
           <YAxis fontSize={10} />
@@ -164,7 +164,7 @@ export function InsightWidget({ jobs, settings }: Props) {
   if (viz === "area") {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data}>
+        <AreaChart data={data} className="font-medium">
           <defs>
             <linearGradient id="ig" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.5} />
@@ -184,7 +184,7 @@ export function InsightWidget({ jobs, settings }: Props) {
   // pie or donut
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
+      <PieChart className="font-medium">
         <Pie
           data={data}
           dataKey="value"
