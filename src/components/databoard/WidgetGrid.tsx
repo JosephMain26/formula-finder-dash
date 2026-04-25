@@ -10,6 +10,8 @@ import { ChartWidget } from "./widgets/ChartWidget";
 import { TableWidget } from "./widgets/TableWidget";
 import { GoalWidget } from "./widgets/GoalWidget";
 import { ActivityWidget } from "./widgets/ActivityWidget";
+import { CalendarWidget } from "./widgets/CalendarWidget";
+import { MapWidget } from "./widgets/MapWidget";
 
 // Lightweight WidthProvider replacement (the installed react-grid-layout no longer exports WidthProvider)
 const ResponsiveGridLayout = forwardRef<any, any>(function ResponsiveGridLayout(props, ref) {
@@ -40,7 +42,7 @@ const ResponsiveGridLayout = forwardRef<any, any>(function ResponsiveGridLayout(
 
 type Job = Tables<"jobs">;
 
-export type WidgetType = "kpi" | "chart" | "table" | "goal" | "activity";
+export type WidgetType = "kpi" | "chart" | "table" | "goal" | "activity" | "calendar" | "map";
 
 export interface WidgetConfig {
   i: string;
@@ -56,6 +58,7 @@ interface Props {
   editing: boolean;
   onLayoutChange: (layouts: Layouts) => void;
   onRemove: (id: string) => void;
+  onOpenJob?: (job: Job) => void;
 }
 
 const COLS = { lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 };
@@ -68,10 +71,12 @@ function defaultSize(type: WidgetType): { w: number; h: number; minW: number; mi
     case "table": return { w: 4, h: 5, minW: 3, minH: 3 };
     case "goal": return { w: 4, h: 3, minW: 2, minH: 2 };
     case "activity": return { w: 4, h: 6, minW: 3, minH: 3 };
+    case "calendar": return { w: 6, h: 7, minW: 4, minH: 5 };
+    case "map": return { w: 6, h: 7, minW: 4, minH: 5 };
   }
 }
 
-export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, onRemove }: Props) {
+export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, onRemove, onOpenJob }: Props) {
   const computedLayouts = useMemo<Layouts>(() => {
     const out: Layouts = {};
     const keys: (keyof typeof COLS)[] = ["lg", "md", "sm", "xs", "xxs"];
@@ -106,6 +111,8 @@ export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, on
       case "table": return <TableWidget jobs={jobs} groupBy={w.settings.groupBy} metric={w.settings.metric} />;
       case "goal": return <GoalWidget jobs={jobs} target={Number(w.settings.target) || 0} metric={w.settings.metric} />;
       case "activity": return <ActivityWidget jobs={jobs} limit={w.settings.limit} />;
+      case "calendar": return <CalendarWidget jobs={jobs} onOpenJob={onOpenJob} />;
+      case "map": return <MapWidget jobs={jobs} onOpenJob={onOpenJob} />;
     }
   }
 

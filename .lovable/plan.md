@@ -1,29 +1,93 @@
-# Build DataBoard
+## DataBoard upgrade — widgets, filters, exports, templates
 
-Implement the previously approved plan. Minimal-credit execution: one route, one grid wrapper, one widget shell, a small set of widgets, and a time-range bar — all reusing existing infra (`userPrefs`, `DateRangePresets`, `recharts`, permissions).
+To keep credit usage low I'll reuse existing components (`JobDialog`, `ExportReportDialog` patterns, `DateRangePresets`, `DatePickerField`, `ColumnToggle`) and persist everything in the existing `user_preferences.prefs.databoard` JSONB blob — **no DB migration needed**.
 
-## Steps
+### 1. Friendly header (`src/routes/databoard.tsx`)
+- Replace the plain "DataBoard" title with a time-aware greeting using the user's first name from `auth-context`'s `displayName` (split on space, fall back to email local-part).
+- Subtitle: *"Let's see how everything looks today."*
+- Keep the role badge style consistent with the dashboard memory rule (`Good morning/afternoon/evening, {first} 👋`).
 
-1. **Install deps**: `bun add react-grid-layout` + `bun add -d @types/react-grid-layout`. Import its CSS in `src/styles.css`.
+### 2. New widgets
 
-2. **Migration**: insert `databoard.view`, `databoard.view_all`, `databoard.edit_layout` into `permissions`, and grant `view`+`edit_layout` to admin/manager and `view` to tech/marketer/user via `role_permissions`.
+**`CalendarWidget` (`src/components/databoard/widgets/CalendarWidget.tsx`)**
+- Month grid built on the existing shadcn `Calendar` (react-day-picker) with custom `DayContent` showing a colored dot + job count per day.
+- Click a day → opens a popover/sheet listing that day's jobs; clicking a job opens the existing `JobDialog` in edit mode (reused, not rebuilt).
+- Aggregates from the already-fetched `jobs` prop — zero extra queries.
 
-3. **New files**:
-   - `src/routes/databoard.tsx` — page with TimeRangeBar + WidgetGrid + Edit toggle + Add-widget menu. Gated by `databoard.view`.
-   - `src/components/databoard/WidgetCard.tsx` — universal shell with `.drag-handle` header, remove/configure menu.
-   - `src/components/databoard/WidgetGrid.tsx` — `react-grid-layout` ResponsiveGridLayout; persists layout to `user_preferences.prefs.databoard.layouts` (debounced).
-   - `src/components/databoard/TimeRangeBar.tsx` — Live(Today)/Yesterday/This+Last Week/Month/Year/Custom + saved presets (system + per-user) + "Save current range".
-   - `src/components/databoard/AddWidgetMenu.tsx` — picker.
-   - `src/components/databoard/widgets/{KpiWidget,ChartWidget,TableWidget,GoalWidget,ActivityWidget}.tsx`.
-   - `src/lib/databoard/queries.ts` — single Supabase query builder (applies date range + tech/marketer scope).
+**`MapWidget` (`src/components/databoard/widgets/MapWidget.tsx`)**
+- **Leaflet + OpenStreetMap** (free, no API key). Add deps: `leaflet`, `react-leaflet`, `@types/leaflet`.
+- Geocode `job.address` via Nominatim (free) with localStorage cache keyed by address (so re-renders cost nothing). Throttle to 1 req/sec to respect Nominatim's policy; show a small "geocoding…" indicator.
+- Pins clustered with simple offset jitter (skip clustering plugin to keep bundle small). Click pin → popup with job summary + "Open ticket" button → opens `JobDialog` in edit mode.
+- Default tile layer: OSM standard. Container respects grid resize via the existing `ResizeObserver` in `WidgetGrid`.
 
-4. **Scoping**: in `queries.ts`, if user lacks `databoard.view_all`, look up `technicians.tech_name where user_id = auth.uid()` and filter `jobs.tech_name`. Marketer scope mirrors existing marketer logic.
+Both widgets registered in `WidgetGrid.tsx` (`renderWidget` switch) and `AddWidgetMenu.tsx` (new entries with sensible default sizes — calendar `w:6 h:7`, map `w:6 h:7`).
 
-5. **Live mode**: when range = Today/Live, set 30s `setInterval` to refetch.
+### 3. Filters bar (`src/components/databoard/FiltersBar.tsx`)
+A new collapsible bar above the grid. All filter values live in component state, persisted in `user_preferences.prefs.databoard.filters`, and applied to the `jobs` array client-side before passing to widgets (no extra fetches).
 
-6. **Nav**: add "DataBoard" entry to `src/components/MobileNav.tsx` (and any desktop nav) gated by `databoard.view`.
+Filters:
+- **Tech** (multi-select from distinct `tech_name`)
+- **Marketer / Company** (multi-select from `companies`)
+- **Installer** (multi-select)
+- **Job type** + **Status** (multi-select)
+- **Payment method** (multi-select from `loadPaymentMethods()`)
+- **Paid / Unpaid** (tri-state: any/paid/unpaid)
+- **Price range** (min–max numeric inputs)
+- **City** (free-text contains, parsed from address)
 
-7. **Persistence**: extend `userPrefs` with `databoard: { layouts, widgets, savedRanges }` namespace (no schema change, just a new key inside `prefs` jsonb).
+A "Clear all" button + active-filter chip count.
 
-## Outcome
-A `/databoard` route where any user with permission gets a draggable/resizable widget grid, full time-range controls (incl. Live + custom + saved), auto-scoped data per role, and per-user persisted layouts.
+### 4. Export with attached data (`src/components/databoard/ExportBoardDialog.tsx`)
+Builds on the existing `jspdf` + `jspdf-autotable` already in the project (no new deps).
+
+Options in the dialog:
+- **Sections to include** (drag-orderable like existing ExportReportDialog): Greeting, Active filters summary, KPI cards snapshot, each chart (rendered to PNG via `html-to-image` — small dep, ~10kB), Calendar summary, Map snapshot, Jobs table, **Appendix: raw jobs data**.
+- **Table column picker** — reuse `ALL_COLUMNS` from `ColumnToggle`; user toggles which fields appear in the jobs table inside the report.
+- **"Attach jobs as CSV"** checkbox — when on, also generate a CSV of the filtered jobs and bundle it with the PDF in a ZIP (`jszip` — already common, will add if not present).
+- File name + page size (A4/Letter, portrait/landscape).
+
+### 5. Templates (both view and export)
+
+Stored under `user_preferences.prefs.databoard.templates`:
+```ts
+{
+  views: [{ id, name, widgets, layouts, filters, rangeKey, customRange }],
+  exports: [{ id, name, sections, columns, attachJobs, pageSize, orientation }]
+}
+```
+
+UI:
+- **View templates dropdown** in the header (next to Edit layout): Save current view, Apply, Rename, Delete, Set default.
+- **Export templates dropdown** inside `ExportBoardDialog`: Save as template, Apply, Delete.
+
+Helpers added to `src/lib/databoard/templates.ts` (pure functions, no DB calls beyond the existing `saveUserPrefs`).
+
+### 6. Files
+
+**Create**
+- `src/components/databoard/widgets/CalendarWidget.tsx`
+- `src/components/databoard/widgets/MapWidget.tsx`
+- `src/components/databoard/FiltersBar.tsx`
+- `src/components/databoard/ExportBoardDialog.tsx`
+- `src/components/databoard/ViewTemplatesMenu.tsx`
+- `src/lib/databoard/templates.ts`
+- `src/lib/databoard/geocode.ts` (Nominatim client + localStorage cache)
+
+**Edit**
+- `src/routes/databoard.tsx` — friendly header, mount FiltersBar/ExportBoardDialog/ViewTemplatesMenu, apply filters, pass `onOpenJob` handler.
+- `src/components/databoard/WidgetGrid.tsx` — render new widget types, accept `onOpenJob` callback.
+- `src/components/databoard/AddWidgetMenu.tsx` — add Calendar + Map entries.
+- `src/styles.css` — `@import "leaflet/dist/leaflet.css";`
+
+**Dependencies to add**
+- `leaflet`, `react-leaflet`, `@types/leaflet`
+- `html-to-image` (chart → PNG for PDF)
+- `jszip` (only if not already in lockfile; ZIP bundling for PDF + CSV)
+
+### 7. Defaults chosen to save credits / avoid back-and-forth
+- **Map**: free Leaflet + OSM (no API key needed from you).
+- **Ticket open**: reuse existing `JobDialog` in edit mode — same UX as the main jobs page.
+- **View templates**: full snapshot (widgets + layout + filters + time range) — most useful.
+- **Filters**: implementing the broad set listed above so you don't need to ask for more later.
+
+If you want a different map provider (Google/Mapbox), read-only ticket previews instead of the full edit dialog, or a narrower template scope, say so before approving and I'll adjust.
