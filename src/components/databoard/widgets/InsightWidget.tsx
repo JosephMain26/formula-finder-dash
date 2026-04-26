@@ -78,12 +78,15 @@ interface Props {
 }
 
 export function InsightWidget({ jobs, settings }: Props) {
-  const { dimension, metric, viz, limit = 10, sort = "desc" } = settings;
+  const { dimension, metric, viz, limit = 10, sort = "desc", completedOnly = false } = settings;
 
   const data = useMemo(() => {
+    const source = completedOnly
+      ? jobs.filter((j) => (j.status || "").toLowerCase() === "completed")
+      : jobs;
     const sums = new Map<string, number>();
     const counts = new Map<string, number>();
-    for (const j of jobs) {
+    for (const j of source) {
       const k = dimKey(j, dimension);
       sums.set(k, (sums.get(k) || 0) + metricValue(j, metric));
       counts.set(k, (counts.get(k) || 0) + 1);
@@ -97,7 +100,7 @@ export function InsightWidget({ jobs, settings }: Props) {
     else arr.sort((a, b) => sort === "asc" ? a.value - b.value : b.value - a.value);
     if (!isTime && limit > 0) arr = arr.slice(0, limit);
     return arr;
-  }, [jobs, dimension, metric, sort, limit]);
+  }, [jobs, dimension, metric, sort, limit, completedOnly]);
 
   if (viz === "number") {
     const total = data.reduce((s, d) => s + d.value, 0);
