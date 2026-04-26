@@ -1,8 +1,10 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil, Eye } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
 import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
 import { TimeRangeBar, resolveRange, type RangeKey, type SavedRange } from "@/components/databoard/TimeRangeBar";
 import { WidgetGrid, type WidgetConfig } from "@/components/databoard/WidgetGrid";
@@ -10,7 +12,7 @@ import { AddWidgetMenu } from "@/components/databoard/AddWidgetMenu";
 import { FiltersBar, applyFilters } from "@/components/databoard/FiltersBar";
 import { ViewTemplatesMenu } from "@/components/databoard/ViewTemplatesMenu";
 import { ExportBoardDialog } from "@/components/databoard/ExportBoardDialog";
-import { fetchJobsForRange, resolveUserScope, type Scope } from "@/lib/databoard/queries";
+import { getDataBoardJobs } from "@/lib/databoard/queries.functions";
 import { EMPTY_FILTERS, loadDataBoardPrefs, saveFilters, type DataBoardFilters } from "@/lib/databoard/templates";
 import { JobDialog } from "@/components/AddJobDialog";
 import type { Tables } from "@/integrations/supabase/types";
@@ -47,7 +49,8 @@ function greetingFor(name: string | null) {
 }
 
 function DataBoardPage() {
-  const { user, displayName, can, loading: authLoading } = useAuth();
+  const { session, displayName, can, loading: authLoading } = useAuth();
+  const getDataBoardJobsFn = useServerFn(getDataBoardJobs);
   const canView = can("databoard.view");
   const canEditLayout = can("databoard.edit_layout");
   const canViewAll = can("databoard.view_all");
@@ -57,12 +60,14 @@ function DataBoardPage() {
   const [editing, setEditing] = useState(false);
   const [widgets, setWidgets] = useState<WidgetConfig[]>(DEFAULT_WIDGETS);
   const [layouts, setLayouts] = useState<Record<string, any[]>>({});
-  const [rangeKey, setRangeKey] = useState<RangeKey>("today");
+  const [rangeKey, setRangeKey] = useState<RangeKey>("this_month");
   const [customRange, setCustomRange] = useState<DateRange | null>(null);
   const [savedRanges, setSavedRanges] = useState<SavedRange[]>([]);
-  const [scope, setScope] = useState<Scope>({});
   const [jobs, setJobs] = useState<Job[]>([]);
   const [undatedCount, setUndatedCount] = useState(0);
+  const [totalMatched, setTotalMatched] = useState(0);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [scopeTechName, setScopeTechName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [filters, setFiltersState] = useState<DataBoardFilters>(EMPTY_FILTERS);
   const [activeViewId, setActiveViewId] = useState<string>("");
