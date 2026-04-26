@@ -23,6 +23,8 @@ export interface InsightSettings {
   viz: InsightViz;
   limit?: number;
   sort?: "desc" | "asc";
+  /** When true, only count jobs with status === "Completed". Default false. */
+  completedOnly?: boolean;
 }
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#6366f1", "#84cc16"];
@@ -60,7 +62,8 @@ function dimKey(j: Job, d: InsightDimension): string {
     const week = Math.ceil((((dt.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7);
     return `${dt.getFullYear()}-W${String(week).padStart(2, "0")}`;
   }
-  const v = (j as any)[d];
+  // For "company" dimension, fall back to legacy `company_1` column.
+  const v = d === "company" ? ((j as any).company || (j as any).company_1) : (j as any)[d];
   return (v == null || v === "") ? "—" : String(v);
 }
 
