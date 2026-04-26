@@ -119,11 +119,27 @@ export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, on
     [onLayoutChange]
   );
 
+  function legacyChartToInsight(variant: string): import("./widgets/InsightWidget").InsightSettings {
+    switch (variant) {
+      case "revenue_over_time": return { dimension: "day", metric: "revenue", viz: "area", limit: 0, sort: "desc", completedOnly: true };
+      case "top_techs": return { dimension: "tech_name", metric: "revenue", viz: "bar", limit: 8, sort: "desc", completedOnly: true };
+      case "top_companies": return { dimension: "company", metric: "revenue", viz: "bar", limit: 8, sort: "desc", completedOnly: true };
+      case "status_breakdown": return { dimension: "status", metric: "count", viz: "pie", limit: 10, sort: "desc" };
+      case "payment_split": return { dimension: "payment", metric: "revenue", viz: "donut", limit: 10, sort: "desc" };
+      default: return { dimension: "tech_name", metric: "count", viz: "bar", limit: 10, sort: "desc" };
+    }
+  }
+  function legacyTableToInsight(s: any): import("./widgets/InsightWidget").InsightSettings {
+    return { dimension: (s?.groupBy || "tech_name"), metric: (s?.metric || "count"), viz: "table", limit: 15, sort: "desc" };
+  }
+
   function renderWidget(w: WidgetConfig) {
     switch (w.type) {
-      case "kpi": return <KpiWidget jobs={jobs} metric={w.settings.metric} label={w.settings.label} />;
-      case "chart": return <ChartWidget jobs={jobs} variant={w.settings.variant} />;
-      case "table": return <TableWidget jobs={jobs} groupBy={w.settings.groupBy} metric={w.settings.metric} />;
+      case "kpi": return <KpiWidget jobs={jobs} metric={w.settings.metric} label={w.settings.label} completedOnly={w.settings.completedOnly} />;
+      // Legacy chart/table widgets are transparently rendered through InsightWidget,
+      // so the user can switch viz types via the gear icon — same as native insights.
+      case "chart": return <InsightWidget jobs={jobs} settings={legacyChartToInsight(w.settings.variant)} />;
+      case "table": return <InsightWidget jobs={jobs} settings={legacyTableToInsight(w.settings)} />;
       case "goal": return <GoalWidget jobs={jobs} target={Number(w.settings.target) || 0} metric={w.settings.metric} />;
       case "activity": return <ActivityWidget jobs={jobs} limit={w.settings.limit} />;
       case "calendar": return <CalendarWidget jobs={jobs} onOpenJob={onOpenJob} />;
