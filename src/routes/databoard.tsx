@@ -31,15 +31,32 @@ export const Route = createFileRoute("/databoard")({
 });
 
 const DEFAULT_WIDGETS: WidgetConfig[] = [
-  { i: "w-revenue", type: "kpi", title: "Revenue (completed)", settings: { metric: "revenue", label: "Revenue", completedOnly: true } },
-  { i: "w-profit", type: "kpi", title: "Profit (completed)", settings: { metric: "profit", label: "Profit", completedOnly: true } },
+  { i: "w-revenue", type: "kpi", title: "Revenue", settings: { metric: "revenue", label: "Revenue" } },
+  { i: "w-profit", type: "kpi", title: "Profit", settings: { metric: "profit", label: "Profit" } },
   { i: "w-completed", type: "kpi", title: "Completed jobs", settings: { metric: "completed_count", label: "Completed jobs" } },
-  { i: "w-avg", type: "kpi", title: "Avg ticket (completed)", settings: { metric: "avg_ticket", label: "Avg ticket", completedOnly: true } },
-  { i: "w-rev-time", type: "insight", title: "Revenue over time", settings: { dimension: "day", metric: "revenue", viz: "area", limit: 0, sort: "desc", completedOnly: true } },
+  { i: "w-avg", type: "kpi", title: "Avg ticket", settings: { metric: "avg_ticket", label: "Avg ticket" } },
+  { i: "w-rev-time", type: "insight", title: "Revenue over time", settings: { dimension: "day", metric: "revenue", viz: "area", limit: 0, sort: "desc" } },
   { i: "w-top-techs", type: "insight", title: "Best closing techs", settings: { dimension: "tech_name", metric: "count", viz: "bar", limit: 8, sort: "desc", completedOnly: true } },
   { i: "w-status", type: "insight", title: "Status breakdown", settings: { dimension: "status", metric: "count", viz: "pie", limit: 10, sort: "desc" } },
   { i: "w-activity", type: "activity", title: "Recent jobs", settings: { limit: 20 } },
 ];
+
+/**
+ * Strip the per-widget `completedOnly` flag from previously saved widgets so
+ * they no longer silently restrict to Completed jobs. The dedicated
+ * `completed_count` KPI and the "Best closing techs" insight (which is
+ * conceptually about closing rate) keep their behavior.
+ */
+function normalizeSavedWidgets(widgets: WidgetConfig[]): WidgetConfig[] {
+  return widgets.map((w) => {
+    const s = w.settings || {};
+    if (!s.completedOnly) return w;
+    const isClosingTechs = w.type === "insight" && (w.title || "").toLowerCase().includes("best closing");
+    if (isClosingTechs) return w;
+    const { completedOnly: _drop, ...rest } = s;
+    return { ...w, settings: rest };
+  });
+}
 
 function greetingFor(name: string | null) {
   const h = new Date().getHours();
@@ -81,7 +98,7 @@ function DataBoardPage() {
   useEffect(() => {
     loadUserPrefs().then(() => {
       const db = getPref<any>("databoard") || {};
-      if (Array.isArray(db.widgets) && db.widgets.length) setWidgets(db.widgets);
+      if (Array.isArray(db.widgets) && db.widgets.length) setWidgets(normalizeSavedWidgets(db.widgets));
       if (db.layouts && typeof db.layouts === "object") setLayouts(db.layouts);
       if (Array.isArray(db.savedRanges)) setSavedRanges(db.savedRanges);
       if (typeof db.rangeKey === "string") setRangeKey(db.rangeKey);

@@ -121,9 +121,9 @@ export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, on
 
   function legacyChartToInsight(variant: string): import("./widgets/InsightWidget").InsightSettings {
     switch (variant) {
-      case "revenue_over_time": return { dimension: "day", metric: "revenue", viz: "area", limit: 0, sort: "desc", completedOnly: true };
-      case "top_techs": return { dimension: "tech_name", metric: "revenue", viz: "bar", limit: 8, sort: "desc", completedOnly: true };
-      case "top_companies": return { dimension: "company", metric: "revenue", viz: "bar", limit: 8, sort: "desc", completedOnly: true };
+      case "revenue_over_time": return { dimension: "day", metric: "revenue", viz: "area", limit: 0, sort: "desc" };
+      case "top_techs": return { dimension: "tech_name", metric: "revenue", viz: "bar", limit: 8, sort: "desc" };
+      case "top_companies": return { dimension: "company", metric: "revenue", viz: "bar", limit: 8, sort: "desc" };
       case "status_breakdown": return { dimension: "status", metric: "count", viz: "pie", limit: 10, sort: "desc" };
       case "payment_split": return { dimension: "payment", metric: "revenue", viz: "donut", limit: 10, sort: "desc" };
       default: return { dimension: "tech_name", metric: "count", viz: "bar", limit: 10, sort: "desc" };
