@@ -1,68 +1,79 @@
-## Issues Diagnosed
+## Root causes found
 
-### 1. Filters return inaccurate / empty data
-- **Marketer filter is broken**: `FiltersBar` lists options from the `companies` table (`company_name`) but `applyFilters` compares against `jobs.company`. Inspection of the database shows `jobs.company` is currently NULL for all rows, so selecting any marketer always returns 0 jobs. Same latent risk exists for **Installer** (`installers.name` vs `jobs.installer_name`).
-- **Empty / NULL values can't be filtered**: rows where `tech_name`, `job_type`, etc. are empty are silently grouped as "—" by widgets but excluded from the filter option list, so the user can't include or exclude them deliberately.
-- **No "(empty)" handling**: if a filter is applied and a job's value is `null`, it's currently dropped (`!f.techs.includes(j.tech_name || "")`).
+After reading the code + querying your live data, here's what's actually going on:
 
-### 2. PDF export duplicates snapshots across pages
-In `ExportBoardDialog.tsx → runExport()`, the loop handles `charts`, `calendar`, and `map` by snapshotting the **same** `boardElementId` DOM root each time:
+### 1. "Best closing tech" — counts all jobs regardless of status
+There is no widget literally named "Best closing tech" in the code. The widgets that rank techs (the `insight` "Top techs" preset, the `KpiWidget` "Active techs", and `AnalyticsPanel` "Most jobs / tech" / "Most profit / tech") all aggregate **every** job — including `Cancelled` ones. Your DB currently has `Completed` and `Cancelled` jobs, so cancelled jobs are inflating the rankings.
+
+### 2. Legacy chart widgets aren't configurable
+The new `insight` widgets already have the gear icon → choose Bar/Pie/Line/Area/Donut/Table/Number. ✅
+But the **default board** still ships `type: "chart"` widgets (`Revenue over time`, `Top techs`, `Status breakdown`) which use the old `ChartWidget` with **hardcoded viz**. So if you didn't add a widget yourself via "Add widget → Job types", you're stuck on the original visualization. Same for any `type: "table"` widgets saved earlier.
+
+### 3. DataBoard data wiring — `company` vs `company_1`
+This is the real "DB connection" bug. Querying jobs directly:
+- Every row has `company = NULL`
+- The marketer name actually lives in `company_1`
+
+But `FiltersBar`, `InsightWidget` (dimension `company`), `queries.ts` (`scope.marketerName`), and `KpiWidget` all read `j.company`. That's why the Marketer filter is empty and any "Top marketers" / marketer-grouped insight shows only "(empty)". `AnalyticsPanel` is the only place that correctly falls back to `company_1`.
+
+Also, jobs with `job_date IS NULL` are silently dropped by the date-range query (`gte/lte` excludes nulls). Worth surfacing.
+
+---
+
+## Proposed fixes (minimal, surgical — no extra credits beyond what's needed)
+
+### A. Restrict "tech ranking" metrics to completed jobs
+
+Add a `completedOnly` toggle to the `insight` widget settings (default **on** for tech-grouped count/revenue presets). In `InsightWidget.tsx`:
+
 ```ts
-} else if (s.id === "charts" || s.id === "calendar" || s.id === "map") {
-  const root = document.getElementById(boardElementId);
-  ...snapshot root...
-}
+const filtered = settings.completedOnly
+  ? jobs.filter((j) => (j.status || "").toLowerCase() === "completed")
+  : jobs;
 ```
-So enabling two of these sections produces the same image twice (often spilling onto a 2nd page). The default config has `charts: true` and a user enabling `calendar` or `map` immediately gets duplicates.
 
-### 3. Widget snapshots show scrollbars
-`WidgetCard` uses `overflow-auto` on the body. When captured by `html-to-image`, the live scrollbars appear in the PNG.
+Add the toggle to `InsightSettingsDialog.tsx`. Update the "Top techs" preset in `AddWidgetMenu.tsx` to default `completedOnly: true` and rename it **"Best closing techs"**.
 
----
+Also patch `KpiWidget` `tech_count` / `paid_count` to honor a `completedOnly` flag, and add a "Completed jobs" KPI preset.
 
-## Fixes (minimal, no new dependencies)
+### B. Make legacy charts configurable + auto-migrate the defaults
 
-### A. Filters — make options match data, allow empty values
+1. In `databoard.tsx`, replace `DEFAULT_WIDGETS` chart entries with `type: "insight"` equivalents (revenue/day → area, top techs → bar w/ completedOnly, status → pie).
+2. In `WidgetGrid.renderWidget`, transparently render any old `type: "chart"` or `type: "table"` widget through `InsightWidget` by mapping its old `variant` → `{dimension, metric, viz}`. The gear icon then becomes available for them too.
+3. Show the gear icon for `chart`/`table`/`insight` (not just `insight`). On save, rewrite the widget as `type: "insight"` so it's persisted in the new format.
 
-**`src/components/databoard/FiltersBar.tsx`**
-- Build **all** option lists (techs, marketers, installers, job types, statuses, payments) from the **jobs in scope**, not from `companies` / `installers` tables. This guarantees what's offered actually exists in the data and respects the user's scope (tech-only users only see their own data anyway).
-- Drop the `useEffect` that fetches `companies`/`installers`/`payments` from Supabase — it adds round-trips and produces a mismatch with the actual `jobs.company` strings.
-- Include an "(empty)" option when the field has null/empty rows, mapped to `""` internally.
+This means **every** existing widget — including your current "Top techs" or any saved chart — instantly gets the Bar/Pie/Line/Area/Donut/Table/Number switcher.
 
-**`applyFilters` in same file**
-- Treat empty selection as "no constraint" (already correct).
-- When `""` is in the selection, match jobs whose value is null/empty.
+### C. Fix the marketer/company column mismatch (the real "DB not connected" bug)
 
-### B. PDF export — snapshot widgets individually, dedupe sections, hide scrollbars
+Three small changes:
 
-**`src/components/databoard/WidgetGrid.tsx`**
-- Add `data-pdf-section` and a `data-widget-type` attribute to each widget wrapper `<div key={w.i} data-pdf-section data-widget-type={w.type}>`. This lets the exporter pick widgets by category instead of capturing the whole grid.
+1. **`queries.ts`** — fetch both columns and normalize:
+   ```ts
+   // After fetch, coalesce so the rest of the app only needs `company`.
+   return (data || []).map((j: any) => ({ ...j, company: j.company || j.company_1 || null }));
+   ```
+   And in scope filtering, use `.or("company.eq.X,company_1.eq.X")`.
 
-**`src/components/databoard/WidgetCard.tsx`**
-- Add a small CSS escape hatch: when ancestor has class `pdf-capturing`, switch the body from `overflow-auto` to `overflow-hidden` and force `min-height` to fit content. Implemented purely with Tailwind utility classes via `[.pdf-capturing_&]:overflow-hidden [.pdf-capturing_&]:min-h-fit`. No JS needed.
+2. **`InsightWidget.dimKey`** — for `dimension === "company"`, fall back to `company_1`.
 
-**`src/components/databoard/ExportBoardDialog.tsx → runExport()`**
-- Replace the per-section "snapshot whole grid" branch with a single grouped step:
-  - Build a set `wantedTypes` from enabled sections:
-    - `charts` → `kpi`, `chart`, `insight`, `goal`, `table`, `activity`
-    - `calendar` → `calendar`
-    - `map` → `map`
-  - If the set is non-empty, temporarily add the `pdf-capturing` class to the grid root, query `[data-pdf-section]` elements that match a wanted `data-widget-type`, snapshot **each one** with `htmlToImage.toPng`, fit it into the page width, and use the "smart page break" pattern (start a new page when the next image won't fit). Remove the class when done.
-- This guarantees:
-  - **No duplicates** — each widget is snapshotted at most once even if multiple sections are enabled.
-  - **No scrollbars** — `pdf-capturing` class disables overflow during capture.
-  - **No arbitrary slicing** — each widget fits cleanly on a page; pages break at widget boundaries.
+3. **`FiltersBar.optionsFromJobs`** — for the marketer column, derive from `company || company_1`. Apply same coalesce in `applyFilters`.
 
-### C. Small polish
-- Add `aria-describedby={undefined}` is harmless — but include `<DialogDescription className="sr-only">…</DialogDescription>` to silence the console warning seen in logs.
+### D. Surface jobs with no `job_date`
+
+Add a tiny "+ N undated jobs not shown" hint under the FiltersBar when the unfiltered fetch returns rows that fall outside the date range only because `job_date` is null. (Pure UI hint, no extra query.)
 
 ---
 
-## Files to Edit
+## Files to touch
 
-1. `src/components/databoard/FiltersBar.tsx` — options built from jobs; "(empty)" support; remove unnecessary Supabase fetches.
-2. `src/components/databoard/WidgetGrid.tsx` — add `data-pdf-section` / `data-widget-type` to each widget wrapper.
-3. `src/components/databoard/WidgetCard.tsx` — add `[.pdf-capturing_&]:overflow-hidden [.pdf-capturing_&]:min-h-fit` to the body.
-4. `src/components/databoard/ExportBoardDialog.tsx` — rewrite the snapshot branch to iterate per-widget, dedupe by enabled section→type set, smart page breaks, toggle `pdf-capturing` class. Add `DialogDescription`.
+- `src/components/databoard/widgets/InsightWidget.tsx` — `completedOnly` filter, `company_1` fallback
+- `src/components/databoard/widgets/KpiWidget.tsx` — `completedOnly` support, completed-count metric
+- `src/components/databoard/InsightSettingsDialog.tsx` — completedOnly switch
+- `src/components/databoard/AddWidgetMenu.tsx` — rename "Top techs" → "Best closing techs", default `completedOnly: true`; add "Completed jobs" KPI
+- `src/components/databoard/WidgetGrid.tsx` — render legacy `chart`/`table` via `InsightWidget` adapter; expose gear icon for them
+- `src/components/databoard/FiltersBar.tsx` — marketer options + matching with `company_1` fallback
+- `src/lib/databoard/queries.ts` — coalesce `company`/`company_1`; scope `.or()` filter
+- `src/routes/databoard.tsx` — replace legacy `DEFAULT_WIDGETS` chart entries with insight equivalents; add undated-jobs hint
 
-No DB migrations, no new packages, no schema changes. Pure client-side fixes.
+No DB migrations, no new packages, no edge functions.
