@@ -93,18 +93,21 @@ function DataBoardPage() {
     });
   }, []);
 
-  useEffect(() => {
-    if (!user) return;
-    resolveUserScope({ userId: user.id, canViewAll }).then(setScope);
-  }, [user, canViewAll]);
-
   async function refetch() {
-    if (!range) return;
+    if (!range || !session?.access_token) return;
     setLoading(true);
     try {
-      const res = await fetchJobsForRange(range, scope);
-      setJobs(res.jobs);
-      setUndatedCount(res.undatedCount);
+      const res = await getDataBoardJobsFn({
+        data: {
+          accessToken: session.access_token,
+          range,
+        },
+      });
+      setJobs(res.jobs as Job[]);
+      setUndatedCount(res.undatedCount || 0);
+      setTotalMatched(res.totalMatched || 0);
+      setLastSyncedAt(res.fetchedAt || null);
+      setScopeTechName(res.scopeTechName || null);
     } catch (e) {
       console.error(e);
     } finally {
@@ -113,13 +116,30 @@ function DataBoardPage() {
   }
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !session?.access_token) return;
     refetch();
     if (refetchTimer.current) clearInterval(refetchTimer.current);
-    if (rangeKey === "today") refetchTimer.current = setInterval(refetch, 30000);
+    refetchTimer.current = setInterval(refetch, 60000);
     return () => { if (refetchTimer.current) clearInterval(refetchTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, rangeKey, customRange, scope.techName, scope.marketerName]);
+  }, [hydrated, rangeKey, customRange, session?.access_token]);
+
+  useEffect(() => {
+    if (!hydrated || !session?.user?.id) return;
+    const channel = supabase
+      .channel(`databoard-jobs-${session.user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "jobs" },
+        () => { refetch(); }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, session?.user?.id, session?.access_token, rangeKey, customRange]);
 
   useEffect(() => {
     if (!hydrated) return;
