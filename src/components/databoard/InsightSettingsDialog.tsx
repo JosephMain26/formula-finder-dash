@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { InsightSettings, InsightDimension, InsightMetric, InsightViz } from "./widgets/InsightWidget";
 
@@ -110,6 +111,14 @@ export function InsightSettingsDialog({ open, onOpenChange, title, settings, onS
               onChange={(e) => setS({ ...s, limit: Math.max(1, Number(e.target.value) || 10) })}
               className="h-9"
             />
+          </div>
+
+          <div className="flex items-center justify-between rounded-md border p-2">
+            <div>
+              <Label className="text-xs">Only count completed jobs</Label>
+              <div className="text-[11px] text-muted-foreground">Excludes Cancelled / Pending jobs from this widget.</div>
+            </div>
+            <Switch checked={!!s.completedOnly} onCheckedChange={(v) => setS({ ...s, completedOnly: v })} />
           </div>
         </div>
 
