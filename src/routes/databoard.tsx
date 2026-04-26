@@ -29,13 +29,13 @@ export const Route = createFileRoute("/databoard")({
 });
 
 const DEFAULT_WIDGETS: WidgetConfig[] = [
-  { i: "w-revenue", type: "kpi", title: "Revenue", settings: { metric: "revenue", label: "Revenue" } },
-  { i: "w-profit", type: "kpi", title: "Profit", settings: { metric: "profit", label: "Profit" } },
-  { i: "w-count", type: "kpi", title: "Job count", settings: { metric: "count", label: "Job count" } },
-  { i: "w-avg", type: "kpi", title: "Avg ticket", settings: { metric: "avg_ticket", label: "Avg ticket" } },
-  { i: "w-rev-time", type: "chart", title: "Revenue over time", settings: { variant: "revenue_over_time" } },
-  { i: "w-top-techs", type: "chart", title: "Top techs", settings: { variant: "top_techs" } },
-  { i: "w-status", type: "chart", title: "Status breakdown", settings: { variant: "status_breakdown" } },
+  { i: "w-revenue", type: "kpi", title: "Revenue (completed)", settings: { metric: "revenue", label: "Revenue", completedOnly: true } },
+  { i: "w-profit", type: "kpi", title: "Profit (completed)", settings: { metric: "profit", label: "Profit", completedOnly: true } },
+  { i: "w-completed", type: "kpi", title: "Completed jobs", settings: { metric: "completed_count", label: "Completed jobs" } },
+  { i: "w-avg", type: "kpi", title: "Avg ticket (completed)", settings: { metric: "avg_ticket", label: "Avg ticket", completedOnly: true } },
+  { i: "w-rev-time", type: "insight", title: "Revenue over time", settings: { dimension: "day", metric: "revenue", viz: "area", limit: 0, sort: "desc", completedOnly: true } },
+  { i: "w-top-techs", type: "insight", title: "Best closing techs", settings: { dimension: "tech_name", metric: "count", viz: "bar", limit: 8, sort: "desc", completedOnly: true } },
+  { i: "w-status", type: "insight", title: "Status breakdown", settings: { dimension: "status", metric: "count", viz: "pie", limit: 10, sort: "desc" } },
   { i: "w-activity", type: "activity", title: "Recent jobs", settings: { limit: 20 } },
 ];
 
@@ -62,6 +62,7 @@ function DataBoardPage() {
   const [savedRanges, setSavedRanges] = useState<SavedRange[]>([]);
   const [scope, setScope] = useState<Scope>({});
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [undatedCount, setUndatedCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [filters, setFiltersState] = useState<DataBoardFilters>(EMPTY_FILTERS);
   const [activeViewId, setActiveViewId] = useState<string>("");
@@ -96,8 +97,9 @@ function DataBoardPage() {
     if (!range) return;
     setLoading(true);
     try {
-      const data = await fetchJobsForRange(range, scope);
-      setJobs(data);
+      const res = await fetchJobsForRange(range, scope);
+      setJobs(res.jobs);
+      setUndatedCount(res.undatedCount);
     } catch (e) {
       console.error(e);
     } finally {
