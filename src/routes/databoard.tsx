@@ -201,6 +201,12 @@ function DataBoardPage() {
           canSeeMarketers={canViewAll || canSeeMarketerPay}
         />
 
+        {undatedCount > 0 && (
+          <div className="text-xs text-amber-600 dark:text-amber-400 -mt-2 px-1">
+            {undatedCount} job{undatedCount === 1 ? "" : "s"} have no date set and aren't included in this range.
+          </div>
+        )}
+
         <div id="databoard-grid">
           <WidgetGrid
             widgets={widgets}
