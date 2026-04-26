@@ -172,27 +172,39 @@ export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, on
         resizeHandles={editing ? ["s", "w", "e", "n", "sw", "nw", "se", "ne"] : []}
         onLayoutChange={handleChange}
       >
-        {widgets.map((w) => (
-          <div key={w.i} data-pdf-section data-widget-type={w.type}>
-            <WidgetCard
-              title={w.title}
-              editing={editing}
-              onRemove={() => onRemove(w.i)}
-              onConfigure={editing && w.type === "insight" && onUpdate ? () => setConfiguring(w.i) : undefined}
-            >
-              {renderWidget(w)}
-            </WidgetCard>
-          </div>
-        ))}
+        {widgets.map((w) => {
+          const isConfigurable = w.type === "insight" || w.type === "chart" || w.type === "table";
+          return (
+            <div key={w.i} data-pdf-section data-widget-type={w.type}>
+              <WidgetCard
+                title={w.title}
+                editing={editing}
+                onRemove={() => onRemove(w.i)}
+                onConfigure={editing && isConfigurable && onUpdate ? () => setConfiguring(w.i) : undefined}
+              >
+                {renderWidget(w)}
+              </WidgetCard>
+            </div>
+          );
+        })}
       </ResponsiveGridLayout>
 
-      {configWidget && configWidget.type === "insight" && onUpdate && (
+      {configWidget && (configWidget.type === "insight" || configWidget.type === "chart" || configWidget.type === "table") && onUpdate && (
         <InsightSettingsDialog
           open={!!configuring}
           onOpenChange={(v) => { if (!v) setConfiguring(null); }}
           title={configWidget.title}
-          settings={configWidget.settings as any}
-          onSave={(title, settings) => onUpdate(configWidget.i, { title, settings })}
+          settings={
+            configWidget.type === "insight"
+              ? (configWidget.settings as any)
+              : configWidget.type === "chart"
+                ? legacyChartToInsight(configWidget.settings.variant)
+                : legacyTableToInsight(configWidget.settings)
+          }
+          onSave={(title, settings) => {
+            // Always persist as a native insight widget so the user gets full control on next reload.
+            onUpdate(configWidget.i, { title, type: "insight", settings } as any);
+          }}
         />
       )}
     </>
