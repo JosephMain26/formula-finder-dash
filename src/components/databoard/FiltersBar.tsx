@@ -65,10 +65,29 @@ function optionsFromJobs(jobs: Job[], key: keyof Job): string[] {
   return arr;
 }
 
+/** For marketer column, fall back to legacy company_1 when company is empty. */
+function marketerOf(j: Job): string | null {
+  const v = (j as any).company || (j as any).company_1;
+  return v == null || v === "" ? null : String(v);
+}
+
+function marketerOptionsFromJobs(jobs: Job[]): string[] {
+  let hasEmpty = false;
+  const set = new Set<string>();
+  for (const j of jobs) {
+    const v = marketerOf(j);
+    if (v == null) { hasEmpty = true; continue; }
+    set.add(v);
+  }
+  const arr = Array.from(set).sort((a, b) => a.localeCompare(b));
+  if (hasEmpty) arr.push(EMPTY_TOKEN);
+  return arr;
+}
+
 export function FiltersBar({ jobs, filters, onChange, canSeeMarketers }: Props) {
   // All option lists derived from the jobs actually loaded — guarantees options match the data.
   const techs = useMemo(() => optionsFromJobs(jobs, "tech_name"), [jobs]);
-  const marketers = useMemo(() => optionsFromJobs(jobs, "company"), [jobs]);
+  const marketers = useMemo(() => marketerOptionsFromJobs(jobs), [jobs]);
   const installers = useMemo(() => optionsFromJobs(jobs, "installer_name"), [jobs]);
   const jobTypes = useMemo(() => optionsFromJobs(jobs, "job_type"), [jobs]);
   const statuses = useMemo(() => optionsFromJobs(jobs, "status"), [jobs]);
@@ -135,7 +154,7 @@ export function applyFilters(jobs: Job[], f: DataBoardFilters): Job[] {
   const city = f.city.trim().toLowerCase();
   return jobs.filter((j) => {
     if (!matchesMulti(j.tech_name, f.techs)) return false;
-    if (!matchesMulti(j.company, f.marketers)) return false;
+    if (!matchesMulti(marketerOf(j), f.marketers)) return false;
     if (!matchesMulti(j.installer_name, f.installers)) return false;
     if (!matchesMulti(j.job_type, f.jobTypes)) return false;
     if (!matchesMulti(j.status, f.statuses)) return false;
