@@ -112,6 +112,7 @@ export const getDataBoardJobs = createServerFn({ method: "POST" })
       jobs,
       undatedCount: undatedCountResult,
       totalMatched: jobs.length,
+      scopeTechName: techName,
       fetchedAt: new Date().toISOString(),
     };
   });
