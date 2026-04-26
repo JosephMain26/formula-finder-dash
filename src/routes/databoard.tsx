@@ -232,6 +232,17 @@ function DataBoardPage() {
           </div>
         )}
 
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground px-1 -mt-1">
+          <span>
+            {totalMatched.toLocaleString()} matched job{totalMatched === 1 ? "" : "s"} in this range
+          </span>
+          {lastSyncedAt && (
+            <span>
+              Synced {new Date(lastSyncedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
+        </div>
+
         <div id="databoard-grid">
           <WidgetGrid
             widgets={widgets}
