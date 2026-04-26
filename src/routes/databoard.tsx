@@ -245,9 +245,9 @@ function DataBoardPage() {
           />
         </div>
 
-        {scope.techName ? (
+        {scopeTechName ? (
           <div className="text-xs text-muted-foreground">
-            Showing data for: <span className="font-medium">{scope.techName}</span>
+            Showing data for: <span className="font-medium">{scopeTechName}</span>
           </div>
         ) : null}
       </div>
