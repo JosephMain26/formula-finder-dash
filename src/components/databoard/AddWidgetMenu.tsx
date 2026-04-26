@@ -24,6 +24,7 @@ export function AddWidgetMenu({ onAdd, canSeeMarketerPay }: Props) {
         <DropdownMenuItem onClick={() => kpi("revenue", "Revenue")}>Revenue</DropdownMenuItem>
         <DropdownMenuItem onClick={() => kpi("profit", "Profit")}>Profit</DropdownMenuItem>
         <DropdownMenuItem onClick={() => kpi("count", "Job count")}>Job count</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "kpi", title: "Completed jobs", settings: { metric: "completed_count", label: "Completed jobs" } })}>Completed jobs</DropdownMenuItem>
         <DropdownMenuItem onClick={() => kpi("avg_ticket", "Avg ticket")}>Avg ticket</DropdownMenuItem>
         <DropdownMenuItem onClick={() => kpi("paid_count", "Paid jobs")}>Paid jobs</DropdownMenuItem>
         <DropdownMenuItem onClick={() => kpi("tech_count", "Active techs")}>Active techs</DropdownMenuItem>
@@ -42,7 +43,7 @@ export function AddWidgetMenu({ onAdd, canSeeMarketerPay }: Props) {
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Charts (configurable)</DropdownMenuLabel>
         <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Revenue over time", settings: { dimension: "day", metric: "revenue", viz: "area", limit: 0, sort: "desc" } })}>Revenue over time</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Top techs", settings: { dimension: "tech_name", metric: "revenue", viz: "bar", limit: 8, sort: "desc" } })}>Top techs</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Best closing techs", settings: { dimension: "tech_name", metric: "count", viz: "bar", limit: 8, sort: "desc", completedOnly: true } })}>Best closing techs (completed)</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Top marketers", settings: { dimension: "company", metric: "revenue", viz: "bar", limit: 8, sort: "desc" } })}>Top marketers</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Status breakdown", settings: { dimension: "status", metric: "count", viz: "pie", limit: 10, sort: "desc" } })}>Status breakdown</DropdownMenuItem>
         <DropdownMenuItem onClick={() => onAdd({ i: uid(), type: "insight", title: "Payment split", settings: { dimension: "payment", metric: "revenue", viz: "donut", limit: 10, sort: "desc" } })}>Payment split</DropdownMenuItem>
