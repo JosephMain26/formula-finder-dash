@@ -1,8 +1,10 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Pencil, Eye } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
 import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
 import { TimeRangeBar, resolveRange, type RangeKey, type SavedRange } from "@/components/databoard/TimeRangeBar";
 import { WidgetGrid, type WidgetConfig } from "@/components/databoard/WidgetGrid";
@@ -10,7 +12,7 @@ import { AddWidgetMenu } from "@/components/databoard/AddWidgetMenu";
 import { FiltersBar, applyFilters } from "@/components/databoard/FiltersBar";
 import { ViewTemplatesMenu } from "@/components/databoard/ViewTemplatesMenu";
 import { ExportBoardDialog } from "@/components/databoard/ExportBoardDialog";
-import { fetchJobsForRange, resolveUserScope, type Scope } from "@/lib/databoard/queries";
+import { getDataBoardJobs } from "@/lib/databoard/queries.functions";
 import { EMPTY_FILTERS, loadDataBoardPrefs, saveFilters, type DataBoardFilters } from "@/lib/databoard/templates";
 import { JobDialog } from "@/components/AddJobDialog";
 import type { Tables } from "@/integrations/supabase/types";
@@ -47,7 +49,8 @@ function greetingFor(name: string | null) {
 }
 
 function DataBoardPage() {
-  const { user, displayName, can, loading: authLoading } = useAuth();
+  const { session, displayName, can, loading: authLoading } = useAuth();
+  const getDataBoardJobsFn = useServerFn(getDataBoardJobs);
   const canView = can("databoard.view");
   const canEditLayout = can("databoard.edit_layout");
   const canViewAll = can("databoard.view_all");
@@ -57,12 +60,14 @@ function DataBoardPage() {
   const [editing, setEditing] = useState(false);
   const [widgets, setWidgets] = useState<WidgetConfig[]>(DEFAULT_WIDGETS);
   const [layouts, setLayouts] = useState<Record<string, any[]>>({});
-  const [rangeKey, setRangeKey] = useState<RangeKey>("today");
+  const [rangeKey, setRangeKey] = useState<RangeKey>("this_month");
   const [customRange, setCustomRange] = useState<DateRange | null>(null);
   const [savedRanges, setSavedRanges] = useState<SavedRange[]>([]);
-  const [scope, setScope] = useState<Scope>({});
   const [jobs, setJobs] = useState<Job[]>([]);
   const [undatedCount, setUndatedCount] = useState(0);
+  const [totalMatched, setTotalMatched] = useState(0);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [scopeTechName, setScopeTechName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [filters, setFiltersState] = useState<DataBoardFilters>(EMPTY_FILTERS);
   const [activeViewId, setActiveViewId] = useState<string>("");
@@ -88,18 +93,21 @@ function DataBoardPage() {
     });
   }, []);
 
-  useEffect(() => {
-    if (!user) return;
-    resolveUserScope({ userId: user.id, canViewAll }).then(setScope);
-  }, [user, canViewAll]);
-
   async function refetch() {
-    if (!range) return;
+    if (!range || !session?.access_token) return;
     setLoading(true);
     try {
-      const res = await fetchJobsForRange(range, scope);
-      setJobs(res.jobs);
-      setUndatedCount(res.undatedCount);
+      const res = await getDataBoardJobsFn({
+        data: {
+          accessToken: session.access_token,
+          range,
+        },
+      });
+      setJobs(res.jobs as Job[]);
+      setUndatedCount(res.undatedCount || 0);
+      setTotalMatched(res.totalMatched || 0);
+      setLastSyncedAt(res.fetchedAt || null);
+      setScopeTechName(res.scopeTechName || null);
     } catch (e) {
       console.error(e);
     } finally {
@@ -108,13 +116,30 @@ function DataBoardPage() {
   }
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !session?.access_token) return;
     refetch();
     if (refetchTimer.current) clearInterval(refetchTimer.current);
-    if (rangeKey === "today") refetchTimer.current = setInterval(refetch, 30000);
+    refetchTimer.current = setInterval(refetch, 60000);
     return () => { if (refetchTimer.current) clearInterval(refetchTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, rangeKey, customRange, scope.techName, scope.marketerName]);
+  }, [hydrated, rangeKey, customRange, session?.access_token]);
+
+  useEffect(() => {
+    if (!hydrated || !session?.user?.id) return;
+    const channel = supabase
+      .channel(`databoard-jobs-${session.user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "jobs" },
+        () => { refetch(); }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, session?.user?.id, session?.access_token, rangeKey, customRange]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -207,6 +232,17 @@ function DataBoardPage() {
           </div>
         )}
 
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground px-1 -mt-1">
+          <span>
+            {totalMatched.toLocaleString()} matched job{totalMatched === 1 ? "" : "s"} in this range
+          </span>
+          {lastSyncedAt && (
+            <span>
+              Synced {new Date(lastSyncedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
+        </div>
+
         <div id="databoard-grid">
           <WidgetGrid
             widgets={widgets}
@@ -220,9 +256,9 @@ function DataBoardPage() {
           />
         </div>
 
-        {scope.techName ? (
+        {scopeTechName ? (
           <div className="text-xs text-muted-foreground">
-            Showing data for: <span className="font-medium">{scope.techName}</span>
+            Showing data for: <span className="font-medium">{scopeTechName}</span>
           </div>
         ) : null}
       </div>

@@ -1,79 +1,49 @@
-## Root causes found
+## Plan
 
-After reading the code + querying your live data, here's what's actually going on:
+Fix DataBoard so it is truly driven by the jobs database, shows complete results by default, and updates immediately when jobs change.
 
-### 1. "Best closing tech" — counts all jobs regardless of status
-There is no widget literally named "Best closing tech" in the code. The widgets that rank techs (the `insight` "Top techs" preset, the `KpiWidget` "Active techs", and `AnalyticsPanel` "Most jobs / tech" / "Most profit / tech") all aggregate **every** job — including `Cancelled` ones. Your DB currently has `Completed` and `Cancelled` jobs, so cancelled jobs are inflating the rankings.
+### What I will change
 
-### 2. Legacy chart widgets aren't configurable
-The new `insight` widgets already have the gear icon → choose Bar/Pie/Line/Area/Donut/Table/Number. ✅
-But the **default board** still ships `type: "chart"` widgets (`Revenue over time`, `Top techs`, `Status breakdown`) which use the old `ChartWidget` with **hardcoded viz**. So if you didn't add a widget yourself via "Add widget → Job types", you're stuck on the original visualization. Same for any `type: "table"` widgets saved earlier.
+1. Replace the current client-only fetch flow with a server-backed DataBoard data loader
+- Move the jobs fetch into a server function so the board reads from the same backend data source as the rest of the app.
+- Return both the filtered job rows and summary metadata from one place.
+- Keep existing role/scope rules intact so tech users still see only their own jobs while managers/admins can see all.
 
-### 3. DataBoard data wiring — `company` vs `company_1`
-This is the real "DB connection" bug. Querying jobs directly:
-- Every row has `company = NULL`
-- The marketer name actually lives in `company_1`
+2. Fix the “half information” issue at the source
+- Remove the hard `limit(2000)` cap from the DataBoard jobs query and implement safe pagination/batching so the board can load the full matching result set.
+- Preserve the `company` / `company_1` normalization so marketer data is counted correctly everywhere.
+- Reuse the same filtering logic for widgets, tables, export, and visible counts so all sections stay consistent.
 
-But `FiltersBar`, `InsightWidget` (dimension `company`), `queries.ts` (`scope.marketerName`), and `KpiWidget` all read `j.company`. That's why the Marketer filter is empty and any "Top marketers" / marketer-grouped insight shows only "(empty)". `AnalyticsPanel` is the only place that correctly falls back to `company_1`.
+3. Make the board feel dynamically connected
+- Add live refresh behavior tied to jobs changes instead of relying only on the current 30-second poll.
+- Keep a lightweight fallback refresh for resilience, but stop treating “today only + polling” as the main sync path.
+- Refresh DataBoard immediately after job edits from the board dialog.
 
-Also, jobs with `job_date IS NULL` are silently dropped by the date-range query (`gte/lte` excludes nulls). Worth surfacing.
+4. Fix the misleading default state
+- Change the initial time range behavior so the first board load does not look empty when there are no jobs today.
+- Add clearer empty-state messaging that explains whether the current range/filters are hiding results.
+- Show total matched jobs for the current range so users can verify the board is reading the database.
 
----
+5. Audit widget calculations against the same dataset
+- Ensure KPI, insight, activity, calendar, map, and export all consume the exact same filtered jobs array.
+- Check “completed only” widgets, job type widgets, and marketer/company widgets against the live backend result.
+- Keep export aligned with the same dataset so the PDF matches what the board shows.
 
-## Proposed fixes (minimal, surgical — no extra credits beyond what's needed)
+### Files likely involved
+- `src/routes/databoard.tsx`
+- `src/lib/databoard/queries.ts`
+- `src/components/databoard/FiltersBar.tsx`
+- `src/components/databoard/WidgetGrid.tsx`
+- `src/components/databoard/widgets/InsightWidget.tsx`
+- `src/components/databoard/widgets/KpiWidget.tsx`
+- `src/components/databoard/ExportBoardDialog.tsx`
+- possibly a new server function file under `src/lib/databoard/`
 
-### A. Restrict "tech ranking" metrics to completed jobs
+### Technical details
+- Current database data confirms the main confusion: there are jobs in the database, but none are dated today, while the DataBoard defaults to `Live (Today)`. That makes the page look disconnected even when the backend is returning data.
+- The current query also uses `limit(2000)`, which can silently truncate results for larger datasets.
+- The board currently refreshes mainly through a manual refetch / 30s timer path. I will switch it to a backend-driven fetch flow plus live invalidation so updates appear reliably.
+- No unsafe schema change is required for this fix unless, during implementation, I confirm a backend-side optimization is needed for performance.
 
-Add a `completedOnly` toggle to the `insight` widget settings (default **on** for tech-grouped count/revenue presets). In `InsightWidget.tsx`:
-
-```ts
-const filtered = settings.completedOnly
-  ? jobs.filter((j) => (j.status || "").toLowerCase() === "completed")
-  : jobs;
-```
-
-Add the toggle to `InsightSettingsDialog.tsx`. Update the "Top techs" preset in `AddWidgetMenu.tsx` to default `completedOnly: true` and rename it **"Best closing techs"**.
-
-Also patch `KpiWidget` `tech_count` / `paid_count` to honor a `completedOnly` flag, and add a "Completed jobs" KPI preset.
-
-### B. Make legacy charts configurable + auto-migrate the defaults
-
-1. In `databoard.tsx`, replace `DEFAULT_WIDGETS` chart entries with `type: "insight"` equivalents (revenue/day → area, top techs → bar w/ completedOnly, status → pie).
-2. In `WidgetGrid.renderWidget`, transparently render any old `type: "chart"` or `type: "table"` widget through `InsightWidget` by mapping its old `variant` → `{dimension, metric, viz}`. The gear icon then becomes available for them too.
-3. Show the gear icon for `chart`/`table`/`insight` (not just `insight`). On save, rewrite the widget as `type: "insight"` so it's persisted in the new format.
-
-This means **every** existing widget — including your current "Top techs" or any saved chart — instantly gets the Bar/Pie/Line/Area/Donut/Table/Number switcher.
-
-### C. Fix the marketer/company column mismatch (the real "DB not connected" bug)
-
-Three small changes:
-
-1. **`queries.ts`** — fetch both columns and normalize:
-   ```ts
-   // After fetch, coalesce so the rest of the app only needs `company`.
-   return (data || []).map((j: any) => ({ ...j, company: j.company || j.company_1 || null }));
-   ```
-   And in scope filtering, use `.or("company.eq.X,company_1.eq.X")`.
-
-2. **`InsightWidget.dimKey`** — for `dimension === "company"`, fall back to `company_1`.
-
-3. **`FiltersBar.optionsFromJobs`** — for the marketer column, derive from `company || company_1`. Apply same coalesce in `applyFilters`.
-
-### D. Surface jobs with no `job_date`
-
-Add a tiny "+ N undated jobs not shown" hint under the FiltersBar when the unfiltered fetch returns rows that fall outside the date range only because `job_date` is null. (Pure UI hint, no extra query.)
-
----
-
-## Files to touch
-
-- `src/components/databoard/widgets/InsightWidget.tsx` — `completedOnly` filter, `company_1` fallback
-- `src/components/databoard/widgets/KpiWidget.tsx` — `completedOnly` support, completed-count metric
-- `src/components/databoard/InsightSettingsDialog.tsx` — completedOnly switch
-- `src/components/databoard/AddWidgetMenu.tsx` — rename "Top techs" → "Best closing techs", default `completedOnly: true`; add "Completed jobs" KPI
-- `src/components/databoard/WidgetGrid.tsx` — render legacy `chart`/`table` via `InsightWidget` adapter; expose gear icon for them
-- `src/components/databoard/FiltersBar.tsx` — marketer options + matching with `company_1` fallback
-- `src/lib/databoard/queries.ts` — coalesce `company`/`company_1`; scope `.or()` filter
-- `src/routes/databoard.tsx` — replace legacy `DEFAULT_WIDGETS` chart entries with insight equivalents; add undated-jobs hint
-
-No DB migrations, no new packages, no edge functions.
+### Result
+After this change, DataBoard will read the complete jobs dataset for the selected range, stay in sync with the backend, and stop appearing empty or partial when the database actually contains matching jobs.
