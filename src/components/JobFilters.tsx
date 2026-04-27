@@ -21,6 +21,8 @@ interface JobFiltersProps {
   companies: string[];
   jobTypes: string[];
   statuses: string[];
+  /** Hide the Tech filter when the user can only see their own jobs. Defaults to true. */
+  showTechFilter?: boolean;
 }
 
 export function JobFilters({
@@ -32,8 +34,9 @@ export function JobFilters({
   paidFilter, onPaidChange,
   onClear,
   techs, companies, jobTypes, statuses,
+  showTechFilter = true,
 }: JobFiltersProps) {
-  const hasFilters = search || statusFilter || techFilter || companyFilter || jobTypeFilter || paidFilter;
+  const hasFilters = search || statusFilter || (showTechFilter && techFilter) || companyFilter || jobTypeFilter || paidFilter;
 
   return (
     <div className="flex flex-wrap gap-3 items-end">
@@ -57,17 +60,18 @@ export function JobFilters({
         </Select>
       </div>
 
-      <div className="w-[calc(50%-0.375rem)] sm:w-auto sm:min-w-[150px]">
-        <label className="text-xs font-medium text-muted-foreground mb-1 block">Tech</label>
-        <Select value={techFilter} onValueChange={onTechChange}>
-          <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            {techs.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-
+      {showTechFilter && (
+        <div className="w-[calc(50%-0.375rem)] sm:w-auto sm:min-w-[150px]">
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Tech</label>
+          <Select value={techFilter} onValueChange={onTechChange}>
+            <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              {techs.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="w-[calc(50%-0.375rem)] sm:w-auto sm:min-w-[150px]">
         <label className="text-xs font-medium text-muted-foreground mb-1 block">Marketer</label>
         <Select value={companyFilter} onValueChange={onCompanyChange}>
