@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { inviteUser, resendInvite, cancelInvite } from "@/lib/invites.functions";
 import { useAuth, type AppRole } from "@/lib/auth-context";
+import { Switch } from "@/components/ui/switch";
+import { loadDataVisibility, saveDataVisibility } from "@/lib/settings";
 
 type Profile = {
   id: string;
@@ -60,6 +62,26 @@ export function UsersManager() {
   const [customRoles, setCustomRoles] = useState<{ name: string }[]>([]);
   const [rolePerms, setRolePerms] = useState<Record<string, Set<string>>>({});
   const [newRoleName, setNewRoleName] = useState("");
+
+  // Data visibility
+  const [shareAcrossUsers, setShareAcrossUsers] = useState(false);
+  const [savingVisibility, setSavingVisibility] = useState(false);
+  useEffect(() => {
+    loadDataVisibility().then((v) => setShareAcrossUsers(v.shareAcrossUsers)).catch(() => {});
+  }, []);
+  async function toggleShareAcrossUsers(next: boolean) {
+    setShareAcrossUsers(next);
+    setSavingVisibility(true);
+    try {
+      await saveDataVisibility({ shareAcrossUsers: next });
+      toast.success(next ? "All users can now see each other's data" : "Users now see only their own data");
+    } catch (e) {
+      setShareAcrossUsers(!next);
+      toast.error(getErrorMessage(e, "Failed to update setting"));
+    } finally {
+      setSavingVisibility(false);
+    }
+  }
 
   // Edit profile dialog (admin)
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
@@ -317,6 +339,23 @@ export function UsersManager() {
 
   return (
     <div className="space-y-6">
+      {/* DATA VISIBILITY */}
+      <Card>
+        <CardHeader><CardTitle>Data Visibility</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+            <div className="min-w-0">
+              <Label className="text-sm">Allow all users to see each other's data</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                When OFF (default), each technician only sees jobs assigned to them (matched by their linked technician name).
+                Admins always see everything. You can also grant the <span className="font-medium">View all users' jobs</span> permission to specific roles in the matrix below.
+              </p>
+            </div>
+            <Switch checked={shareAcrossUsers} disabled={savingVisibility} onCheckedChange={toggleShareAcrossUsers} />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* INVITES */}
       <Card>
         <CardHeader><CardTitle>Invite Users</CardTitle></CardHeader>
