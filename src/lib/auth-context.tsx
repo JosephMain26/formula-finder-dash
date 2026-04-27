@@ -13,6 +13,12 @@ type AuthCtx = {
   permissions: Set<string>;
   isAdmin: boolean;
   isManager: boolean;
+  /**
+   * Whether the user can see other users' jobs across the app.
+   * True for admins, anyone with `jobs.view_all` (or legacy `databoard.view_all`),
+   * or when the global `data_visibility.shareAcrossUsers` setting is enabled.
+   */
+  canViewAll: boolean;
   can: (key: string) => boolean;
   loading: boolean;
   signOut: () => Promise<void>;
@@ -40,15 +46,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [permissions, setPermissions] = useState<Set<string>>(new Set());
   const [profileName, setProfileName] = useState<string | null>(null);
+  const [shareAcrossUsers, setShareAcrossUsers] = useState(false);
   const [loading, setLoading] = useState(true);
 
   async function loadRoleAndPerms(userId: string) {
-    const [{ data: roleRows }, { data: profileRow }] = await Promise.all([
+    const [{ data: roleRows }, { data: profileRow }, { data: visRow }] = await Promise.all([
       (supabase as any).from("user_roles").select("role").eq("user_id", userId),
       (supabase as any).from("profiles").select("display_name").eq("id", userId).maybeSingle(),
+      (supabase as any).from("app_settings").select("value").eq("key", "data_visibility").maybeSingle(),
     ]);
 
     setProfileName(profileRow?.display_name ?? null);
+    setShareAcrossUsers(Boolean(visRow?.value?.shareAcrossUsers));
 
     const userRoles: AppRole[] = (roleRows || []).map((r: any) => r.role as AppRole);
     if (userRoles.length === 0) userRoles.push("user");
@@ -139,6 +148,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return permissions.has(key);
   }
 
+  const canViewAll =
+    isAdmin ||
+    shareAcrossUsers ||
+    permissions.has("jobs.view_all") ||
+    permissions.has("databoard.view_all");
+
   return (
     <Ctx.Provider
       value={{
@@ -150,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         permissions,
         isAdmin,
         isManager: isAdmin || roles.includes("manager"),
+        canViewAll,
         can,
         loading,
         signOut,

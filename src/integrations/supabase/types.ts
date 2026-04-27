@@ -603,6 +603,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_all_jobs: { Args: { _user_id: string }; Returns: boolean }
+      current_user_tech_name: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean

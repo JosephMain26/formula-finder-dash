@@ -1,5 +1,29 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// ---------- Data visibility (global toggle) ----------
+const DATA_VISIBILITY_KEY = "data_visibility";
+
+export type DataVisibilitySetting = {
+  shareAcrossUsers: boolean;
+};
+
+export async function loadDataVisibility(): Promise<DataVisibilitySetting> {
+  const { data } = await (supabase as any)
+    .from("app_settings")
+    .select("value")
+    .eq("key", DATA_VISIBILITY_KEY)
+    .maybeSingle();
+  return { shareAcrossUsers: Boolean(data?.value?.shareAcrossUsers) };
+}
+
+export async function saveDataVisibility(s: DataVisibilitySetting) {
+  await (supabase as any).from("app_settings").upsert({
+    key: DATA_VISIBILITY_KEY,
+    value: { shareAcrossUsers: !!s.shareAcrossUsers },
+    updated_at: new Date().toISOString(),
+  });
+}
+
 // ---------- Payment methods ----------
 export type PaymentMethod = {
   id: string;

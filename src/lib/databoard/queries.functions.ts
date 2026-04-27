@@ -31,13 +31,26 @@ async function resolveScope(accessToken: string) {
   const roles: string[] = (roleRows || []).map((r: any) => String(r.role));
   let canViewAll = roles.includes("admin");
 
+  // Global override
+  if (!canViewAll) {
+    const { data: visRow } = await (supabaseAdmin as any)
+      .from("app_settings")
+      .select("value")
+      .eq("key", "data_visibility")
+      .maybeSingle();
+    if (visRow?.value?.shareAcrossUsers === true) canViewAll = true;
+  }
+
+  // Per-role permission (jobs.view_all is the new key; databoard.view_all kept for back-compat)
   if (!canViewAll && roles.length) {
     const { data: permRows, error: permsError } = await (supabaseAdmin as any)
       .from("role_permissions")
       .select("permission_key")
       .in("role_name", roles);
     if (permsError) throw new Error(permsError.message);
-    canViewAll = (permRows || []).some((r: any) => r.permission_key === "databoard.view_all");
+    canViewAll = (permRows || []).some(
+      (r: any) => r.permission_key === "jobs.view_all" || r.permission_key === "databoard.view_all"
+    );
   }
 
   if (canViewAll) {

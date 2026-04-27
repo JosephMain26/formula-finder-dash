@@ -52,7 +52,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ];
 
 function Dashboard() {
-  const { role, isAdmin, displayName, signOut, can } = useAuth();
+  const { role, isAdmin, displayName, signOut, can, canViewAll } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const { visibleColumns, toggle: toggleColumn, showAll: showAllColumns, setVisible: setVisibleColumns } = useColumnVisibility();
   const [loading, setLoading] = useState(true);
@@ -271,6 +271,7 @@ function Dashboard() {
               companies={uniqueValues.companies}
               jobTypes={uniqueValues.jobTypes}
               statuses={uniqueValues.statuses}
+              showTechFilter={canViewAll}
             />
 
             {loading ? (
