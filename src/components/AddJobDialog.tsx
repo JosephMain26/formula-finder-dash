@@ -117,7 +117,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         setUseManualPercentage(!!job.manual_percentage);
         setUseManualMarketerPercentage(false);
       } else {
-        setForm({ ...emptyForm, ...(prefill || {}) } as typeof emptyForm);
+        const seedStatus = statuses.length ? defaultStatusName(statuses) : "Pending";
+        setForm({ ...emptyForm, status: seedStatus, ...(prefill || {}) } as typeof emptyForm);
         setUseManualPercentage(false);
         setUseManualMarketerPercentage(false);
         // Resolve company by name from prefill if id not provided
@@ -267,6 +268,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       total_marketer: totalMarketer,
       installer_id: form.installer_id || null,
       installer_name: form.installer_name || null,
+      extra_fields: extra || {},
     };
 
     let error;
@@ -432,10 +434,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             <Select value={form.status} onValueChange={(v) => update("status", v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-                <SelectItem value="In Progress">In Progress</SelectItem>
+                {(statuses.length ? statuses.map(s => s.name) : ["Pending","In Progress","Completed","Cancelled"]).map((name) => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
