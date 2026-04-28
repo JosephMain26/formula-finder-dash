@@ -79,6 +79,10 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       });
       fetchJobTypes();
       loadPaymentMethods().then((m) => setPaymentMethods(m));
+      loadCustomFields().then((f) => setCustomFields(f));
+      loadStatuses().then((s) => setStatuses(s));
+      const seedExtra = (isEdit && job ? ((job as any).extra_fields || {}) : {}) as Record<string, any>;
+      setExtra(seedExtra);
 
       if (isEdit && job) {
         setForm({
