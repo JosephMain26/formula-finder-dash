@@ -10,8 +10,9 @@ import type { Tables } from "@/integrations/supabase/types";
 import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
 import { DatePickerField } from "@/components/DatePickerField";
 import { useAuth } from "@/lib/auth-context";
-import { loadCustomFields, loadStatuses, defaultStatusName, type CustomField, type StatusDef } from "@/lib/jobSchema";
+import { loadFormSchema, defaultStatusName, type CustomField, type StatusDef, loadStatuses } from "@/lib/jobSchema";
 import { DynamicField } from "@/components/DynamicField";
+import { getCoreFieldsResolved, type CoreFieldOverride, type CoreFieldKey } from "@/lib/coreFields";
 
 type Company = Tables<"companies">;
 type Technician = {
@@ -64,6 +65,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [marketerTypes, setMarketerTypes] = useState<string[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [coreOverrides, setCoreOverrides] = useState<CoreFieldOverride[] | null>(null);
   const [statuses, setStatuses] = useState<StatusDef[]>([]);
   const [extra, setExtra] = useState<Record<string, any>>({});
 
@@ -79,7 +81,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       });
       fetchJobTypes();
       loadPaymentMethods().then((m) => setPaymentMethods(m));
-      loadCustomFields().then((f) => setCustomFields(f));
+      loadFormSchema().then((s) => { setCustomFields(s.fields); setCoreOverrides(s.core); });
       loadStatuses().then((s) => setStatuses(s));
       const seedExtra = (isEdit && job ? ((job as any).extra_fields || {}) : {}) as Record<string, any>;
       setExtra(seedExtra);
