@@ -10,6 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { supabase } from "@/integrations/supabase/client";
 import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
 import { loadAITraining, applyMarketerRules, recordCorrection } from "@/lib/aiTraining";
+import { loadFormSchema, type CustomField } from "@/lib/jobSchema";
+import { DynamicField } from "@/components/DynamicField";
+import { getCoreFieldsResolved, type CoreFieldOverride, type CoreFieldKey } from "@/lib/coreFields";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/upload")({
