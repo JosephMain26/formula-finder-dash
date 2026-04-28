@@ -20,6 +20,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
 import { MobileNav } from "@/components/MobileNav";
 import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
+import { loadStatuses } from "@/lib/jobSchema";
 
 type Job = Tables<"jobs">;
 
