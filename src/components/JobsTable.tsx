@@ -109,6 +109,9 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
             {show("cc_fee") && <TableHead className="text-right">CC Fee</TableHead>}
             {show("payment") && <TableHead>Payment</TableHead>}
             {show("paid") && <TableHead>Paid</TableHead>}
+            {customFields.map((f) => (
+              <TableHead key={f.id} className={f.type === "number" ? "text-right" : ""}>{f.label}</TableHead>
+            ))}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -255,6 +258,11 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
                   />
                 </TableCell>
               )}
+              {customFields.map((f) => (
+                <TableCell key={f.id} className={f.type === "number" ? "text-right text-sm" : "text-sm"}>
+                  {renderExtra(job, f)}
+                </TableCell>
+              ))}
             </TableRow>
           ))}
         </TableBody>
