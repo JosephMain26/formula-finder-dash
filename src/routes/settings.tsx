@@ -197,6 +197,12 @@ function SettingsPage() {
             <MyProfileCard />
           </TabsContent>
 
+          {/* JOB FORM & STATUSES */}
+          <TabsContent value="form" className="mt-4 space-y-6">
+            <StatusesManager />
+            <JobFormBuilder />
+          </TabsContent>
+
           <TabsContent value="payment" className="mt-4">
             <Card>
               <CardHeader><CardTitle>Payment Methods</CardTitle></CardHeader>
