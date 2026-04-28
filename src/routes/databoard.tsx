@@ -199,7 +199,7 @@ function DataBoardPage() {
             <ViewTemplatesMenu
               current={{ widgets, layouts, filters, rangeKey, customRange }}
               onApply={(t) => {
-                setWidgets(t.widgets);
+                setWidgets(normalizeSavedWidgets(t.widgets));
                 setLayouts(t.layouts);
                 setFiltersState(t.filters);
                 setRangeKey(t.rangeKey);
