@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
 import type { Tables } from "@/integrations/supabase/types";
+import { jobMetric, isCompleted } from "@/lib/databoard/metrics";
 
 type Job = Tables<"jobs">;
 
@@ -31,16 +32,14 @@ const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"
 
 function metricValue(j: Job, m: InsightMetric): number {
   switch (m) {
-    case "revenue": return Number(j.price || 0);
-    case "profit":
-      return Number(j.price || 0) - Number(j.cost || 0) - Number(j.parts || 0)
-        - Number(j.cc_fee || 0) - Number(j.total_tech || 0) - Number(j.total_marketer || 0);
-    case "count": return 1;
-    case "avg_ticket": return Number(j.price || 0);
-    case "tech_pay": return Number(j.total_tech || 0);
-    case "marketer_pay": return Number(j.total_marketer || 0);
-    case "parts_cost": return Number(j.parts || 0) + Number(j.office_parts || 0);
-    case "tip": return Number(j.tip || 0);
+    case "revenue": return jobMetric.revenue(j);
+    case "profit": return jobMetric.profit(j);
+    case "count": return jobMetric.count(j);
+    case "avg_ticket": return jobMetric.revenue(j);
+    case "tech_pay": return jobMetric.techPay(j);
+    case "marketer_pay": return jobMetric.marketerPay(j);
+    case "parts_cost": return jobMetric.partsCost(j);
+    case "tip": return jobMetric.tip(j);
   }
 }
 
@@ -82,7 +81,7 @@ export function InsightWidget({ jobs, settings }: Props) {
 
   const data = useMemo(() => {
     const source = completedOnly
-      ? jobs.filter((j) => (j.status || "").toLowerCase() === "completed")
+      ? jobs.filter(isCompleted)
       : jobs;
     const sums = new Map<string, number>();
     const counts = new Map<string, number>();

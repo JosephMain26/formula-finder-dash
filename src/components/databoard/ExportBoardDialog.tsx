@@ -16,6 +16,7 @@ import {
 } from "@/lib/databoard/templates";
 import type { Tables } from "@/integrations/supabase/types";
 import type { DateRange } from "@/components/DateRangePresets";
+import { jobMetric } from "@/lib/databoard/metrics";
 
 type Job = Tables<"jobs">;
 
@@ -47,16 +48,17 @@ const ALL_KPIS: { key: KpiKey; label: string }[] = [
 const DEFAULT_KPIS: KpiKey[] = ["revenue", "jobs", "avg_ticket", "tech_pay"];
 
 function kpiCell(key: KpiKey, jobs: Job[]): string {
+  // Use the shared metrics helper so exports always match what the board displays.
   const sum = (sel: (j: Job) => number) => jobs.reduce((a, j) => a + sel(j), 0);
   switch (key) {
-    case "revenue": return `$${sum((j) => Number(j.price || 0)).toFixed(0)}`;
-    case "profit": return `$${sum((j) => Number(j.price || 0) - Number(j.cost || 0) - Number(j.parts || 0) - Number(j.cc_fee || 0) - Number(j.total_tech || 0) - Number(j.total_marketer || 0)).toFixed(0)}`;
+    case "revenue": return `$${sum(jobMetric.revenue).toFixed(0)}`;
+    case "profit": return `$${sum(jobMetric.profit).toFixed(0)}`;
     case "jobs": return String(jobs.length);
-    case "avg_ticket": return jobs.length ? `$${(sum((j) => Number(j.price || 0)) / jobs.length).toFixed(0)}` : "$0";
-    case "tech_pay": return `$${sum((j) => Number(j.total_tech || 0)).toFixed(0)}`;
-    case "marketer_pay": return `$${sum((j) => Number(j.total_marketer || 0)).toFixed(0)}`;
-    case "parts": return `$${sum((j) => Number(j.parts || 0) + Number(j.office_parts || 0)).toFixed(0)}`;
-    case "tip": return `$${sum((j) => Number(j.tip || 0)).toFixed(0)}`;
+    case "avg_ticket": return jobs.length ? `$${(sum(jobMetric.revenue) / jobs.length).toFixed(0)}` : "$0";
+    case "tech_pay": return `$${sum(jobMetric.techPay).toFixed(0)}`;
+    case "marketer_pay": return `$${sum(jobMetric.marketerPay).toFixed(0)}`;
+    case "parts": return `$${sum(jobMetric.partsCost).toFixed(0)}`;
+    case "tip": return `$${sum(jobMetric.tip).toFixed(0)}`;
     case "paid_count": return String(jobs.filter((j) => j.paid).length);
   }
 }
