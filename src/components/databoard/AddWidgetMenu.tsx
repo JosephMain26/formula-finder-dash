@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Plus } from "lucide-react";
 import type { WidgetConfig } from "./WidgetGrid";
+import { loadCustomFields, type CustomField } from "@/lib/jobSchema";
 
 interface Props {
   onAdd: (w: WidgetConfig) => void;
@@ -11,6 +13,11 @@ interface Props {
 function uid() { return Math.random().toString(36).slice(2, 10); }
 
 export function AddWidgetMenu({ onAdd, canSeeMarketerPay }: Props) {
+  const [extras, setExtras] = useState<CustomField[]>([]);
+  useEffect(() => {
+    loadCustomFields().then((f) => setExtras(f.filter((x) => x.type === "number" && x.visibleInDataboard)));
+  }, []);
+
   const kpi = (metric: any, label: string) =>
     onAdd({ i: uid(), type: "kpi", title: label, settings: { metric, label } });
 
@@ -31,6 +38,16 @@ export function AddWidgetMenu({ onAdd, canSeeMarketerPay }: Props) {
         <DropdownMenuItem onClick={() => kpi("tech_pay", "Tech pay")}>Tech pay</DropdownMenuItem>
         {canSeeMarketerPay && (
           <DropdownMenuItem onClick={() => kpi("marketer_pay", "Marketer pay")}>Marketer pay</DropdownMenuItem>
+        )}
+
+        {extras.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Custom fields</DropdownMenuLabel>
+            {extras.map((f) => (
+              <DropdownMenuItem key={f.id} onClick={() => kpi(`extra:${f.key}`, f.label)}>{f.label}</DropdownMenuItem>
+            ))}
+          </>
         )}
 
         <DropdownMenuSeparator />
