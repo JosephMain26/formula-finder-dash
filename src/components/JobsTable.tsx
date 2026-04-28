@@ -37,6 +37,23 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
   const allSelected = selectionEnabled && jobs.length > 0 && jobs.every((j) => selectedIds!.has(j.id));
   const someSelected = selectionEnabled && jobs.some((j) => selectedIds!.has(j.id));
 
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [statusOptions, setStatusOptions] = useState<string[]>(["Pending","In Progress","Completed","Cancelled"]);
+
+  useEffect(() => {
+    loadCustomFields().then((f) => setCustomFields(f.filter((x) => x.visibleInTable)));
+    loadStatuses().then((s) => setStatusOptions(s.map((x) => x.name)));
+  }, []);
+
+  function renderExtra(job: Job, f: CustomField) {
+    const v = ((job as any).extra_fields || {})[f.key];
+    if (v == null || v === "") return "—";
+    if (f.type === "checkbox") return v ? "Yes" : "No";
+    if (f.type === "number") return String(v);
+    return String(v);
+  }
+
+
   async function deleteJob(id: string) {
     if (!confirm("Are you sure you want to delete this job?")) return;
     await supabase.from("jobs").delete().eq("id", id);
@@ -164,7 +181,7 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
               )}
               {show("status") && (
                 <TableCell className="p-1">
-                  <EditableCell jobId={job.id} field="status" type="select" options={STATUS_OPTIONS} value={job.status}
+                  <EditableCell jobId={job.id} field="status" type="select" options={statusOptions} value={job.status}
                     display={<span className="px-2"><StatusBadge status={job.status} /></span>}
                     onSaved={onJobsChanged} />
                 </TableCell>
