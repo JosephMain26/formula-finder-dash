@@ -10,6 +10,8 @@ import type { Tables } from "@/integrations/supabase/types";
 import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
 import { DatePickerField } from "@/components/DatePickerField";
 import { useAuth } from "@/lib/auth-context";
+import { loadCustomFields, loadStatuses, defaultStatusName, type CustomField, type StatusDef } from "@/lib/jobSchema";
+import { DynamicField } from "@/components/DynamicField";
 
 type Company = Tables<"companies">;
 type Technician = {
@@ -61,6 +63,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [managingJobTypes, setManagingJobTypes] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [marketerTypes, setMarketerTypes] = useState<string[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [statuses, setStatuses] = useState<StatusDef[]>([]);
+  const [extra, setExtra] = useState<Record<string, any>>({});
 
   const [form, setForm] = useState(emptyForm);
 
