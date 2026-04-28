@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { CoreFieldOverride } from "./coreFields";
+import { defaultOverrides } from "./coreFields";
 
 // ---------- Types ----------
 export type CustomFieldType = "text" | "number" | "select" | "date" | "checkbox" | "textarea";
@@ -76,23 +78,39 @@ export function newStatus(partial?: Partial<StatusDef>): StatusDef {
   };
 }
 
-// ---------- Custom fields ----------
-export async function loadCustomFields(): Promise<CustomField[]> {
+// ---------- Form schema (custom fields + core overrides) ----------
+export type FormSchema = { fields: CustomField[]; core: CoreFieldOverride[] };
+
+export async function loadFormSchema(): Promise<FormSchema> {
   const { data } = await (supabase as any)
     .from("app_settings")
     .select("value")
     .eq("key", FORM_KEY)
     .maybeSingle();
   const v = data?.value;
-  return Array.isArray(v?.fields) ? (v.fields as CustomField[]) : [];
+  const fields = Array.isArray(v?.fields) ? (v.fields as CustomField[]) : [];
+  const core = Array.isArray(v?.core) && v.core.length > 0
+    ? (v.core as CoreFieldOverride[])
+    : defaultOverrides();
+  return { fields, core };
+}
+
+export async function saveFormSchema(schema: FormSchema) {
+  await (supabase as any).from("app_settings").upsert({
+    key: FORM_KEY,
+    value: { fields: schema.fields, core: schema.core },
+    updated_at: new Date().toISOString(),
+  });
+}
+
+// Backward-compatible helpers used by older callers
+export async function loadCustomFields(): Promise<CustomField[]> {
+  return (await loadFormSchema()).fields;
 }
 
 export async function saveCustomFields(fields: CustomField[]) {
-  await (supabase as any).from("app_settings").upsert({
-    key: FORM_KEY,
-    value: { fields },
-    updated_at: new Date().toISOString(),
-  });
+  const cur = await loadFormSchema();
+  await saveFormSchema({ fields, core: cur.core });
 }
 
 // ---------- Statuses ----------

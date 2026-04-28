@@ -10,6 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { supabase } from "@/integrations/supabase/client";
 import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
 import { loadAITraining, applyMarketerRules, recordCorrection } from "@/lib/aiTraining";
+import { loadFormSchema, type CustomField } from "@/lib/jobSchema";
+import { DynamicField } from "@/components/DynamicField";
+import { getCoreFieldsResolved, type CoreFieldOverride, type CoreFieldKey } from "@/lib/coreFields";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/upload")({
@@ -37,6 +40,8 @@ type Options = {
   jobTypes: JobType[];
   installers: Installer[];
   paymentMethods: PaymentMethod[];
+  customFields: CustomField[];
+  coreOverrides: CoreFieldOverride[] | null;
   loading: boolean;
 };
 
@@ -46,17 +51,20 @@ function useOptions(): Options {
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [installers, setInstallers] = useState<Installer[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [coreOverrides, setCoreOverrides] = useState<CoreFieldOverride[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [c, t, j, i, pm] = await Promise.all([
+      const [c, t, j, i, pm, schema] = await Promise.all([
         supabase.from("companies").select("id, company_name").order("company_name"),
         supabase.from("technicians").select("id, tech_name").order("tech_name"),
         supabase.from("job_types").select("id, name").order("name"),
         (supabase as any).from("installers").select("id, name").order("name"),
         loadPaymentMethods(),
+        loadFormSchema(),
       ]);
       if (cancelled) return;
       setCompanies((c.data as Company[]) || []);
@@ -64,12 +72,14 @@ function useOptions(): Options {
       setJobTypes((j.data as JobType[]) || []);
       setInstallers((i.data as Installer[]) || []);
       setPaymentMethods(pm);
+      setCustomFields(schema.fields);
+      setCoreOverrides(schema.core);
       setLoading(false);
     })();
     return () => { cancelled = true; };
   }, []);
 
-  return { companies, techs, jobTypes, installers, paymentMethods, loading };
+  return { companies, techs, jobTypes, installers, paymentMethods, customFields, coreOverrides, loading };
 }
 
 // Field wrapper
@@ -271,13 +281,19 @@ const emptyDraft: DraftForm = {
 function JobFields({
   draft,
   setDraft,
+  extra,
+  setExtra,
   opts,
   lockedTechName,
+  surface,
 }: {
   draft: DraftForm;
   setDraft: React.Dispatch<React.SetStateAction<DraftForm>>;
+  extra: Record<string, any>;
+  setExtra: React.Dispatch<React.SetStateAction<Record<string, any>>>;
   opts: Options;
   lockedTechName?: string | null;
+  surface: "remote" | "parseReview";
 }) {
   function update(k: keyof DraftForm, v: string) { setDraft((p) => ({ ...p, [k]: v })); }
 
@@ -297,81 +313,117 @@ function JobFields({
     setDraft((p) => ({ ...p, installer_name: name, installer_id: i?.id ?? null }));
   }
 
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      <Field label="Job Date">
-        <Input type="date" value={draft.job_date} onChange={(e) => update("job_date", e.target.value)} />
+  const resolved = getCoreFieldsResolved(opts.coreOverrides);
+  const visibleKey = (k: CoreFieldKey) => {
+    const r = resolved.find((f) => f.key === k);
+    if (!r) return false;
+    return surface === "remote" ? r.visibleInRemote : r.visibleInParseReview;
+  };
+  const labelOf = (k: CoreFieldKey, fallback: string) =>
+    resolved.find((f) => f.key === k)?.effectiveLabel || fallback;
+  const reqOf = (k: CoreFieldKey) => resolved.find((f) => f.key === k)?.required || false;
+
+  const renderers: Partial<Record<CoreFieldKey, () => React.ReactNode>> = {
+    job_date: () => (
+      <Field key="job_date" label={labelOf("job_date", "Job Date") + (reqOf("job_date") ? " *" : "")}>
+        <Input type="date" required={reqOf("job_date")} value={draft.job_date} onChange={(e) => update("job_date", e.target.value)} />
       </Field>
-      <Field label="Marketer">
-        <NameSelect
-          value={draft.company_1}
-          onChange={pickCompany}
-          options={opts.companies.map((c) => c.company_name)}
-          placeholder="Select marketer"
-        />
+    ),
+    company_id: () => (
+      <Field key="company_id" label={labelOf("company_id", "Marketer") + " *"}>
+        <NameSelect value={draft.company_1} onChange={pickCompany} options={opts.companies.map((c) => c.company_name)} placeholder="Select marketer" />
       </Field>
-      <Field label="Technician">
+    ),
+    technician_id: () => (
+      <Field key="technician_id" label={labelOf("technician_id", "Technician")}>
         {lockedTechName ? (
           <Input value={lockedTechName} disabled readOnly className="bg-muted" />
         ) : (
-          <NameSelect
-            value={draft.tech_name}
-            onChange={(v) => update("tech_name", v)}
-            options={opts.techs.map((t) => t.tech_name)}
-            placeholder="Select technician"
-          />
+          <NameSelect value={draft.tech_name} onChange={(v) => update("tech_name", v)} options={opts.techs.map((t) => t.tech_name)} placeholder="Select technician" />
         )}
       </Field>
-      <Field label="Phone">
-        <Input value={draft.phone_no} onChange={(e) => update("phone_no", e.target.value)} />
+    ),
+    po_number: () => null, // not in DraftForm; reserved
+    phone_no: () => (
+      <Field key="phone_no" label={labelOf("phone_no", "Phone") + (reqOf("phone_no") ? " *" : "")}>
+        <Input value={draft.phone_no} required={reqOf("phone_no")} onChange={(e) => update("phone_no", e.target.value)} />
       </Field>
-      <Field label="Address" full>
-        <Input value={draft.address} onChange={(e) => update("address", e.target.value)} />
+    ),
+    address: () => (
+      <Field key="address" label={labelOf("address", "Address") + (reqOf("address") ? " *" : "")} full>
+        <Input value={draft.address} required={reqOf("address")} onChange={(e) => update("address", e.target.value)} />
       </Field>
-      <Field label="Job Type">
-        <NameSelect
-          value={draft.job_type}
-          onChange={(v) => update("job_type", v)}
-          options={opts.jobTypes.map((j) => j.name)}
-          placeholder="Select job type"
-        />
+    ),
+    job_type: () => (
+      <Field key="job_type" label={labelOf("job_type", "Job Type") + (reqOf("job_type") ? " *" : "")}>
+        <NameSelect value={draft.job_type} onChange={(v) => update("job_type", v)} options={opts.jobTypes.map((j) => j.name)} placeholder="Select job type" />
       </Field>
-      <Field label="Installer (optional)">
-        <NameSelect
-          value={draft.installer_name}
-          onChange={pickInstaller}
-          options={opts.installers.map((i) => i.name)}
-          placeholder="Select installer"
-        />
+    ),
+    installer: () => (
+      <Field key="installer" label={labelOf("installer", "Installer (optional)")}>
+        <NameSelect value={draft.installer_name} onChange={pickInstaller} options={opts.installers.map((i) => i.name)} placeholder="Select installer" />
       </Field>
-      <Field label="Payment Method">
-        <NameSelect
-          value={draft.payment}
-          onChange={(v) => update("payment", v)}
-          options={opts.paymentMethods.map((m) => m.name)}
-          placeholder="Select payment method"
-        />
+    ),
+    payment: () => (
+      <Field key="payment" label={labelOf("payment", "Payment Method")}>
+        <NameSelect value={draft.payment} onChange={(v) => update("payment", v)} options={opts.paymentMethods.map((m) => m.name)} placeholder="Select payment method" />
       </Field>
-      <Field label="Price ($)">
-        <Input type="number" step="0.01" value={draft.price} onChange={(e) => update("price", e.target.value)} />
+    ),
+    price: () => (
+      <Field key="price" label={labelOf("price", "Price ($)") + " *"}>
+        <Input type="number" step="0.01" required value={draft.price} onChange={(e) => update("price", e.target.value)} />
       </Field>
-      <Field label="Parts ($)">
+    ),
+    parts: () => (
+      <Field key="parts" label={labelOf("parts", "Parts ($)") + (reqOf("parts") ? " *" : "")}>
         <Input type="number" step="0.01" value={draft.parts} onChange={(e) => update("parts", e.target.value)} />
       </Field>
-      <Field label="Co Parts ($)">
+    ),
+    co_parts: () => (
+      <Field key="co_parts" label={labelOf("co_parts", "Co Parts ($)") + (reqOf("co_parts") ? " *" : "")}>
         <Input type="number" step="0.01" value={draft.co_parts} onChange={(e) => update("co_parts", e.target.value)} />
       </Field>
-      <Field label="Office Parts ($)">
+    ),
+    office_parts: () => (
+      <Field key="office_parts" label={labelOf("office_parts", "Office Parts ($)") + (reqOf("office_parts") ? " *" : "")}>
         <Input type="number" step="0.01" value={draft.office_parts} onChange={(e) => update("office_parts", e.target.value)} />
       </Field>
-      <Field label="Notes" full>
+    ),
+    notes: () => (
+      <Field key="notes" label={labelOf("notes", "Notes")} full>
         <Textarea rows={3} value={draft.notes} onChange={(e) => update("notes", e.target.value)} />
       </Field>
+    ),
+  };
+
+  const visibleCustom = opts.customFields.filter((f) => f.visibleInForm);
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {resolved
+        .filter((f) => visibleKey(f.key))
+        .map((f) => renderers[f.key]?.())}
+
+      {visibleCustom.length > 0 && (
+        <div className="col-span-2 mt-2 pt-3 border-t">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Custom fields</div>
+          <div className="grid grid-cols-2 gap-3">
+            {visibleCustom.map((f) => (
+              <DynamicField
+                key={f.id}
+                field={f}
+                value={extra[f.key]}
+                onChange={(v) => setExtra((prev) => ({ ...prev, [f.key]: v }))}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function buildPayload(draft: DraftForm, identity: TechIdentity | null) {
+function buildPayload(draft: DraftForm, identity: TechIdentity | null, extra?: Record<string, any>) {
   const techName = identity?.tech_name || draft.tech_name || null;
   return {
     job_date: draft.job_date || null,
@@ -391,6 +443,7 @@ function buildPayload(draft: DraftForm, identity: TechIdentity | null) {
     payment: draft.payment || null,
     notes: draft.notes || null,
     created_by: identity ? `remote_link:${identity.tech_name}` : REMOTE_MARKER,
+    extra_fields: extra || {},
   } as any;
 }
 
@@ -402,6 +455,7 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
   const [done, setDone] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [draft, setDraft] = useState<DraftForm>(emptyDraft);
+  const [extra, setExtra] = useState<Record<string, any>>({});
   const [parsedSnapshot, setParsedSnapshot] = useState<{
     company: string; tech_name: string; job_type: string; payment: string; snippet: string;
   } | null>(null);
@@ -481,7 +535,7 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
   async function confirmSubmit() {
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity));
+      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity, extra));
       if (error) { toast.error("Failed to save job"); return; }
       // Auto-learn: record any field the user corrected
       if (parsedSnapshot) {
@@ -503,6 +557,7 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
       setDone(true);
       setMessage("");
       setDraft(emptyDraft);
+      setExtra({});
       setParsedSnapshot(null);
     } finally {
       setSubmitting(false);
@@ -542,7 +597,7 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
             </DialogDescription>
           </DialogHeader>
           <div className="mt-2">
-            <JobFields draft={draft} setDraft={setDraft} opts={opts} lockedTechName={identity?.tech_name ?? null} />
+            <JobFields draft={draft} setDraft={setDraft} extra={extra} setExtra={setExtra} opts={opts} lockedTechName={identity?.tech_name ?? null} surface="parseReview" />
           </div>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setReviewOpen(false)} disabled={submitting}>Back</Button>
@@ -561,15 +616,17 @@ function ManualTab({ opts, identity }: { opts: Options; identity: TechIdentity |
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [draft, setDraft] = useState<DraftForm>(emptyDraft);
+  const [extra, setExtra] = useState<Record<string, any>>({});
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity));
+      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity, extra));
       if (error) { toast.error("Failed to submit"); return; }
       setDone(true);
       setDraft(emptyDraft);
+      setExtra({});
     } finally {
       setLoading(false);
     }
@@ -579,7 +636,7 @@ function ManualTab({ opts, identity }: { opts: Options; identity: TechIdentity |
 
   return (
     <form onSubmit={submit} className="rounded-xl border bg-card p-5 space-y-3">
-      <JobFields draft={draft} setDraft={setDraft} opts={opts} lockedTechName={identity?.tech_name ?? null} />
+      <JobFields draft={draft} setDraft={setDraft} extra={extra} setExtra={setExtra} opts={opts} lockedTechName={identity?.tech_name ?? null} surface="remote" />
       <div className="flex justify-end">
         <Button type="submit" disabled={loading || opts.loading || !identity}>
           {loading ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>) : (<><Plus className="h-4 w-4 mr-2" /> Submit Job</>)}
