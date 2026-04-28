@@ -455,6 +455,7 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
   const [done, setDone] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [draft, setDraft] = useState<DraftForm>(emptyDraft);
+  const [extra, setExtra] = useState<Record<string, any>>({});
   const [parsedSnapshot, setParsedSnapshot] = useState<{
     company: string; tech_name: string; job_type: string; payment: string; snippet: string;
   } | null>(null);
@@ -534,7 +535,7 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
   async function confirmSubmit() {
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity));
+      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity, extra));
       if (error) { toast.error("Failed to save job"); return; }
       // Auto-learn: record any field the user corrected
       if (parsedSnapshot) {
@@ -556,6 +557,7 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
       setDone(true);
       setMessage("");
       setDraft(emptyDraft);
+      setExtra({});
       setParsedSnapshot(null);
     } finally {
       setSubmitting(false);
@@ -595,7 +597,7 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
             </DialogDescription>
           </DialogHeader>
           <div className="mt-2">
-            <JobFields draft={draft} setDraft={setDraft} opts={opts} lockedTechName={identity?.tech_name ?? null} />
+            <JobFields draft={draft} setDraft={setDraft} extra={extra} setExtra={setExtra} opts={opts} lockedTechName={identity?.tech_name ?? null} surface="parseReview" />
           </div>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setReviewOpen(false)} disabled={submitting}>Back</Button>
@@ -614,15 +616,17 @@ function ManualTab({ opts, identity }: { opts: Options; identity: TechIdentity |
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [draft, setDraft] = useState<DraftForm>(emptyDraft);
+  const [extra, setExtra] = useState<Record<string, any>>({});
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity));
+      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity, extra));
       if (error) { toast.error("Failed to submit"); return; }
       setDone(true);
       setDraft(emptyDraft);
+      setExtra({});
     } finally {
       setLoading(false);
     }
@@ -632,7 +636,7 @@ function ManualTab({ opts, identity }: { opts: Options; identity: TechIdentity |
 
   return (
     <form onSubmit={submit} className="rounded-xl border bg-card p-5 space-y-3">
-      <JobFields draft={draft} setDraft={setDraft} opts={opts} lockedTechName={identity?.tech_name ?? null} />
+      <JobFields draft={draft} setDraft={setDraft} extra={extra} setExtra={setExtra} opts={opts} lockedTechName={identity?.tech_name ?? null} surface="remote" />
       <div className="flex justify-end">
         <Button type="submit" disabled={loading || opts.loading || !identity}>
           {loading ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>) : (<><Plus className="h-4 w-4 mr-2" /> Submit Job</>)}
