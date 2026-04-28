@@ -243,6 +243,7 @@ export type Database = {
           cost: number | null
           created_at: string
           created_by: string | null
+          extra_fields: Json
           id: string
           installer_id: string | null
           installer_name: string | null
@@ -278,6 +279,7 @@ export type Database = {
           cost?: number | null
           created_at?: string
           created_by?: string | null
+          extra_fields?: Json
           id?: string
           installer_id?: string | null
           installer_name?: string | null
@@ -313,6 +315,7 @@ export type Database = {
           cost?: number | null
           created_at?: string
           created_by?: string | null
+          extra_fields?: Json
           id?: string
           installer_id?: string | null
           installer_name?: string | null

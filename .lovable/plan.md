@@ -1,42 +1,108 @@
-## Plan
+# Job Form Builder & Status Manager
 
-1. Correct the DataBoard metric formulas at the source
-- Create one shared metrics helper for DataBoard calculations so KPI widgets, insight widgets, and exports all use the same logic.
-- Make each metric read from the same database-backed fields the rest of the app already uses.
-- Replace ad-hoc profit math with the stored totals from jobs data so the board reflects the actual values saved on each job.
+A single source of truth in **Settings** that controls the job form, the jobs list columns, and the DataBoard widget options. Designed to be cheap: no per-field DB migrations.
 
-2. Remove stale completed-only behavior from saved DataBoard setups
-- Expand the existing widget normalization so old saved widgets and saved view templates cannot silently keep `completedOnly` on generic job-count widgets.
-- Keep completed-only behavior only where it is intentional, such as the dedicated “Completed jobs” KPI and “Best closing techs”.
-- Ensure the live board and saved templates both reload with the corrected settings.
+## How it works (concept)
 
-3. Align DataBoard outputs everywhere
-- Update `KpiWidget`, `InsightWidget`, and `ExportBoardDialog` to use the same shared calculations.
-- Review DataBoard labels so what is shown matches what is being calculated.
-- Keep the change minimal and avoid any database/schema changes unless validation shows one is truly required.
+- **Core fields** (`price`, `tech_name`, `status`, `job_date`, etc.) stay as real columns on `jobs`. The form builder only controls their **label, visibility, required, order, and section**.
+- **Custom fields** you add (e.g. "Warranty months", "Source URL", "Crew size") are stored in **one new JSONB column `jobs.extra_fields`**. Add/remove unlimited fields with zero DB changes.
+- The same schema definition is read by:
+  - Add/Edit Job dialog → renders inputs dynamically
+  - Jobs list table → adds columns for visible custom fields
+  - DataBoard "Add widget" menu → exposes numeric custom fields as KPI/chart options
+  - Filters bar → exposes select/text custom fields as filters
+- **Statuses** become a managed list (name + color + order). Replaces today's hardcoded `["Pending","Completed","Cancelled","In Progress"]` and the hardcoded color logic in `StatusBadge`.
 
-4. Verify against the actual job records
-- Cross-check a sample of DataBoard totals against the fetched jobs dataset for the same range and filters.
-- Confirm that counts reflect all matched jobs unless a widget explicitly says it is completed-only.
-- Confirm filtered results, totals, and exports stay in sync.
+## What you'll be able to do in Settings
 
-## Likely root causes found
-- DataBoard still has multiple duplicated calculation formulas, and they are not all consistent with the job values stored by the app.
-- Older saved widget/view settings can still reintroduce `completedOnly`, which makes “Job count” and similar widgets look wrong even after the earlier fix.
-- Export calculations and widget calculations are not fully aligned, so different parts of DataBoard can disagree.
+New tab **"Job Form & Statuses"** (admin-only, alongside Payment Methods, Templates, AI):
 
-## Files likely to change
-- `src/routes/databoard.tsx`
-- `src/components/databoard/widgets/KpiWidget.tsx`
-- `src/components/databoard/widgets/InsightWidget.tsx`
-- `src/components/databoard/ExportBoardDialog.tsx`
-- `src/components/databoard/ViewTemplatesMenu.tsx`
-- `src/lib/databoard/templates.ts`
-- new shared helper, likely `src/lib/databoard/metrics.ts`
+1. **Job Form Builder**
+   - List of all fields (core + custom) shown in form order with drag-to-reorder.
+   - Per field: toggle Visible, toggle Required, edit Label, choose Section (Basics / Money / Notes / Custom).
+   - Add custom field: name, type (`text`, `number`, `select`, `date`, `checkbox`, `textarea`), options (for select), default value.
+   - Edit / delete custom fields. Deleting only removes the definition; existing data in `extra_fields` is preserved (shown as "orphan" with a one-click cleanup).
+   - "Show in jobs table" toggle per field.
+   - "Show in DataBoard" toggle per numeric field (auto-creates available KPI/chart metric).
 
-## Technical details
-- Use database fields like `total_office`, `total_tech`, `total_marketer`, `parts`, `co_parts`, `office_parts`, `price`, and `cost` consistently instead of recomputing different versions in different widgets.
-- Treat `jobs.length` from the already-fetched, already-filtered dataset as the source of truth for generic counts.
-- Normalize persisted widget settings on load/apply so legacy saved views cannot keep incorrect completed-only filters alive.
+2. **Statuses Manager**
+   - Add / rename / reorder / delete statuses.
+   - Pick color (preset palette: gray/yellow/blue/green/red/purple/orange).
+   - Mark one as default for new jobs.
+   - Used everywhere: form select, table badge, filters, kanban-style insights.
 
-Once approved, I’ll implement the narrowest possible fix focused only on DataBoard accuracy.
+## Technical implementation
+
+### Database (one migration only)
+```sql
+-- 1. Custom field bag on jobs
+ALTER TABLE public.jobs ADD COLUMN extra_fields jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+-- 2. Schema + statuses live in existing app_settings table (no new tables)
+--    keys: 'job_form_schema', 'job_statuses'
+```
+
+### Settings shape (stored in `app_settings`)
+```ts
+// key: 'job_form_schema'
+type FieldDef = {
+  id: string;
+  key: string;                 // for core: 'price','tech_name'… for custom: 'x_warranty_months'
+  source: 'core' | 'custom';
+  label: string;
+  type: 'text'|'number'|'select'|'date'|'checkbox'|'textarea';
+  options?: string[];          // for select
+  required?: boolean;
+  visibleInForm: boolean;
+  visibleInTable: boolean;
+  visibleInDataboard?: boolean;// numeric only
+  section: 'basics'|'money'|'notes'|'custom';
+  order: number;
+  default?: string|number|boolean;
+};
+
+// key: 'job_statuses'
+type StatusDef = { id: string; name: string; color: string; order: number; isDefault?: boolean };
+```
+
+### New files
+- `src/lib/jobSchema.ts` — load/save schema + statuses, plus `CORE_FIELDS` registry (mirrors today's columns), default seeding, helpers (`getVisibleFormFields`, `getTableColumns`, `getNumericFields`).
+- `src/components/settings/JobFormBuilder.tsx` — drag-to-reorder list, add/edit/delete custom fields.
+- `src/components/settings/StatusesManager.tsx` — add/rename/recolor/reorder statuses.
+- `src/components/DynamicField.tsx` — single component that renders any field type (used by AddJobDialog).
+- `src/components/StatusBadge.tsx` — extracted, color from `job_statuses` (no more hardcoded map).
+
+### Files to refactor
+- `src/components/AddJobDialog.tsx` — render fields from schema. Core fields keep their existing handlers; custom fields read/write `form.extra_fields[key]`. Save writes both top-level columns and `extra_fields` jsonb.
+- `src/components/JobsTable.tsx` — append columns for `visibleInTable` custom fields; use `<StatusBadge>` reading from settings.
+- `src/components/ColumnToggle.tsx` — `ALL_COLUMNS` becomes derived from schema (core columns + custom).
+- `src/components/JobFilters.tsx` — status select uses managed statuses; add filters for select-type custom fields.
+- `src/routes/settings.tsx` — new `<TabsTrigger value="form">` tab with the two managers.
+- `src/components/databoard/AddWidgetMenu.tsx` + `KpiWidget` / `InsightWidget` / `ChartWidget` — extend metric options to include numeric custom fields (read via `extra_fields[key]` using `jobMetric` helper).
+- `src/lib/databoard/metrics.ts` — add `customMetric(job, key)` so widgets can chart custom numeric fields.
+- `src/integrations/supabase/types.ts` — auto-regenerated after the migration adds `extra_fields`.
+
+### Backward compatibility
+- On first load, if `job_form_schema` is missing, seed it from `CORE_FIELDS` so the form & table look identical to today.
+- If `job_statuses` is missing, seed `[Pending(yellow), In Progress(blue), Completed(green), Cancelled(red)]` matching today's colors. Existing job rows keep working.
+- `extra_fields` defaults to `{}` so existing jobs are untouched.
+
+### Security
+- Schema/statuses live in `app_settings` which already has admin-only write RLS. Reads are public (already configured).
+- `extra_fields` inherits the existing `jobs` RLS — no new policies needed.
+
+## Out of scope (to keep credits low)
+- Conditional-show logic (e.g. "show field X only if status = Y").
+- Per-role field permissions (fields are global; existing role gates remain).
+- Drag-and-drop **between sections** with animations — using simple up/down arrows + section dropdown.
+- Migrating existing custom data already living in `notes`. New fields start empty.
+
+## Deliverable check
+After approval you'll get:
+1. One DB migration (add `extra_fields`).
+2. New Settings → "Job Form & Statuses" tab.
+3. Dynamic Add/Edit Job dialog.
+4. Jobs table + filters + DataBoard widgets all driven from the schema.
+5. Status badge & dropdowns powered by the managed status list.
+
+Reply **Approved** to build it.

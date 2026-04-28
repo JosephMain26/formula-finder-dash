@@ -20,6 +20,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
 import { MobileNav } from "@/components/MobileNav";
 import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
+import { loadStatuses } from "@/lib/jobSchema";
 
 type Job = Tables<"jobs">;
 
@@ -68,6 +69,9 @@ function Dashboard() {
   const [prefsHydrated, setPrefsHydrated] = useState(false);
   const [sortBy, setSortBy] = useState<SortKey>("job_date_desc");
   const [analyticsHidden, setAnalyticsHidden] = useState(false);
+  const [managedStatuses, setManagedStatuses] = useState<string[]>([]);
+
+  useEffect(() => { loadStatuses().then((s) => setManagedStatuses(s.map(x => x.name))); }, []);
 
   // Load saved per-user dashboard prefs on mount
   useEffect(() => {
@@ -151,13 +155,17 @@ function Dashboard() {
 
   const uniqueValues = useMemo(() => {
     const get = (key: keyof Job) => [...new Set(jobs.map(j => j[key]).filter(Boolean) as string[])].sort();
+    const derivedStatuses = get("status");
+    const statuses = managedStatuses.length
+      ? Array.from(new Set([...managedStatuses, ...derivedStatuses]))
+      : derivedStatuses;
     return {
       techs: get("tech_name"),
       companies: [...new Set(jobs.flatMap(j => [j.company_1, j.company]).filter(Boolean) as string[])].sort(),
       jobTypes: get("job_type"),
-      statuses: get("status"),
+      statuses,
     };
-  }, [jobs]);
+  }, [jobs, managedStatuses]);
 
   const filtered = useMemo(() => {
     return jobs.filter((job) => {

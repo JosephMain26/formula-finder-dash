@@ -10,6 +10,8 @@ import type { Tables } from "@/integrations/supabase/types";
 import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
 import { DatePickerField } from "@/components/DatePickerField";
 import { useAuth } from "@/lib/auth-context";
+import { loadCustomFields, loadStatuses, defaultStatusName, type CustomField, type StatusDef } from "@/lib/jobSchema";
+import { DynamicField } from "@/components/DynamicField";
 
 type Company = Tables<"companies">;
 type Technician = {
@@ -61,6 +63,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [managingJobTypes, setManagingJobTypes] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [marketerTypes, setMarketerTypes] = useState<string[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [statuses, setStatuses] = useState<StatusDef[]>([]);
+  const [extra, setExtra] = useState<Record<string, any>>({});
 
   const [form, setForm] = useState(emptyForm);
 
@@ -74,6 +79,10 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       });
       fetchJobTypes();
       loadPaymentMethods().then((m) => setPaymentMethods(m));
+      loadCustomFields().then((f) => setCustomFields(f));
+      loadStatuses().then((s) => setStatuses(s));
+      const seedExtra = (isEdit && job ? ((job as any).extra_fields || {}) : {}) as Record<string, any>;
+      setExtra(seedExtra);
 
       if (isEdit && job) {
         setForm({
@@ -108,7 +117,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         setUseManualPercentage(!!job.manual_percentage);
         setUseManualMarketerPercentage(false);
       } else {
-        setForm({ ...emptyForm, ...(prefill || {}) } as typeof emptyForm);
+        const seedStatus = statuses.length ? defaultStatusName(statuses) : "Pending";
+        setForm({ ...emptyForm, status: seedStatus, ...(prefill || {}) } as typeof emptyForm);
         setUseManualPercentage(false);
         setUseManualMarketerPercentage(false);
         // Resolve company by name from prefill if id not provided
@@ -258,6 +268,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       total_marketer: totalMarketer,
       installer_id: form.installer_id || null,
       installer_name: form.installer_name || null,
+      extra_fields: extra || {},
     };
 
     let error;
@@ -423,10 +434,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             <Select value={form.status} onValueChange={(v) => update("status", v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-                <SelectItem value="In Progress">In Progress</SelectItem>
+                {(statuses.length ? statuses.map(s => s.name) : ["Pending","In Progress","Completed","Cancelled"]).map((name) => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -542,6 +552,22 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             <Checkbox id="paid-check" checked={form.paid} onCheckedChange={(v) => update("paid", !!v)} />
             <label htmlFor="paid-check" className="text-sm cursor-pointer">Paid</label>
           </div>
+
+          {customFields.filter(f => f.visibleInForm).length > 0 && (
+            <div className="col-span-2 mt-2 pt-3 border-t">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Custom fields</div>
+              <div className="grid grid-cols-2 gap-4">
+                {customFields.filter(f => f.visibleInForm).map((f) => (
+                  <DynamicField
+                    key={f.id}
+                    field={f}
+                    value={extra[f.key]}
+                    onChange={(v) => setExtra((prev) => ({ ...prev, [f.key]: v }))}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           <div className="col-span-2 flex justify-end gap-2 mt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Job"}</Button>

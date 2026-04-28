@@ -6,7 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput } from "lucide-react";
+import { JobFormBuilder } from "@/components/settings/JobFormBuilder";
+import { StatusesManager } from "@/components/settings/StatusesManager";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { UsersManager } from "@/components/UsersManager";
 import { MyProfileCard } from "@/components/MyProfileCard";
@@ -181,6 +183,7 @@ function SettingsPage() {
           <div className="overflow-x-auto -mx-1 px-1">
             <TabsList className="w-max">
               <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" /> My Profile</TabsTrigger>
+              <TabsTrigger value="form"><FormInput className="h-4 w-4 mr-1" /> Job Form & Statuses</TabsTrigger>
               <TabsTrigger value="payment">Payment Methods</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
               <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Training</TabsTrigger>
@@ -192,6 +195,12 @@ function SettingsPage() {
           {/* MY PROFILE */}
           <TabsContent value="profile" className="mt-4">
             <MyProfileCard />
+          </TabsContent>
+
+          {/* JOB FORM & STATUSES */}
+          <TabsContent value="form" className="mt-4 space-y-6">
+            <StatusesManager />
+            <JobFormBuilder />
           </TabsContent>
 
           <TabsContent value="payment" className="mt-4">
