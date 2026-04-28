@@ -27,6 +27,12 @@ export const jobMetric = {
   count: (_j: Job) => 1,
 };
 
+/** Read a numeric value from a job's custom extra_fields jsonb bag. */
+export function extraNumber(j: Job, key: string): number {
+  const v = ((j as any).extra_fields || {})[key];
+  return num(v);
+}
+
 export function isCompleted(j: Job): boolean {
   return (j.status || "").toLowerCase() === "completed";
 }
