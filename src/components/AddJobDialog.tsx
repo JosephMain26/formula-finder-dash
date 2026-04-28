@@ -299,261 +299,307 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           <DialogTitle>{isEdit ? "Edit Job" : "Add New Job"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 mt-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Job Date</label>
-            <DatePickerField value={form.job_date} onChange={(v) => update("job_date", v)} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Marketer</label>
-            <Select value={form.company_id} onValueChange={handleCompanyChange}>
-              <SelectTrigger><SelectValue placeholder="Select marketer" /></SelectTrigger>
-              <SelectContent>
-                {companies.map(c => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.company_name}{canSeeMarketerPct ? ` (${c.percentage}%)` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
-            <Checkbox id="manual-pct" checked={useManualPercentage} onCheckedChange={(v) => setUseManualPercentage(!!v)} />
-            <label htmlFor="manual-pct" className="text-sm cursor-pointer">Override tech percentage for this job</label>
-            {useManualPercentage && (
-              <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="Tech %" value={form.manual_percentage} onChange={(e) => update("manual_percentage", e.target.value)} />
-            )}
-            {!useManualPercentage && (
-              <span className="ml-auto text-sm text-muted-foreground">Using tech default %</span>
-            )}
-          </div>
-          {canSeeMarketerPct && (
-            <div className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
-              <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
-              <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer">Override marketer percentage for this job</label>
-              {useManualMarketerPercentage ? (
-                <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
-              ) : (
-                <span className="ml-auto text-sm text-muted-foreground">
-                  Using marketer default {selectedCompany?.percentage != null ? `(${selectedCompany.percentage}%)` : "%"}
-                </span>
-              )}
-            </div>
-          )}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Technician</label>
-            <Select
-              value={form.technician_id}
-              disabled={!canAddForOthers && !isEdit}
-              onValueChange={(id) => {
-                update("technician_id", id);
-                const tech = technicians.find(t => t.id === id);
-                if (tech) {
-                  update("tech_name", tech.tech_name);
-                  if (!useManualPercentage) update("manual_percentage", (tech.percentage ?? 50).toString());
-                }
-              }}
-            >
-              <SelectTrigger><SelectValue placeholder="Select technician" /></SelectTrigger>
-              <SelectContent>
-                {technicians.map(t => (
-                  <SelectItem key={t.id} value={t.id}>{t.tech_name} ({t.percentage ?? 50}%)</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {!canAddForOthers && !isEdit && (
-              <p className="text-[11px] text-muted-foreground mt-1">You can only add jobs assigned to yourself.</p>
-            )}
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">PO Number</label>
-            <Input value={form.po_number} onChange={(e) => update("po_number", e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Phone</label>
-            <Input value={form.phone_no} onChange={(e) => update("phone_no", e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Address</label>
-            <Input value={form.address} onChange={(e) => update("address", e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Comp Type</label>
-            <Select value={form.comp_type || ""} onValueChange={(v) => update("comp_type", v)}>
-              <SelectTrigger><SelectValue placeholder="Select comp type" /></SelectTrigger>
-              <SelectContent>
-                {marketerTypes.map((t) => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
-                ))}
-                {form.comp_type && !marketerTypes.includes(form.comp_type) && (
-                  <SelectItem value={form.comp_type}>{form.comp_type} (missing)</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-muted-foreground">Job Type</label>
-              <button type="button" className="text-xs text-primary hover:underline" onClick={() => setManagingJobTypes(!managingJobTypes)}>
-                {managingJobTypes ? "Done" : "Manage"}
-              </button>
-            </div>
-            <Select value={form.job_type} onValueChange={(v) => update("job_type", v)}>
-              <SelectTrigger><SelectValue placeholder="Select job type" /></SelectTrigger>
-              <SelectContent>
-                {jobTypes.map(jt => (
-                  <SelectItem key={jt.id} value={jt.name}>{jt.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {managingJobTypes && (
-              <div className="mt-2 space-y-2 rounded-lg border p-3 bg-muted/30">
-                <div className="flex gap-2">
-                  <Input placeholder="New job type" value={newJobType} onChange={(e) => setNewJobType(e.target.value)} className="h-8 text-sm" />
-                  <Button type="button" size="sm" variant="outline" onClick={addJobType} className="h-8"><Plus className="h-3 w-3" /></Button>
+          {(() => {
+            const resolved = getCoreFieldsResolved(coreOverrides);
+            const visible = resolved.filter((f) => f.visibleInForm);
+            const labelOf = (k: CoreFieldKey) => resolved.find((f) => f.key === k)?.effectiveLabel || k;
+            const reqOf = (k: CoreFieldKey) => resolved.find((f) => f.key === k)?.required || false;
+
+            const renderers: Record<CoreFieldKey, () => React.ReactNode> = {
+              job_date: () => (
+                <div key="job_date">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("job_date")}{reqOf("job_date") ? " *" : ""}</label>
+                  <DatePickerField value={form.job_date} onChange={(v) => update("job_date", v)} />
                 </div>
-                {jobTypes.map(jt => (
-                  <div key={jt.id} className="flex items-center gap-2">
-                    {editingJobType?.id === jt.id ? (
-                      <>
-                        <Input value={editJobTypeName} onChange={(e) => setEditJobTypeName(e.target.value)} className="h-7 text-sm flex-1" />
-                        <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={() => updateJobType(jt.id, editJobTypeName)}>Save</Button>
-                        <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingJobType(null)}><X className="h-3 w-3" /></Button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-sm flex-1">{jt.name}</span>
-                        <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setEditingJobType(jt); setEditJobTypeName(jt.name); }}><Pencil className="h-3 w-3" /></Button>
-                        <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => deleteJobType(jt.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
-                      </>
-                    )}
+              ),
+              company_id: () => (
+                <div key="company_id">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("company_id")} *</label>
+                  <Select value={form.company_id} onValueChange={handleCompanyChange}>
+                    <SelectTrigger><SelectValue placeholder="Select marketer" /></SelectTrigger>
+                    <SelectContent>
+                      {companies.map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.company_name}{canSeeMarketerPct ? ` (${c.percentage}%)` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ),
+              tech_percentage_panel: () => (
+                <div key="tech_percentage_panel" className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
+                  <Checkbox id="manual-pct" checked={useManualPercentage} onCheckedChange={(v) => setUseManualPercentage(!!v)} />
+                  <label htmlFor="manual-pct" className="text-sm cursor-pointer">Override tech percentage for this job</label>
+                  {useManualPercentage ? (
+                    <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="Tech %" value={form.manual_percentage} onChange={(e) => update("manual_percentage", e.target.value)} />
+                  ) : (
+                    <span className="ml-auto text-sm text-muted-foreground">Using tech default %</span>
+                  )}
+                </div>
+              ),
+              marketer_percentage_panel: () => canSeeMarketerPct ? (
+                <div key="marketer_percentage_panel" className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
+                  <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
+                  <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer">Override marketer percentage for this job</label>
+                  {useManualMarketerPercentage ? (
+                    <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
+                  ) : (
+                    <span className="ml-auto text-sm text-muted-foreground">
+                      Using marketer default {selectedCompany?.percentage != null ? `(${selectedCompany.percentage}%)` : "%"}
+                    </span>
+                  )}
+                </div>
+              ) : null,
+              technician_id: () => (
+                <div key="technician_id">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("technician_id")}{reqOf("technician_id") ? " *" : ""}</label>
+                  <Select
+                    value={form.technician_id}
+                    disabled={!canAddForOthers && !isEdit}
+                    onValueChange={(id) => {
+                      update("technician_id", id);
+                      const tech = technicians.find(t => t.id === id);
+                      if (tech) {
+                        update("tech_name", tech.tech_name);
+                        if (!useManualPercentage) update("manual_percentage", (tech.percentage ?? 50).toString());
+                      }
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select technician" /></SelectTrigger>
+                    <SelectContent>
+                      {technicians.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.tech_name} ({t.percentage ?? 50}%)</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!canAddForOthers && !isEdit && (
+                    <p className="text-[11px] text-muted-foreground mt-1">You can only add jobs assigned to yourself.</p>
+                  )}
+                </div>
+              ),
+              po_number: () => (
+                <div key="po_number">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("po_number")}{reqOf("po_number") ? " *" : ""}</label>
+                  <Input value={form.po_number} required={reqOf("po_number")} onChange={(e) => update("po_number", e.target.value)} />
+                </div>
+              ),
+              phone_no: () => (
+                <div key="phone_no">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("phone_no")}{reqOf("phone_no") ? " *" : ""}</label>
+                  <Input value={form.phone_no} required={reqOf("phone_no")} onChange={(e) => update("phone_no", e.target.value)} />
+                </div>
+              ),
+              address: () => (
+                <div key="address">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("address")}{reqOf("address") ? " *" : ""}</label>
+                  <Input value={form.address} required={reqOf("address")} onChange={(e) => update("address", e.target.value)} />
+                </div>
+              ),
+              comp_type: () => (
+                <div key="comp_type">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("comp_type")}{reqOf("comp_type") ? " *" : ""}</label>
+                  <Select value={form.comp_type || ""} onValueChange={(v) => update("comp_type", v)}>
+                    <SelectTrigger><SelectValue placeholder="Select comp type" /></SelectTrigger>
+                    <SelectContent>
+                      {marketerTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {form.comp_type && !marketerTypes.includes(form.comp_type) && (
+                        <SelectItem value={form.comp_type}>{form.comp_type} (missing)</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ),
+              job_type: () => (
+                <div key="job_type">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-muted-foreground">{labelOf("job_type")}{reqOf("job_type") ? " *" : ""}</label>
+                    <button type="button" className="text-xs text-primary hover:underline" onClick={() => setManagingJobTypes(!managingJobTypes)}>
+                      {managingJobTypes ? "Done" : "Manage"}
+                    </button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Status</label>
-            <Select value={form.status} onValueChange={(v) => update("status", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {(statuses.length ? statuses.map(s => s.name) : ["Pending","In Progress","Completed","Cancelled"]).map((name) => (
-                  <SelectItem key={name} value={name}>{name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Price ($)</label>
-            <Input type="number" step="0.01" value={form.price} onChange={(e) => {
-              const newPrice = e.target.value;
-              const pct = feePercentFor(form.payment);
-              setForm((prev) => ({
-                ...prev,
-                price: newPrice,
-                cc_fee: pct > 0
-                  ? (Math.round((parseFloat(newPrice) || 0) * (pct / 100) * 100) / 100).toString()
-                  : prev.cc_fee,
-              }));
-            }} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Co Parts ($) — to Marketer</label>
-            <Input type="number" step="0.01" value={form.co_parts} onChange={(e) => update("co_parts", e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Office Parts ($) — to Office</label>
-            <Input type="number" step="0.01" value={form.office_parts} onChange={(e) => update("office_parts", e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Parts ($) — to Tech</label>
-            <Input type="number" step="0.01" value={form.parts} onChange={(e) => update("parts", e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Payment Method</label>
-            <Select
-              value={form.payment}
-              onValueChange={(v) => {
-                const pct = feePercentFor(v);
-                const price = parseFloat(form.price) || 0;
-                setForm((prev) => ({
-                  ...prev,
-                  payment: v,
-                  cc_fee: pct > 0
-                    ? (Math.round(price * (pct / 100) * 100) / 100).toString()
-                    : "0",
-                }));
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={paymentMethods.length ? "Select payment method" : "Add methods in Settings"} />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentMethods.map((m) => (
-                  <SelectItem key={m.id} value={m.name}>
-                    {m.name}{typeof m.feePercent === "number" && m.feePercent > 0 ? ` (${m.feePercent}% fee)` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {form.payment.toLowerCase().includes("check") && (
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Check #</label>
-              <Input value={form.check_no} onChange={(e) => update("check_no", e.target.value)} />
-            </div>
-          )}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Tip ($)</label>
-            <Input type="number" step="0.01" value={form.tip} onChange={(e) => update("tip", e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Cost ($)</label>
-            <Input type="number" step="0.01" value={form.cost} onChange={(e) => update("cost", e.target.value)} />
-          </div>
-          {feePercentFor(form.payment) > 0 && (
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">
-                CC Fee ($) — auto {feePercentFor(form.payment)}%
-              </label>
-              <Input type="number" step="0.01" value={form.cc_fee} onChange={(e) => update("cc_fee", e.target.value)} />
-            </div>
-          )}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Created By</label>
-            <Input value={form.created_by} onChange={(e) => update("created_by", e.target.value)} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Installer (optional)</label>
-            <Select
-              value={form.installer_id || "__none__"}
-              onValueChange={(id) => {
-                if (id === "__none__") {
-                  setForm((prev) => ({ ...prev, installer_id: "", installer_name: "" }));
-                  return;
-                }
-                const inst = installers.find((i) => i.id === id);
-                setForm((prev) => ({ ...prev, installer_id: id, installer_name: inst?.name || "" }));
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={installers.length ? "Select installer" : "No installers yet"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">— None —</SelectItem>
-                {installers.map((i) => (
-                  <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="col-span-2">
-            <label className="text-xs font-medium text-muted-foreground">Notes</label>
-            <Input value={form.notes} onChange={(e) => update("notes", e.target.value)} />
-          </div>
-          <div className="col-span-2 flex items-center gap-3">
-            <Checkbox id="paid-check" checked={form.paid} onCheckedChange={(v) => update("paid", !!v)} />
-            <label htmlFor="paid-check" className="text-sm cursor-pointer">Paid</label>
-          </div>
+                  <Select value={form.job_type} onValueChange={(v) => update("job_type", v)}>
+                    <SelectTrigger><SelectValue placeholder="Select job type" /></SelectTrigger>
+                    <SelectContent>
+                      {jobTypes.map(jt => <SelectItem key={jt.id} value={jt.name}>{jt.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {managingJobTypes && (
+                    <div className="mt-2 space-y-2 rounded-lg border p-3 bg-muted/30">
+                      <div className="flex gap-2">
+                        <Input placeholder="New job type" value={newJobType} onChange={(e) => setNewJobType(e.target.value)} className="h-8 text-sm" />
+                        <Button type="button" size="sm" variant="outline" onClick={addJobType} className="h-8"><Plus className="h-3 w-3" /></Button>
+                      </div>
+                      {jobTypes.map(jt => (
+                        <div key={jt.id} className="flex items-center gap-2">
+                          {editingJobType?.id === jt.id ? (
+                            <>
+                              <Input value={editJobTypeName} onChange={(e) => setEditJobTypeName(e.target.value)} className="h-7 text-sm flex-1" />
+                              <Button type="button" size="sm" variant="outline" className="h-7 px-2" onClick={() => updateJobType(jt.id, editJobTypeName)}>Save</Button>
+                              <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingJobType(null)}><X className="h-3 w-3" /></Button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-sm flex-1">{jt.name}</span>
+                              <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setEditingJobType(jt); setEditJobTypeName(jt.name); }}><Pencil className="h-3 w-3" /></Button>
+                              <Button type="button" size="sm" variant="ghost" className="h-7 px-2" onClick={() => deleteJobType(jt.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ),
+              status: () => (
+                <div key="status">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("status")}</label>
+                  <Select value={form.status} onValueChange={(v) => update("status", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(statuses.length ? statuses.map(s => s.name) : ["Pending","In Progress","Completed","Cancelled"]).map((name) => (
+                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ),
+              price: () => (
+                <div key="price">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("price")} *</label>
+                  <Input type="number" step="0.01" required value={form.price} onChange={(e) => {
+                    const newPrice = e.target.value;
+                    const pct = feePercentFor(form.payment);
+                    setForm((prev) => ({
+                      ...prev,
+                      price: newPrice,
+                      cc_fee: pct > 0
+                        ? (Math.round((parseFloat(newPrice) || 0) * (pct / 100) * 100) / 100).toString()
+                        : prev.cc_fee,
+                    }));
+                  }} />
+                </div>
+              ),
+              co_parts: () => (
+                <div key="co_parts">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("co_parts")}{reqOf("co_parts") ? " *" : ""}</label>
+                  <Input type="number" step="0.01" required={reqOf("co_parts")} value={form.co_parts} onChange={(e) => update("co_parts", e.target.value)} />
+                </div>
+              ),
+              office_parts: () => (
+                <div key="office_parts">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("office_parts")}{reqOf("office_parts") ? " *" : ""}</label>
+                  <Input type="number" step="0.01" required={reqOf("office_parts")} value={form.office_parts} onChange={(e) => update("office_parts", e.target.value)} />
+                </div>
+              ),
+              parts: () => (
+                <div key="parts">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("parts")}{reqOf("parts") ? " *" : ""}</label>
+                  <Input type="number" step="0.01" required={reqOf("parts")} value={form.parts} onChange={(e) => update("parts", e.target.value)} />
+                </div>
+              ),
+              payment: () => (
+                <div key="payment">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("payment")}{reqOf("payment") ? " *" : ""}</label>
+                  <Select
+                    value={form.payment}
+                    onValueChange={(v) => {
+                      const pct = feePercentFor(v);
+                      const price = parseFloat(form.price) || 0;
+                      setForm((prev) => ({
+                        ...prev,
+                        payment: v,
+                        cc_fee: pct > 0
+                          ? (Math.round(price * (pct / 100) * 100) / 100).toString()
+                          : "0",
+                      }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={paymentMethods.length ? "Select payment method" : "Add methods in Settings"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentMethods.map((m) => (
+                        <SelectItem key={m.id} value={m.name}>
+                          {m.name}{typeof m.feePercent === "number" && m.feePercent > 0 ? ` (${m.feePercent}% fee)` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ),
+              check_no: () => form.payment.toLowerCase().includes("check") ? (
+                <div key="check_no">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("check_no")}</label>
+                  <Input value={form.check_no} onChange={(e) => update("check_no", e.target.value)} />
+                </div>
+              ) : null,
+              tip: () => (
+                <div key="tip">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("tip")}{reqOf("tip") ? " *" : ""}</label>
+                  <Input type="number" step="0.01" value={form.tip} onChange={(e) => update("tip", e.target.value)} />
+                </div>
+              ),
+              cost: () => (
+                <div key="cost">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("cost")}{reqOf("cost") ? " *" : ""}</label>
+                  <Input type="number" step="0.01" value={form.cost} onChange={(e) => update("cost", e.target.value)} />
+                </div>
+              ),
+              cc_fee: () => feePercentFor(form.payment) > 0 ? (
+                <div key="cc_fee">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    {labelOf("cc_fee")} — auto {feePercentFor(form.payment)}%
+                  </label>
+                  <Input type="number" step="0.01" value={form.cc_fee} onChange={(e) => update("cc_fee", e.target.value)} />
+                </div>
+              ) : null,
+              created_by: () => (
+                <div key="created_by">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("created_by")}</label>
+                  <Input value={form.created_by} onChange={(e) => update("created_by", e.target.value)} />
+                </div>
+              ),
+              installer: () => (
+                <div key="installer">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("installer")}</label>
+                  <Select
+                    value={form.installer_id || "__none__"}
+                    onValueChange={(id) => {
+                      if (id === "__none__") {
+                        setForm((prev) => ({ ...prev, installer_id: "", installer_name: "" }));
+                        return;
+                      }
+                      const inst = installers.find((i) => i.id === id);
+                      setForm((prev) => ({ ...prev, installer_id: id, installer_name: inst?.name || "" }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={installers.length ? "Select installer" : "No installers yet"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— None —</SelectItem>
+                      {installers.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ),
+              notes: () => (
+                <div key="notes" className="col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("notes")}{reqOf("notes") ? " *" : ""}</label>
+                  <Input value={form.notes} required={reqOf("notes")} onChange={(e) => update("notes", e.target.value)} />
+                </div>
+              ),
+              paid: () => (
+                <div key="paid" className="col-span-2 flex items-center gap-3">
+                  <Checkbox id="paid-check" checked={form.paid} onCheckedChange={(v) => update("paid", !!v)} />
+                  <label htmlFor="paid-check" className="text-sm cursor-pointer">{labelOf("paid")}</label>
+                </div>
+              ),
+            };
+
+            return visible.map((f) => renderers[f.key]?.());
+          })()}
 
           {customFields.filter(f => f.visibleInForm).length > 0 && (
             <div className="col-span-2 mt-2 pt-3 border-t">
