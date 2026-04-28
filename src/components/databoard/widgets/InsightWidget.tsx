@@ -81,7 +81,7 @@ export function InsightWidget({ jobs, settings }: Props) {
 
   const data = useMemo(() => {
     const source = completedOnly
-      ? jobs.filter((j) => (j.status || "").toLowerCase() === "completed")
+      ? jobs.filter(isCompleted)
       : jobs;
     const sums = new Map<string, number>();
     const counts = new Map<string, number>();
