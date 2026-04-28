@@ -552,6 +552,22 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             <Checkbox id="paid-check" checked={form.paid} onCheckedChange={(v) => update("paid", !!v)} />
             <label htmlFor="paid-check" className="text-sm cursor-pointer">Paid</label>
           </div>
+
+          {customFields.filter(f => f.visibleInForm).length > 0 && (
+            <div className="col-span-2 mt-2 pt-3 border-t">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Custom fields</div>
+              <div className="grid grid-cols-2 gap-4">
+                {customFields.filter(f => f.visibleInForm).map((f) => (
+                  <DynamicField
+                    key={f.id}
+                    field={f}
+                    value={extra[f.key]}
+                    onChange={(v) => setExtra((prev) => ({ ...prev, [f.key]: v }))}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           <div className="col-span-2 flex justify-end gap-2 mt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Job"}</Button>
