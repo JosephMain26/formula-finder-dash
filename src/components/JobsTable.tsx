@@ -1,5 +1,5 @@
+import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Pencil, Trash2 } from "lucide-react";
@@ -9,8 +9,8 @@ import { EditableCell } from "@/components/EditableCell";
 import { useAuth } from "@/lib/auth-context";
 import type { Tables } from "@/integrations/supabase/types";
 import type { ColumnKey } from "@/components/ColumnToggle";
-
-const STATUS_OPTIONS = ["Pending", "Completed", "Cancelled", "In Progress"];
+import { StatusBadge } from "@/components/StatusBadge";
+import { loadCustomFields, loadStatuses, type CustomField, type StatusDef } from "@/lib/jobSchema";
 
 type Job = Tables<"jobs">;
 
@@ -21,17 +21,6 @@ interface JobsTableProps {
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
   onToggleSelectAll?: (ids: string[], select: boolean) => void;
-}
-
-function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return null;
-  const lower = status.toLowerCase();
-  let className = "bg-muted text-muted-foreground hover:bg-muted";
-  if (lower === "completed" || lower === "done") className = "bg-green-500 text-white hover:bg-green-500";
-  else if (lower === "pending") className = "bg-yellow-400 text-black hover:bg-yellow-400";
-  else if (lower === "cancelled" || lower === "canceled") className = "bg-red-500 text-white hover:bg-red-500";
-  else if (lower === "in progress") className = "bg-blue-500 text-white hover:bg-blue-500";
-  return <Badge className={className}>{status}</Badge>;
 }
 
 function currency(val: number | null) {
