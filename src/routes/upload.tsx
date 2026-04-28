@@ -40,6 +40,8 @@ type Options = {
   jobTypes: JobType[];
   installers: Installer[];
   paymentMethods: PaymentMethod[];
+  customFields: CustomField[];
+  coreOverrides: CoreFieldOverride[] | null;
   loading: boolean;
 };
 
@@ -49,17 +51,20 @@ function useOptions(): Options {
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [installers, setInstallers] = useState<Installer[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [coreOverrides, setCoreOverrides] = useState<CoreFieldOverride[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [c, t, j, i, pm] = await Promise.all([
+      const [c, t, j, i, pm, schema] = await Promise.all([
         supabase.from("companies").select("id, company_name").order("company_name"),
         supabase.from("technicians").select("id, tech_name").order("tech_name"),
         supabase.from("job_types").select("id, name").order("name"),
         (supabase as any).from("installers").select("id, name").order("name"),
         loadPaymentMethods(),
+        loadFormSchema(),
       ]);
       if (cancelled) return;
       setCompanies((c.data as Company[]) || []);
@@ -67,12 +72,14 @@ function useOptions(): Options {
       setJobTypes((j.data as JobType[]) || []);
       setInstallers((i.data as Installer[]) || []);
       setPaymentMethods(pm);
+      setCustomFields(schema.fields);
+      setCoreOverrides(schema.core);
       setLoading(false);
     })();
     return () => { cancelled = true; };
   }, []);
 
-  return { companies, techs, jobTypes, installers, paymentMethods, loading };
+  return { companies, techs, jobTypes, installers, paymentMethods, customFields, coreOverrides, loading };
 }
 
 // Field wrapper
