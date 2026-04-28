@@ -16,6 +16,7 @@ import {
 } from "@/lib/databoard/templates";
 import type { Tables } from "@/integrations/supabase/types";
 import type { DateRange } from "@/components/DateRangePresets";
+import { jobMetric } from "@/lib/databoard/metrics";
 
 type Job = Tables<"jobs">;
 
