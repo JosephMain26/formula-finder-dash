@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
 import type { Tables } from "@/integrations/supabase/types";
+import { jobMetric, isCompleted } from "@/lib/databoard/metrics";
 
 type Job = Tables<"jobs">;
 
