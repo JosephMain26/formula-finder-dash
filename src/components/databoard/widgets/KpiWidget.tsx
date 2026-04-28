@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Tables } from "@/integrations/supabase/types";
+import { jobMetric, isCompleted, sumBy } from "@/lib/databoard/metrics";
 
 type Job = Tables<"jobs">;
 
@@ -19,33 +20,19 @@ interface Props {
 
 export function KpiWidget({ jobs, metric, label, completedOnly }: Props) {
   const value = useMemo(() => {
-    const source = completedOnly
-      ? jobs.filter((j) => (j.status || "").toLowerCase() === "completed")
-      : jobs;
+    const source = completedOnly ? jobs.filter(isCompleted) : jobs;
 
     switch (metric) {
       case "revenue":
-        return fmt$(source.reduce((s, j) => s + Number(j.price || 0), 0));
+        return fmt$(sumBy(source, jobMetric.revenue));
       case "profit":
-        return fmt$(
-          source.reduce(
-            (s, j) =>
-              s +
-              (Number(j.price || 0) -
-                Number(j.cost || 0) -
-                Number(j.parts || 0) -
-                Number(j.cc_fee || 0) -
-                Number(j.total_tech || 0) -
-                Number(j.total_marketer || 0)),
-            0
-          )
-        );
+        return fmt$(sumBy(source, jobMetric.profit));
       case "count":
         return source.length.toLocaleString();
       case "completed_count":
-        return jobs.filter((j) => (j.status || "").toLowerCase() === "completed").length.toLocaleString();
+        return jobs.filter(isCompleted).length.toLocaleString();
       case "avg_ticket":
-        return fmt$(source.length ? source.reduce((s, j) => s + Number(j.price || 0), 0) / source.length : 0);
+        return fmt$(source.length ? sumBy(source, jobMetric.revenue) / source.length : 0);
       case "tech_count": {
         const set = new Set(source.map((j) => j.tech_name).filter(Boolean));
         return set.size.toLocaleString();
@@ -53,15 +40,13 @@ export function KpiWidget({ jobs, metric, label, completedOnly }: Props) {
       case "paid_count":
         return source.filter((j) => j.paid).length.toLocaleString();
       case "tech_pay":
-        return fmt$(source.reduce((s, j) => s + Number(j.total_tech || 0), 0));
+        return fmt$(sumBy(source, jobMetric.techPay));
       case "marketer_pay":
-        return fmt$(source.reduce((s, j) => s + Number(j.total_marketer || 0), 0));
+        return fmt$(sumBy(source, jobMetric.marketerPay));
     }
   }, [jobs, metric, completedOnly]);
 
-  const considered = completedOnly
-    ? jobs.filter((j) => (j.status || "").toLowerCase() === "completed").length
-    : jobs.length;
+  const considered = completedOnly ? jobs.filter(isCompleted).length : jobs.length;
 
   return (
     <div className="h-full flex flex-col items-center justify-center text-center">
