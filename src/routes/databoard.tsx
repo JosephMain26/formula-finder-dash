@@ -43,14 +43,15 @@ const DEFAULT_WIDGETS: WidgetConfig[] = [
 
 /**
  * Strip the per-widget `completedOnly` flag from previously saved widgets so
- * they no longer silently restrict to Completed jobs. The dedicated
- * `completed_count` KPI and the "Best closing techs" insight (which is
- * conceptually about closing rate) keep their behavior.
+ * generic KPIs and insights no longer silently restrict to Completed jobs.
+ * Only the dedicated `completed_count` KPI and the "Best closing techs"
+ * insight (which is conceptually about closing rate) keep that behavior.
  */
 function normalizeSavedWidgets(widgets: WidgetConfig[]): WidgetConfig[] {
   return widgets.map((w) => {
     const s = w.settings || {};
     if (!s.completedOnly) return w;
+    if (w.type === "kpi" && s.metric === "completed_count") return w;
     const isClosingTechs = w.type === "insight" && (w.title || "").toLowerCase().includes("best closing");
     if (isClosingTechs) return w;
     const { completedOnly: _drop, ...rest } = s;
