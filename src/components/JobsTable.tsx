@@ -220,9 +220,13 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
               )}
               {show("manual_percentage") && (
                 <TableCell className="text-right text-sm p-1">
-                  <EditableCell jobId={job.id} field="manual_percentage" type="number" value={job.manual_percentage} align="right"
-                    display={<span className="px-2">{job.manual_percentage != null ? `${job.manual_percentage}%` : "—"}</span>}
-                    onSaved={onJobsChanged} />
+                  {canEditPercentage ? (
+                    <EditableCell jobId={job.id} field="manual_percentage" type="number" value={job.manual_percentage} align="right"
+                      display={<span className="px-2">{job.manual_percentage != null ? `${job.manual_percentage}%` : "—"}</span>}
+                      onSaved={onJobsChanged} />
+                  ) : (
+                    <span className="px-2">{job.manual_percentage != null ? `${job.manual_percentage}%` : "—"}</span>
+                  )}
                 </TableCell>
               )}
               {show("total_marketer") && <TableCell className="text-right text-sm font-medium">{currency((job as any).total_marketer ?? 0)}</TableCell>}
