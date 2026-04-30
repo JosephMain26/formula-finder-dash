@@ -11,8 +11,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Plus, Send, RotateCw, X, Lock, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { inviteUser, resendInvite, cancelInvite } from "@/lib/invites.functions";
+import { inviteUser, resendInvite, cancelInvite, deleteUser } from "@/lib/invites.functions";
 import { useAuth, type AppRole } from "@/lib/auth-context";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { loadDataVisibility, saveDataVisibility } from "@/lib/settings";
 
