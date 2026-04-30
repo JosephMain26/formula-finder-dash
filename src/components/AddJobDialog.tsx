@@ -24,6 +24,7 @@ type Technician = {
 };
 type JobType = { id: string; name: string };
 type Installer = { id: string; name: string };
+type Client = { id: string; name: string; phone: string | null; address: string | null };
 
 const emptyForm = {
   job_date: "", company_id: "", technician_id: "", tech_name: "",
@@ -32,6 +33,7 @@ const emptyForm = {
   check_no: "", tip: "", cost: "", notes: "", cc_fee: "",
   manual_percentage: "", marketer_percentage: "", created_by: "", maps: "", paid: false,
   installer_id: "", installer_name: "",
+  client_id: "",
 };
 
 interface JobDialogProps {
@@ -44,10 +46,11 @@ interface JobDialogProps {
 }
 
 export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOpenChange, prefill }: JobDialogProps) {
-  const { can, displayName } = useAuth();
+  const { can, displayName, isAdmin, isManager } = useAuth();
   const canAddForOthers = can("jobs.add_for_others");
   const canSeeMarketerPct = can("marketer.view_percentage");
   const canEditPercentage = can("jobs.edit_percentage");
+  const canManageClients = isAdmin || isManager; // techs (role 'user' only) skip client auto-save & picker
   const isEdit = !!job;
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
@@ -57,6 +60,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [installers, setInstallers] = useState<Installer[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [useManualPercentage, setUseManualPercentage] = useState(false);
   const [useManualMarketerPercentage, setUseManualMarketerPercentage] = useState(false);
   const [newJobType, setNewJobType] = useState("");
@@ -77,6 +81,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       supabase.from("companies").select("*").order("company_name").then(({ data }) => setCompanies(data || []));
       supabase.from("technicians").select("*").order("tech_name").then(({ data }) => setTechnicians((data as Technician[]) || []));
       (supabase as any).from("installers").select("id,name").order("name").then(({ data }: any) => setInstallers((data as Installer[]) || []));
+      if (canManageClients) {
+        (supabase as any).from("clients").select("id,name,phone,address").order("name").then(({ data }: any) => setClients((data as Client[]) || []));
+      }
       (supabase as any).from("marketer_types").select("name").order("name").then(({ data }: any) => {
         setMarketerTypes(((data as { name: string }[]) || []).map((t) => t.name));
       });
