@@ -15,6 +15,11 @@ const EmailActionSchema = z.object({
   email: z.string().email().max(254),
 });
 
+const DeleteUserSchema = z.object({
+  accessToken: AccessTokenSchema,
+  userId: z.string().uuid(),
+});
+
 async function getAdminUserId(accessToken: string) {
   const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
   if (error || !data.user) {
