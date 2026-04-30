@@ -54,7 +54,10 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export function UsersManager() {
-  const { session } = useAuth();
+  const { session, user: currentUser, can } = useAuth();
+  const canDeleteUsers = can("users.delete");
+  const [deletingProfile, setDeletingProfile] = useState<Profile | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<Record<string, AppRole>>({});
   const [seedEmail, setSeedEmail] = useState("");
