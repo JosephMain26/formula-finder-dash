@@ -288,7 +288,26 @@ export function UsersManager() {
     }
   }
 
-  // ------------- Custom roles -------------
+  async function confirmDeleteUser() {
+    if (!deletingProfile) return;
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      toast.error("Your session has expired. Please sign in again.");
+      return;
+    }
+    setDeleteSubmitting(true);
+    try {
+      await deleteFn({ data: { accessToken, userId: deletingProfile.id } });
+      toast.success("User deleted");
+      setDeletingProfile(null);
+      load();
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e, "Failed to delete user"));
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  }
+
   async function addCustomRole() {
     const name = newRoleName.trim().toLowerCase().replace(/\s+/g, "_");
     if (!name) return;
