@@ -170,6 +170,9 @@ function SettingsPage() {
             <Link to="/installers">
               <Button variant="outline" size="sm"><Wrench className="h-4 w-4 mr-2" /> Installers</Button>
             </Link>
+            <Link to="/clients">
+              <Button variant="outline" size="sm"><Users className="h-4 w-4 mr-2" /> Clients</Button>
+            </Link>
             <RemoteLinkButton />
           </div>
           <div className="md:hidden">
