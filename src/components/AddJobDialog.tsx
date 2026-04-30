@@ -645,6 +645,40 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             return visible.map((f) => renderers[f.key]?.());
           })()}
 
+          {canManageClients && (
+            <div className="col-span-2 mt-2 pt-3 border-t">
+              <label className="text-xs font-medium text-muted-foreground">
+                Client {form.client_id ? "" : "(optional — will be saved automatically from phone)"}
+              </label>
+              <Select
+                value={form.client_id || "__none__"}
+                onValueChange={(id) => {
+                  if (id === "__none__") { update("client_id", ""); return; }
+                  const c = clients.find((x) => x.id === id);
+                  if (!c) return;
+                  setForm((prev) => ({
+                    ...prev,
+                    client_id: id,
+                    phone_no: prev.phone_no || c.phone || "",
+                    address: prev.address || c.address || "",
+                  }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={clients.length ? "Select existing client" : "No clients yet"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— None / new client —</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}{c.phone ? ` · ${c.phone}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {customFields.filter(f => f.visibleInForm).length > 0 && (
             <div className="col-span-2 mt-2 pt-3 border-t">
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Custom fields</div>
