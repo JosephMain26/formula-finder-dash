@@ -123,6 +123,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           paid: job.paid || false,
           installer_id: (job as any).installer_id || "",
           installer_name: (job as any).installer_name || "",
+          client_id: (job as any).client_id || "",
         });
         setUseManualPercentage(!!job.manual_percentage);
         setUseManualMarketerPercentage(false);
