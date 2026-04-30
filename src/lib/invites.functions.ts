@@ -116,3 +116,42 @@ export const cancelInvite = createServerFn({ method: "POST" })
 
     return { success: true };
   });
+
+export const deleteUser = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => DeleteUserSchema.parse(input))
+  .handler(async ({ data }) => {
+    // Resolve caller
+    const { data: caller, error: callerErr } = await supabaseAdmin.auth.getUser(data.accessToken);
+    if (callerErr || !caller.user) throw new Error("Your session has expired. Please sign in again.");
+    const callerId = caller.user.id;
+
+    if (callerId === data.userId) throw new Error("You cannot delete your own account.");
+
+    // Permission check via has_permission (admin short-circuits inside the function)
+    const { data: allowed, error: permErr } = await (supabaseAdmin as any)
+      .rpc("has_permission", { _user_id: callerId, _key: "users.delete" });
+    if (permErr) throw new Error(permErr.message);
+    if (!allowed) throw new Error("Forbidden: missing 'users.delete' permission");
+
+    // Prevent deleting the last admin
+    const { data: targetRoles } = await (supabaseAdmin as any)
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", data.userId);
+    const targetIsAdmin = (targetRoles || []).some((r: any) => r.role === "admin");
+    if (targetIsAdmin) {
+      const { count } = await (supabaseAdmin as any)
+        .from("user_roles")
+        .select("user_id", { count: "exact", head: true })
+        .eq("role", "admin");
+      if ((count ?? 0) <= 1) throw new Error("Cannot delete the last remaining admin.");
+    }
+
+    await (supabaseAdmin as any).from("user_roles").delete().eq("user_id", data.userId);
+    await (supabaseAdmin as any).from("user_preferences").delete().eq("user_id", data.userId);
+
+    const { error: delErr } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (delErr) throw new Error(delErr.message);
+
+    return { success: true };
+  });
