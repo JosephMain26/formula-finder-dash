@@ -638,6 +638,32 @@ export function UsersManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* DELETE USER CONFIRM */}
+      <AlertDialog open={!!deletingProfile} onOpenChange={(o) => !o && !deleteSubmitting && setDeletingProfile(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes{" "}
+              <span className="font-medium">
+                {deletingProfile?.display_name || deletingProfile?.email || "this user"}
+              </span>{" "}
+              and their role assignments. Their existing jobs and other records will remain. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmDeleteUser(); }}
+              disabled={deleteSubmitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteSubmitting ? "Deleting…" : "Delete user"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
