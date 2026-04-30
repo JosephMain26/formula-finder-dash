@@ -11,8 +11,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Plus, Send, RotateCw, X, Lock, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { inviteUser, resendInvite, cancelInvite } from "@/lib/invites.functions";
+import { inviteUser, resendInvite, cancelInvite, deleteUser } from "@/lib/invites.functions";
 import { useAuth, type AppRole } from "@/lib/auth-context";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { loadDataVisibility, saveDataVisibility } from "@/lib/settings";
 
@@ -44,7 +54,10 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export function UsersManager() {
-  const { session } = useAuth();
+  const { session, user: currentUser, can } = useAuth();
+  const canDeleteUsers = can("users.delete");
+  const [deletingProfile, setDeletingProfile] = useState<Profile | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<Record<string, AppRole>>({});
   const [seedEmail, setSeedEmail] = useState("");
@@ -132,6 +145,7 @@ export function UsersManager() {
   const inviteFn = useServerFn(inviteUser);
   const resendFn = useServerFn(resendInvite);
   const cancelFn = useServerFn(cancelInvite);
+  const deleteFn = useServerFn(deleteUser);
 
   const allRoles = [...BUILT_IN_ROLES, ...customRoles.map((c) => c.name)];
 
@@ -274,7 +288,26 @@ export function UsersManager() {
     }
   }
 
-  // ------------- Custom roles -------------
+  async function confirmDeleteUser() {
+    if (!deletingProfile) return;
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      toast.error("Your session has expired. Please sign in again.");
+      return;
+    }
+    setDeleteSubmitting(true);
+    try {
+      await deleteFn({ data: { accessToken, userId: deletingProfile.id } });
+      toast.success("User deleted");
+      setDeletingProfile(null);
+      load();
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e, "Failed to delete user"));
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  }
+
   async function addCustomRole() {
     const name = newRoleName.trim().toLowerCase().replace(/\s+/g, "_");
     if (!name) return;
@@ -443,6 +476,17 @@ export function UsersManager() {
                     <Button variant="ghost" size="sm" onClick={() => setEditingProfile(p)} className="h-9">
                       <Pencil className="h-4 w-4 mr-1" /> Edit
                     </Button>
+                    {canDeleteUsers && currentUser?.id !== p.id && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 text-destructive hover:text-destructive"
+                        onClick={() => setDeletingProfile(p)}
+                        title="Delete user"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}
@@ -594,6 +638,32 @@ export function UsersManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* DELETE USER CONFIRM */}
+      <AlertDialog open={!!deletingProfile} onOpenChange={(o) => !o && !deleteSubmitting && setDeletingProfile(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes{" "}
+              <span className="font-medium">
+                {deletingProfile?.display_name || deletingProfile?.email || "this user"}
+              </span>{" "}
+              and their role assignments. Their existing jobs and other records will remain. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmDeleteUser(); }}
+              disabled={deleteSubmitting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteSubmitting ? "Deleting…" : "Delete user"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
