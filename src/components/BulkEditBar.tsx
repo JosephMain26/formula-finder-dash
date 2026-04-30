@@ -15,6 +15,8 @@ interface BulkEditBarProps {
 
 export function BulkEditBar({ selectedIds, onClear, onChanged, statuses }: BulkEditBarProps) {
   const [busy, setBusy] = useState(false);
+  const { can } = useAuth();
+  const canEditPercentage = can("jobs.edit_percentage");
 
   if (selectedIds.length === 0) return null;
 
