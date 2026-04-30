@@ -145,6 +145,7 @@ export function UsersManager() {
   const inviteFn = useServerFn(inviteUser);
   const resendFn = useServerFn(resendInvite);
   const cancelFn = useServerFn(cancelInvite);
+  const deleteFn = useServerFn(deleteUser);
 
   const allRoles = [...BUILT_IN_ROLES, ...customRoles.map((c) => c.name)];
 
