@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, X } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 interface BulkEditBarProps {
   selectedIds: string[];
@@ -14,6 +15,8 @@ interface BulkEditBarProps {
 
 export function BulkEditBar({ selectedIds, onClear, onChanged, statuses }: BulkEditBarProps) {
   const [busy, setBusy] = useState(false);
+  const { can } = useAuth();
+  const canEditPercentage = can("jobs.edit_percentage");
 
   if (selectedIds.length === 0) return null;
 
@@ -54,7 +57,9 @@ export function BulkEditBar({ selectedIds, onClear, onChanged, statuses }: BulkE
         </SelectContent>
       </Select>
 
-      <TechPercentInput disabled={busy} onApply={(n) => applyUpdate({ manual_percentage: n })} />
+      {canEditPercentage && (
+        <TechPercentInput disabled={busy} onApply={(n) => applyUpdate({ manual_percentage: n })} />
+      )}
 
       <PaymentInput disabled={busy} onApply={(p) => applyUpdate({ payment: p })} />
 
