@@ -15,6 +15,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as InstallersRouteImport } from './routes/installers'
 import { Route as DataboardRouteImport } from './routes/databoard'
 import { Route as CompaniesRouteImport } from './routes/companies'
+import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -49,6 +50,11 @@ const CompaniesRoute = CompaniesRouteImport.update({
   path: '/companies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientsRoute = ClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -69,6 +75,7 @@ const LovableEmailQueueProcessRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/clients'
     | '/companies'
     | '/databoard'
     | '/installers'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/clients'
     | '/companies'
     | '/databoard'
     | '/installers'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
+    | '/clients'
     | '/companies'
     | '/databoard'
     | '/installers'
@@ -139,6 +151,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  ClientsRoute: typeof ClientsRoute
   CompaniesRoute: typeof CompaniesRoute
   DataboardRoute: typeof DataboardRoute
   InstallersRoute: typeof InstallersRoute
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompaniesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clients': {
+      id: '/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof ClientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -219,6 +239,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  ClientsRoute: ClientsRoute,
   CompaniesRoute: CompaniesRoute,
   DataboardRoute: DataboardRoute,
   InstallersRoute: InstallersRoute,

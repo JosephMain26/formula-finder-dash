@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      clients: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           company_name: string
@@ -235,6 +271,7 @@ export type Database = {
           address: string | null
           cc_fee: number | null
           check_no: string | null
+          client_id: string | null
           co_parts: number | null
           comp_type: string | null
           company: string | null
@@ -271,6 +308,7 @@ export type Database = {
           address?: string | null
           cc_fee?: number | null
           check_no?: string | null
+          client_id?: string | null
           co_parts?: number | null
           comp_type?: string | null
           company?: string | null
@@ -307,6 +345,7 @@ export type Database = {
           address?: string | null
           cc_fee?: number | null
           check_no?: string | null
+          client_id?: string | null
           co_parts?: number | null
           comp_type?: string | null
           company?: string | null

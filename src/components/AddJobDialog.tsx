@@ -24,6 +24,7 @@ type Technician = {
 };
 type JobType = { id: string; name: string };
 type Installer = { id: string; name: string };
+type Client = { id: string; name: string; phone: string | null; address: string | null };
 
 const emptyForm = {
   job_date: "", company_id: "", technician_id: "", tech_name: "",
@@ -32,6 +33,7 @@ const emptyForm = {
   check_no: "", tip: "", cost: "", notes: "", cc_fee: "",
   manual_percentage: "", marketer_percentage: "", created_by: "", maps: "", paid: false,
   installer_id: "", installer_name: "",
+  client_id: "",
 };
 
 interface JobDialogProps {
@@ -44,10 +46,11 @@ interface JobDialogProps {
 }
 
 export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOpenChange, prefill }: JobDialogProps) {
-  const { can, displayName } = useAuth();
+  const { can, displayName, isAdmin, isManager } = useAuth();
   const canAddForOthers = can("jobs.add_for_others");
   const canSeeMarketerPct = can("marketer.view_percentage");
   const canEditPercentage = can("jobs.edit_percentage");
+  const canManageClients = isAdmin || isManager; // techs (role 'user' only) skip client auto-save & picker
   const isEdit = !!job;
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
@@ -57,6 +60,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [installers, setInstallers] = useState<Installer[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [useManualPercentage, setUseManualPercentage] = useState(false);
   const [useManualMarketerPercentage, setUseManualMarketerPercentage] = useState(false);
   const [newJobType, setNewJobType] = useState("");
@@ -77,6 +81,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       supabase.from("companies").select("*").order("company_name").then(({ data }) => setCompanies(data || []));
       supabase.from("technicians").select("*").order("tech_name").then(({ data }) => setTechnicians((data as Technician[]) || []));
       (supabase as any).from("installers").select("id,name").order("name").then(({ data }: any) => setInstallers((data as Installer[]) || []));
+      if (canManageClients) {
+        (supabase as any).from("clients").select("id,name,phone,address").order("name").then(({ data }: any) => setClients((data as Client[]) || []));
+      }
       (supabase as any).from("marketer_types").select("name").order("name").then(({ data }: any) => {
         setMarketerTypes(((data as { name: string }[]) || []).map((t) => t.name));
       });
@@ -116,6 +123,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           paid: job.paid || false,
           installer_id: (job as any).installer_id || "",
           installer_name: (job as any).installer_name || "",
+          client_id: (job as any).client_id || "",
         });
         setUseManualPercentage(!!job.manual_percentage);
         setUseManualMarketerPercentage(false);
@@ -273,6 +281,41 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       installer_name: form.installer_name || null,
       extra_fields: extra || {},
     };
+
+    // Auto-save / link client (skipped for technicians — only admins/managers manage clients)
+    if (canManageClients) {
+      let cid: string | null = form.client_id || null;
+      const phone = (form.phone_no || "").trim();
+      if (!cid && phone) {
+        try {
+          const { data: existing } = await (supabase as any)
+            .from("clients")
+            .select("id")
+            .ilike("phone", phone)
+            .maybeSingle();
+          if (existing?.id) {
+            cid = existing.id;
+            // Update address/notes if previously empty? Keep light: just link, don't overwrite.
+          } else {
+            const derivedName = (form.address?.split(",")[0]?.trim()) || phone;
+            const { data: ins } = await (supabase as any)
+              .from("clients")
+              .insert({
+                name: derivedName,
+                phone,
+                address: form.address || null,
+              })
+              .select("id")
+              .single();
+            cid = ins?.id ?? null;
+          }
+        } catch {
+          // Non-fatal — don't block job save if client save fails
+          cid = form.client_id || null;
+        }
+      }
+      payload.client_id = cid;
+    }
 
     let error;
     if (isEdit && job) {
@@ -601,6 +644,40 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
             return visible.map((f) => renderers[f.key]?.());
           })()}
+
+          {canManageClients && (
+            <div className="col-span-2 mt-2 pt-3 border-t">
+              <label className="text-xs font-medium text-muted-foreground">
+                Client {form.client_id ? "" : "(optional — will be saved automatically from phone)"}
+              </label>
+              <Select
+                value={form.client_id || "__none__"}
+                onValueChange={(id) => {
+                  if (id === "__none__") { update("client_id", ""); return; }
+                  const c = clients.find((x) => x.id === id);
+                  if (!c) return;
+                  setForm((prev) => ({
+                    ...prev,
+                    client_id: id,
+                    phone_no: prev.phone_no || c.phone || "",
+                    address: prev.address || c.address || "",
+                  }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={clients.length ? "Select existing client" : "No clients yet"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— None / new client —</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}{c.phone ? ` · ${c.phone}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {customFields.filter(f => f.visibleInForm).length > 0 && (
             <div className="col-span-2 mt-2 pt-3 border-t">
