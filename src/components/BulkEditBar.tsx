@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, X } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 interface BulkEditBarProps {
   selectedIds: string[];
