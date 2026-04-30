@@ -476,6 +476,17 @@ export function UsersManager() {
                     <Button variant="ghost" size="sm" onClick={() => setEditingProfile(p)} className="h-9">
                       <Pencil className="h-4 w-4 mr-1" /> Edit
                     </Button>
+                    {canDeleteUsers && currentUser?.id !== p.id && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 text-destructive hover:text-destructive"
+                        onClick={() => setDeletingProfile(p)}
+                        title="Delete user"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}
