@@ -1,38 +1,126 @@
 ## Goal
-Add the ability to delete users from Settings → Users, gated by a new `users.delete` permission (admins always allowed).
+Track clients (customers) used on jobs so you can reuse them later. Manage them on a dedicated page (create / edit / delete) and pick / auto-create them from the Add/Edit Job dialog. Technicians are not required to provide client info.
 
-## Changes
+## 1. Database (1 migration)
 
-### 1. Database migration (one migration)
-- Insert a new permission row:
-  - `key = 'users.delete'`, `label = 'Delete users'`, `description = 'Permanently remove a user account and their role assignments'`.
-- No other schema changes — `has_permission()` and the existing `permissions` / `role_permissions` tables already drive everything.
+Create `public.clients`:
+- `id uuid pk default gen_random_uuid()`
+- `name text not null`
+- `phone text` (indexed, used for dedup)
+- `email text`
+- `address text`
+- `notes text`
+- `created_by uuid` (auth.uid of creator, nullable)
+- `created_at`, `updated_at` timestamptz default now()
+- Unique partial index on `lower(phone)` where phone is not null (prevents duplicates by phone).
 
-### 2. New server function — `src/lib/invites.functions.ts`
-Add `deleteUser` (kept in this file to avoid creating new modules, since it shares the same admin-token pattern):
-- Input: `{ accessToken, userId }` (zod-validated, `userId` as UUID).
-- Auth check: reuse `supabaseAdmin.auth.getUser(accessToken)` to resolve caller, then verify caller has `users.delete` via `has_permission(caller_id, 'users.delete')` RPC OR is admin (the existing `has_permission` SQL function already short-circuits for admins, so a single RPC call covers both).
-- Refuse self-delete (`userId === caller.id`).
-- Refuse deleting the last remaining admin (count `user_roles` where role='admin'; if target is admin and count <= 1 → error).
-- Steps:
-  1. `supabaseAdmin.from('user_roles').delete().eq('user_id', userId)`
-  2. `supabaseAdmin.from('user_preferences').delete().eq('user_id', userId)` (best-effort)
-  3. `supabaseAdmin.auth.admin.deleteUser(userId)` — this cascades to `profiles` via the existing FK on `profiles.id → auth.users.id`.
+RLS:
+- SELECT: authenticated.
+- INSERT: authenticated (any logged-in user; auto-creation from job form needs this).
+- UPDATE: admins, managers, OR users with new permission `clients.edit`.
+- DELETE: admins, OR users with new permission `clients.delete`.
 
-### 3. UI — `src/components/UsersManager.tsx`
-- Pull `can` from `useAuth()`; compute `canDeleteUsers = can('users.delete')`.
-- In each user row, when `canDeleteUsers && profile.id !== currentUser.id`, render a destructive trash icon button next to the existing Edit button.
-- Wrap delete in an `AlertDialog` confirmation ("Delete {name}? This cannot be undone.").
-- On confirm: call `deleteUser` server fn with `accessToken` + `userId`, toast result, `load()` to refresh.
-- Permissions matrix: no code changes needed — the new `users.delete` row appears automatically from the `permissions` table query. Admin row stays locked-on as today.
+Add `client_id uuid` column to `jobs` (nullable, no FK constraint to keep migration cheap — matches the existing pattern with company_id).
 
-### Why minimal credits
-- One small migration (single insert).
-- One new server function in an existing file.
-- Localized UI edit in one component (add button + confirm dialog + handler).
-- Zero changes to RLS, schema, or other components.
+Add 2 permission rows to `permissions` table:
+- `clients.edit` — Edit clients
+- `clients.delete` — Delete clients
 
-## Files touched
-- `supabase/migrations/<new>.sql` (insert one permission row, idempotent with `ON CONFLICT DO NOTHING`)
-- `src/lib/invites.functions.ts` (add `deleteUser`)
-- `src/components/UsersManager.tsx` (delete button + confirm dialog + handler)
+(Admins automatically pass both via the existing `has_permission` admin short-circuit.)
+
+## 2. Clients page — `src/routes/clients.tsx`
+
+A simple management page mirroring `installers.tsx` style:
+- Table: Name, Phone, Email, Address, Notes, Actions
+- "Add Client" button → dialog with the fields above
+- Edit (pencil) and Delete (trash w/ AlertDialog confirm) per row, gated by `clients.edit` / `clients.delete`
+- Search box (filter by name/phone/email client-side)
+
+Add nav link "Clients" in `MobileNav.tsx` and the settings header next to Marketers/Technicians/Installers.
+
+## 3. Job form integration — `src/components/AddJobDialog.tsx`
+
+Add a **Client** picker (Combobox-style Select) above the existing customer-info fields:
+- Loads `clients` on dialog open
+- Selecting a client auto-fills `phone_no` and `address` (only if those fields are still empty, so it doesn't overwrite manual typing)
+- "+ New client" option leaves selection empty — a new client will be created on submit (see below)
+- Stores `client_id` in form state and saves it on the job payload
+
+**Auto-save on submit (skipped for technicians):**
+- New helper `isTechnician = roles.includes("user") && !isAdmin && !isManager` — actually simpler: skip auto-save when the user has the `user` role only and is not admin/manager. We'll expose `isTechOnly` from `auth-context` (one-line derivation).
+- On submit, if not tech-only AND no `client_id` selected AND `phone_no` is filled:
+  1. Look up an existing client by phone (`select id from clients where phone = ... limit 1`)
+  2. If found → use its id
+  3. If not → insert `{ name: address-derived-or-phone, phone, address }` and use the returned id
+- The job payload then includes `client_id`. Tech users simply skip this entire block — their submit flow is unchanged.
+
+If a client IS selected, just attach its id; no insert.
+
+## 4. UI Surfaces
+
+- Add "Clients" link to `MobileNav.tsx` and to the settings header buttons row (`src/routes/settings.tsx`).
+- Use existing UI primitives only — no new dependencies.
+
+## Technical Detail
+
+```ts
+// migration outline
+create table public.clients (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  phone text,
+  email text,
+  address text,
+  notes text,
+  created_by uuid,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create unique index clients_phone_unique on public.clients (lower(phone)) where phone is not null;
+alter table public.jobs add column if not exists client_id uuid;
+
+-- RLS
+alter table public.clients enable row level security;
+create policy "auth view clients"   on public.clients for select to authenticated using (true);
+create policy "auth insert clients" on public.clients for insert to authenticated with check (true);
+create policy "edit clients"        on public.clients for update to authenticated
+  using (has_role(auth.uid(),'admin') or has_role(auth.uid(),'manager') or has_permission(auth.uid(),'clients.edit'));
+create policy "delete clients"      on public.clients for delete to authenticated
+  using (has_role(auth.uid(),'admin') or has_permission(auth.uid(),'clients.delete'));
+
+insert into public.permissions (key,label,description) values
+  ('clients.edit','Edit clients','Allow editing client records'),
+  ('clients.delete','Delete clients','Allow deleting client records')
+on conflict (key) do nothing;
+```
+
+```ts
+// AddJobDialog submit (added before insert/update)
+if (!isTechOnly) {
+  let cid = form.client_id || null;
+  if (!cid && form.phone_no) {
+    const { data: existing } = await supabase
+      .from("clients").select("id").eq("phone", form.phone_no).maybeSingle();
+    if (existing) cid = existing.id;
+    else {
+      const { data: ins } = await supabase.from("clients").insert({
+        name: form.address?.split(",")[0] || form.phone_no,
+        phone: form.phone_no, address: form.address || null,
+      }).select("id").single();
+      cid = ins?.id ?? null;
+    }
+  }
+  payload.client_id = cid;
+}
+```
+
+## Files Touched
+- New: `supabase/migrations/<ts>_clients.sql`
+- New: `src/routes/clients.tsx`
+- Edited: `src/components/AddJobDialog.tsx` (client picker + auto-save block + form state)
+- Edited: `src/lib/auth-context.tsx` (expose `isTechOnly`)
+- Edited: `src/components/MobileNav.tsx`, `src/routes/settings.tsx` (nav link)
+
+Total: 1 migration + 1 new page + 4 small edits — minimal credit usage. No new dependencies.
+
+Reply **Approved** to implement.
