@@ -328,7 +328,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                   </Select>
                 </div>
               ),
-              tech_percentage_panel: () => (
+              tech_percentage_panel: () => canEditPercentage ? (
                 <div key="tech_percentage_panel" className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
                   <Checkbox id="manual-pct" checked={useManualPercentage} onCheckedChange={(v) => setUseManualPercentage(!!v)} />
                   <label htmlFor="manual-pct" className="text-sm cursor-pointer">Override tech percentage for this job</label>
@@ -338,8 +338,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                     <span className="ml-auto text-sm text-muted-foreground">Using tech default %</span>
                   )}
                 </div>
-              ),
-              marketer_percentage_panel: () => canSeeMarketerPct ? (
+              ) : null,
+              marketer_percentage_panel: () => (canSeeMarketerPct && canEditPercentage) ? (
                 <div key="marketer_percentage_panel" className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
                   <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
                   <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer">Override marketer percentage for this job</label>
