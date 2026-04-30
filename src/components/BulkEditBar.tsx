@@ -57,7 +57,9 @@ export function BulkEditBar({ selectedIds, onClear, onChanged, statuses }: BulkE
         </SelectContent>
       </Select>
 
-      <TechPercentInput disabled={busy} onApply={(n) => applyUpdate({ manual_percentage: n })} />
+      {canEditPercentage && (
+        <TechPercentInput disabled={busy} onApply={(n) => applyUpdate({ manual_percentage: n })} />
+      )}
 
       <PaymentInput disabled={busy} onApply={(p) => applyUpdate({ payment: p })} />
 
