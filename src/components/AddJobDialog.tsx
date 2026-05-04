@@ -287,52 +287,41 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       extra_fields: extra || {},
     };
 
-    // Auto-save / link client (skipped for technicians — only admins/managers manage clients)
+    // Client linking based on clientMode
     if (canManageClients) {
-      let cid: string | null = form.client_id || null;
-      const phone = (form.phone_no || "").trim();
-      if (!cid && phone) {
-        try {
-          const { data: existing } = await (supabase as any)
-            .from("clients")
-            .select("id")
-            .ilike("phone", phone)
-            .maybeSingle();
-          if (existing?.id) {
-            cid = existing.id;
-            // Update address/notes if previously empty? Keep light: just link, don't overwrite.
-          } else {
-            const derivedName = (form.address?.split(",")[0]?.trim()) || phone;
-            const { data: ins } = await (supabase as any)
-              .from("clients")
-              .insert({
-                name: derivedName,
-                phone,
-                address: form.address || null,
-              })
-              .select("id")
-              .single();
-            cid = ins?.id ?? null;
-          }
-        } catch {
-          // Non-fatal — don't block job save if client save fails
-          cid = form.client_id || null;
-        }
+      if (clientMode === "link" && form.client_id) {
+        payload.client_id = form.client_id;
       }
-      payload.client_id = cid;
+      // "new" mode: save job first, then show popup to create client
     }
 
     let error;
+    let insertedJobId: string | null = null;
     if (isEdit && job) {
       ({ error } = await supabase.from("jobs").update(payload).eq("id", job.id));
+      insertedJobId = job.id;
     } else {
-      ({ error } = await supabase.from("jobs").insert(payload));
+      const res = await supabase.from("jobs").insert(payload).select("id").single();
+      error = res.error;
+      insertedJobId = res.data?.id ?? null;
     }
 
     setLoading(false);
     if (!error) {
       setOpen(false);
       onJobSaved();
+      // If "new" client mode, open the new client popup
+      if (canManageClients && clientMode === "new" && !isEdit && insertedJobId) {
+        setSavedJobId(insertedJobId);
+        setNewClientForm({
+          name: (form.address?.split(",")[0]?.trim()) || form.phone_no || "",
+          phone: form.phone_no || "",
+          email: "",
+          address: form.address || "",
+          notes: "",
+        });
+        setShowNewClientPopup(true);
+      }
     }
   }
 
