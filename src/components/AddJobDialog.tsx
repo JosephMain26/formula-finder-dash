@@ -639,30 +639,80 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             return visible.map((f) => renderers[f.key]?.());
           })()}
 
-          {canManageClients && (
+          {canManageClients && !isEdit && (
             <div className="col-span-2 mt-2 pt-3 border-t">
-              <label className="text-xs font-medium text-muted-foreground">
-                Client {form.client_id ? "" : "(optional — will be saved automatically from phone)"}
-              </label>
+              <label className="text-xs font-medium text-muted-foreground mb-2 block">Client</label>
+              <RadioGroup
+                value={clientMode}
+                onValueChange={(v) => {
+                  setClientMode(v as "skip" | "link" | "new");
+                  if (v !== "link") update("client_id", "");
+                }}
+                className="flex gap-4"
+              >
+                <div className="flex items-center gap-1.5">
+                  <RadioGroupItem value="skip" id="cm-skip" />
+                  <label htmlFor="cm-skip" className="text-sm cursor-pointer">Skip</label>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <RadioGroupItem value="link" id="cm-link" />
+                  <label htmlFor="cm-link" className="text-sm cursor-pointer">Link existing</label>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <RadioGroupItem value="new" id="cm-new" />
+                  <label htmlFor="cm-new" className="text-sm cursor-pointer">Add new</label>
+                </div>
+              </RadioGroup>
+              {clientMode === "link" && (
+                <Select
+                  value={form.client_id || "__none__"}
+                  onValueChange={(id) => {
+                    if (id === "__none__") { update("client_id", ""); return; }
+                    const c = clients.find((x) => x.id === id);
+                    if (!c) return;
+                    setForm((prev) => ({
+                      ...prev,
+                      client_id: id,
+                      phone_no: prev.phone_no || c.phone || "",
+                      address: prev.address || c.address || "",
+                    }));
+                  }}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder={clients.length ? "Select existing client" : "No clients yet"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Select —</SelectItem>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}{c.phone ? ` · ${c.phone}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {clientMode === "new" && (
+                <p className="text-xs text-muted-foreground mt-2">A popup will appear after saving to fill in client details.</p>
+              )}
+            </div>
+          )}
+          {canManageClients && isEdit && (
+            <div className="col-span-2 mt-2 pt-3 border-t">
+              <label className="text-xs font-medium text-muted-foreground">Linked Client</label>
               <Select
                 value={form.client_id || "__none__"}
                 onValueChange={(id) => {
                   if (id === "__none__") { update("client_id", ""); return; }
                   const c = clients.find((x) => x.id === id);
                   if (!c) return;
-                  setForm((prev) => ({
-                    ...prev,
-                    client_id: id,
-                    phone_no: prev.phone_no || c.phone || "",
-                    address: prev.address || c.address || "",
-                  }));
+                  setForm((prev) => ({ ...prev, client_id: id }));
                 }}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={clients.length ? "Select existing client" : "No clients yet"} />
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="No client linked" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">— None / new client —</SelectItem>
+                  <SelectItem value="__none__">— None —</SelectItem>
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}{c.phone ? ` · ${c.phone}` : ""}
