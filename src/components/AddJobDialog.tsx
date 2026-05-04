@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -13,6 +14,7 @@ import { useAuth } from "@/lib/auth-context";
 import { loadFormSchema, defaultStatusName, type CustomField, type StatusDef, loadStatuses } from "@/lib/jobSchema";
 import { DynamicField } from "@/components/DynamicField";
 import { getCoreFieldsResolved, type CoreFieldOverride, type CoreFieldKey } from "@/lib/coreFields";
+import { toast } from "sonner";
 
 type Company = Tables<"companies">;
 type Technician = {
@@ -73,6 +75,10 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [coreOverrides, setCoreOverrides] = useState<CoreFieldOverride[] | null>(null);
   const [statuses, setStatuses] = useState<StatusDef[]>([]);
   const [extra, setExtra] = useState<Record<string, any>>({});
+  const [clientMode, setClientMode] = useState<"skip" | "link" | "new">("skip");
+  const [showNewClientPopup, setShowNewClientPopup] = useState(false);
+  const [savedJobId, setSavedJobId] = useState<string | null>(null);
+  const [newClientForm, setNewClientForm] = useState({ name: "", phone: "", email: "", address: "", notes: "" });
 
   const [form, setForm] = useState(emptyForm);
 
@@ -132,6 +138,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         setForm({ ...emptyForm, status: seedStatus, ...(prefill || {}) } as typeof emptyForm);
         setUseManualPercentage(false);
         setUseManualMarketerPercentage(false);
+        setClientMode("skip");
         // Resolve company by name from prefill if id not provided
         if (prefill?._companyName && !prefill.company_id) {
           supabase.from("companies").select("*").then(({ data }) => {
@@ -282,58 +289,48 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       extra_fields: extra || {},
     };
 
-    // Auto-save / link client (skipped for technicians — only admins/managers manage clients)
+    // Client linking based on clientMode
     if (canManageClients) {
-      let cid: string | null = form.client_id || null;
-      const phone = (form.phone_no || "").trim();
-      if (!cid && phone) {
-        try {
-          const { data: existing } = await (supabase as any)
-            .from("clients")
-            .select("id")
-            .ilike("phone", phone)
-            .maybeSingle();
-          if (existing?.id) {
-            cid = existing.id;
-            // Update address/notes if previously empty? Keep light: just link, don't overwrite.
-          } else {
-            const derivedName = (form.address?.split(",")[0]?.trim()) || phone;
-            const { data: ins } = await (supabase as any)
-              .from("clients")
-              .insert({
-                name: derivedName,
-                phone,
-                address: form.address || null,
-              })
-              .select("id")
-              .single();
-            cid = ins?.id ?? null;
-          }
-        } catch {
-          // Non-fatal — don't block job save if client save fails
-          cid = form.client_id || null;
-        }
+      if (clientMode === "link" && form.client_id) {
+        payload.client_id = form.client_id;
       }
-      payload.client_id = cid;
+      // "new" mode: save job first, then show popup to create client
     }
 
     let error;
+    let insertedJobId: string | null = null;
     if (isEdit && job) {
       ({ error } = await supabase.from("jobs").update(payload).eq("id", job.id));
+      insertedJobId = job.id;
     } else {
-      ({ error } = await supabase.from("jobs").insert(payload));
+      const res = await supabase.from("jobs").insert(payload).select("id").single();
+      error = res.error;
+      insertedJobId = res.data?.id ?? null;
     }
 
     setLoading(false);
     if (!error) {
       setOpen(false);
       onJobSaved();
+      // If "new" client mode, open the new client popup
+      if (canManageClients && clientMode === "new" && !isEdit && insertedJobId) {
+        setSavedJobId(insertedJobId);
+        setNewClientForm({
+          name: (form.address?.split(",")[0]?.trim()) || form.phone_no || "",
+          phone: form.phone_no || "",
+          email: "",
+          address: form.address || "",
+          notes: "",
+        });
+        setShowNewClientPopup(true);
+      }
     }
   }
 
   const selectedCompany = companies.find(c => c.id === form.company_id);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || <Button><Plus className="h-4 w-4 mr-2" /> Add Job</Button>}
@@ -645,30 +642,80 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             return visible.map((f) => renderers[f.key]?.());
           })()}
 
-          {canManageClients && (
+          {canManageClients && !isEdit && (
             <div className="col-span-2 mt-2 pt-3 border-t">
-              <label className="text-xs font-medium text-muted-foreground">
-                Client {form.client_id ? "" : "(optional — will be saved automatically from phone)"}
-              </label>
+              <label className="text-xs font-medium text-muted-foreground mb-2 block">Client</label>
+              <RadioGroup
+                value={clientMode}
+                onValueChange={(v) => {
+                  setClientMode(v as "skip" | "link" | "new");
+                  if (v !== "link") update("client_id", "");
+                }}
+                className="flex gap-4"
+              >
+                <div className="flex items-center gap-1.5">
+                  <RadioGroupItem value="skip" id="cm-skip" />
+                  <label htmlFor="cm-skip" className="text-sm cursor-pointer">Skip</label>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <RadioGroupItem value="link" id="cm-link" />
+                  <label htmlFor="cm-link" className="text-sm cursor-pointer">Link existing</label>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <RadioGroupItem value="new" id="cm-new" />
+                  <label htmlFor="cm-new" className="text-sm cursor-pointer">Add new</label>
+                </div>
+              </RadioGroup>
+              {clientMode === "link" && (
+                <Select
+                  value={form.client_id || "__none__"}
+                  onValueChange={(id) => {
+                    if (id === "__none__") { update("client_id", ""); return; }
+                    const c = clients.find((x) => x.id === id);
+                    if (!c) return;
+                    setForm((prev) => ({
+                      ...prev,
+                      client_id: id,
+                      phone_no: prev.phone_no || c.phone || "",
+                      address: prev.address || c.address || "",
+                    }));
+                  }}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue placeholder={clients.length ? "Select existing client" : "No clients yet"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Select —</SelectItem>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}{c.phone ? ` · ${c.phone}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {clientMode === "new" && (
+                <p className="text-xs text-muted-foreground mt-2">A popup will appear after saving to fill in client details.</p>
+              )}
+            </div>
+          )}
+          {canManageClients && isEdit && (
+            <div className="col-span-2 mt-2 pt-3 border-t">
+              <label className="text-xs font-medium text-muted-foreground">Linked Client</label>
               <Select
                 value={form.client_id || "__none__"}
                 onValueChange={(id) => {
                   if (id === "__none__") { update("client_id", ""); return; }
                   const c = clients.find((x) => x.id === id);
                   if (!c) return;
-                  setForm((prev) => ({
-                    ...prev,
-                    client_id: id,
-                    phone_no: prev.phone_no || c.phone || "",
-                    address: prev.address || c.address || "",
-                  }));
+                  setForm((prev) => ({ ...prev, client_id: id }));
                 }}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={clients.length ? "Select existing client" : "No clients yet"} />
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="No client linked" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">— None / new client —</SelectItem>
+                  <SelectItem value="__none__">— None —</SelectItem>
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}{c.phone ? ` · ${c.phone}` : ""}
@@ -701,6 +748,73 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         </form>
       </DialogContent>
     </Dialog>
+
+    {/* Post-submit new client popup */}
+    <Dialog open={showNewClientPopup} onOpenChange={(o) => { if (!o) { setShowNewClientPopup(false); setSavedJobId(null); } }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Save Client Details</DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!newClientForm.name.trim()) return;
+            const clientPayload = {
+              name: newClientForm.name.trim(),
+              phone: newClientForm.phone.trim() || null,
+              email: newClientForm.email.trim() || null,
+              address: newClientForm.address.trim() || null,
+              notes: newClientForm.notes.trim() || null,
+            };
+            const { data: ins, error } = await (supabase as any)
+              .from("clients")
+              .insert(clientPayload)
+              .select("id")
+              .single();
+            if (error) {
+              toast.error(error.message.includes("clients_phone_unique")
+                ? "A client with this phone already exists."
+                : error.message);
+              return;
+            }
+            if (ins?.id && savedJobId) {
+              await supabase.from("jobs").update({ client_id: ins.id } as any).eq("id", savedJobId);
+            }
+            toast.success("Client saved & linked to job");
+            setShowNewClientPopup(false);
+            setSavedJobId(null);
+            onJobSaved();
+          }}
+          className="space-y-3 mt-3"
+        >
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Name *</label>
+            <Input value={newClientForm.name} onChange={(e) => setNewClientForm((p) => ({ ...p, name: e.target.value }))} required maxLength={120} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Phone</label>
+            <Input value={newClientForm.phone} onChange={(e) => setNewClientForm((p) => ({ ...p, phone: e.target.value }))} maxLength={40} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Email</label>
+            <Input type="email" value={newClientForm.email} onChange={(e) => setNewClientForm((p) => ({ ...p, email: e.target.value }))} maxLength={255} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Address</label>
+            <Input value={newClientForm.address} onChange={(e) => setNewClientForm((p) => ({ ...p, address: e.target.value }))} maxLength={300} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Notes</label>
+            <Input value={newClientForm.notes} onChange={(e) => setNewClientForm((p) => ({ ...p, notes: e.target.value }))} maxLength={500} />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => { setShowNewClientPopup(false); setSavedJobId(null); }}>Skip</Button>
+            <Button type="submit">Save Client</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  </>
   );
 }
 

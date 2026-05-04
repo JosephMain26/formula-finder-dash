@@ -10,10 +10,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeft, ExternalLink } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { JobDialog } from "@/components/AddJobDialog";
+import type { Tables } from "@/integrations/supabase/types";
 
 type Client = {
   id: string;
@@ -22,6 +24,16 @@ type Client = {
   email: string | null;
   address: string | null;
   notes: string | null;
+};
+
+type LinkedJob = {
+  id: string;
+  job_date: string | null;
+  address: string | null;
+  status: string | null;
+  price: number | null;
+  phone_no: string | null;
+  tech_name: string | null;
 };
 
 export const Route = createFileRoute("/clients")({
@@ -171,6 +183,8 @@ function ClientDialog({ client, onSaved }: { client?: Client; onSaved: () => voi
   const isEdit = !!client;
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [linkedJobs, setLinkedJobs] = useState<LinkedJob[]>([]);
+  const [editJob, setEditJob] = useState<Tables<"jobs"> | null>(null);
   const [form, setForm] = useState({
     name: client?.name || "",
     phone: client?.phone || "",
@@ -188,6 +202,15 @@ function ClientDialog({ client, onSaved }: { client?: Client; onSaved: () => voi
         address: client?.address || "",
         notes: client?.notes || "",
       });
+      setLinkedJobs([]);
+      if (isEdit && client) {
+        (supabase as any)
+          .from("jobs")
+          .select("id,job_date,address,status,price,phone_no,tech_name")
+          .eq("client_id", client.id)
+          .order("job_date", { ascending: false })
+          .then(({ data }: any) => setLinkedJobs((data as LinkedJob[]) || []));
+      }
     }
   }, [open, client]);
 
@@ -225,45 +248,100 @@ function ClientDialog({ client, onSaved }: { client?: Client; onSaved: () => voi
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {isEdit ? (
-          <Button variant="ghost" size="icon"><Pencil className="h-4 w-4" /></Button>
-        ) : (
-          <Button><Plus className="h-4 w-4 mr-2" /> Add Client</Button>
-        )}
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Client" : "Add Client"}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Name *</label>
-            <Input value={form.name} onChange={(e) => update("name", e.target.value)} required maxLength={120} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Phone</label>
-            <Input value={form.phone} onChange={(e) => update("phone", e.target.value)} maxLength={40} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Email</label>
-            <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} maxLength={255} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Address</label>
-            <Input value={form.address} onChange={(e) => update("address", e.target.value)} maxLength={300} />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Notes</label>
-            <Input value={form.notes} onChange={(e) => update("notes", e.target.value)} maxLength={500} />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          {isEdit ? (
+            <Button variant="ghost" size="icon"><Pencil className="h-4 w-4" /></Button>
+          ) : (
+            <Button><Plus className="h-4 w-4 mr-2" /> Add Client</Button>
+          )}
+        </DialogTrigger>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{isEdit ? "Edit Client" : "Add Client"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Name *</label>
+              <Input value={form.name} onChange={(e) => update("name", e.target.value)} required maxLength={120} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Phone</label>
+              <Input value={form.phone} onChange={(e) => update("phone", e.target.value)} maxLength={40} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Email</label>
+              <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} maxLength={255} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Address</label>
+              <Input value={form.address} onChange={(e) => update("address", e.target.value)} maxLength={300} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Notes</label>
+              <Input value={form.notes} onChange={(e) => update("notes", e.target.value)} maxLength={500} />
+            </div>
+
+            {/* Linked Jobs */}
+            {isEdit && linkedJobs.length > 0 && (
+              <div className="pt-3 border-t">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Linked Jobs ({linkedJobs.length})
+                </label>
+                <div className="mt-2 space-y-1 max-h-[180px] overflow-y-auto">
+                  {linkedJobs.map((j) => (
+                    <button
+                      key={j.id}
+                      type="button"
+                      className="w-full text-left flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent transition-colors"
+                      onClick={() => {
+                        // Fetch full job to open in JobDialog
+                        supabase.from("jobs").select("*").eq("id", j.id).single().then(({ data }) => {
+                          if (data) setEditJob(data);
+                        });
+                      }}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-muted-foreground text-xs whitespace-nowrap">{j.job_date || "No date"}</span>
+                        <span className="truncate">{j.address || j.phone_no || "—"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-muted-foreground">{j.status}</span>
+                        {j.price != null && <span className="text-xs font-medium">${Number(j.price).toFixed(0)}</span>}
+                        <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {isEdit && linkedJobs.length === 0 && (
+              <div className="pt-3 border-t">
+                <p className="text-xs text-muted-foreground">No jobs linked to this client yet.</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Job edit dialog opened from linked jobs */}
+      {editJob && (
+        <JobDialog
+          job={editJob}
+          open={!!editJob}
+          onOpenChange={(o) => { if (!o) setEditJob(null); }}
+          onJobSaved={() => {
+            setEditJob(null);
+            onSaved();
+          }}
+        />
+      )}
+    </>
   );
 }
