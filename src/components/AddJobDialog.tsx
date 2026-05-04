@@ -328,6 +328,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const selectedCompany = companies.find(c => c.id === form.company_id);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || <Button><Plus className="h-4 w-4 mr-2" /> Add Job</Button>}
