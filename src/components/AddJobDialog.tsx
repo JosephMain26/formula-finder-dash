@@ -138,6 +138,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         setForm({ ...emptyForm, status: seedStatus, ...(prefill || {}) } as typeof emptyForm);
         setUseManualPercentage(false);
         setUseManualMarketerPercentage(false);
+        setClientMode("skip");
         // Resolve company by name from prefill if id not provided
         if (prefill?._companyName && !prefill.company_id) {
           supabase.from("companies").select("*").then(({ data }) => {
