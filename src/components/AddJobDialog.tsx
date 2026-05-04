@@ -74,6 +74,10 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [coreOverrides, setCoreOverrides] = useState<CoreFieldOverride[] | null>(null);
   const [statuses, setStatuses] = useState<StatusDef[]>([]);
   const [extra, setExtra] = useState<Record<string, any>>({});
+  const [clientMode, setClientMode] = useState<"skip" | "link" | "new">("skip");
+  const [showNewClientPopup, setShowNewClientPopup] = useState(false);
+  const [savedJobId, setSavedJobId] = useState<string | null>(null);
+  const [newClientForm, setNewClientForm] = useState({ name: "", phone: "", email: "", address: "", notes: "" });
 
   const [form, setForm] = useState(emptyForm);
 
