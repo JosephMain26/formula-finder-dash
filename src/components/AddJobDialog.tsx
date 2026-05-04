@@ -745,6 +745,73 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         </form>
       </DialogContent>
     </Dialog>
+
+    {/* Post-submit new client popup */}
+    <Dialog open={showNewClientPopup} onOpenChange={(o) => { if (!o) { setShowNewClientPopup(false); setSavedJobId(null); } }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Save Client Details</DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!newClientForm.name.trim()) return;
+            const clientPayload = {
+              name: newClientForm.name.trim(),
+              phone: newClientForm.phone.trim() || null,
+              email: newClientForm.email.trim() || null,
+              address: newClientForm.address.trim() || null,
+              notes: newClientForm.notes.trim() || null,
+            };
+            const { data: ins, error } = await (supabase as any)
+              .from("clients")
+              .insert(clientPayload)
+              .select("id")
+              .single();
+            if (error) {
+              toast.error(error.message.includes("clients_phone_unique")
+                ? "A client with this phone already exists."
+                : error.message);
+              return;
+            }
+            if (ins?.id && savedJobId) {
+              await supabase.from("jobs").update({ client_id: ins.id } as any).eq("id", savedJobId);
+            }
+            toast.success("Client saved & linked to job");
+            setShowNewClientPopup(false);
+            setSavedJobId(null);
+            onJobSaved();
+          }}
+          className="space-y-3 mt-3"
+        >
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Name *</label>
+            <Input value={newClientForm.name} onChange={(e) => setNewClientForm((p) => ({ ...p, name: e.target.value }))} required maxLength={120} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Phone</label>
+            <Input value={newClientForm.phone} onChange={(e) => setNewClientForm((p) => ({ ...p, phone: e.target.value }))} maxLength={40} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Email</label>
+            <Input type="email" value={newClientForm.email} onChange={(e) => setNewClientForm((p) => ({ ...p, email: e.target.value }))} maxLength={255} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Address</label>
+            <Input value={newClientForm.address} onChange={(e) => setNewClientForm((p) => ({ ...p, address: e.target.value }))} maxLength={300} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Notes</label>
+            <Input value={newClientForm.notes} onChange={(e) => setNewClientForm((p) => ({ ...p, notes: e.target.value }))} maxLength={500} />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => { setShowNewClientPopup(false); setSavedJobId(null); }}>Skip</Button>
+            <Button type="submit">Save Client</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  </>
   );
 }
 
