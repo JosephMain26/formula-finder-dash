@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth-context";
 import { loadFormSchema, defaultStatusName, type CustomField, type StatusDef, loadStatuses } from "@/lib/jobSchema";
 import { DynamicField } from "@/components/DynamicField";
 import { getCoreFieldsResolved, type CoreFieldOverride, type CoreFieldKey } from "@/lib/coreFields";
+import { toast } from "sonner";
 
 type Company = Tables<"companies">;
 type Technician = {
