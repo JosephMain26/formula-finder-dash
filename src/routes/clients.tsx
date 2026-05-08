@@ -143,7 +143,7 @@ function ClientsPage() {
                   </TableHeader>
                   <TableBody>
                     {filtered.map((c) => (
-                      <TableRow key={c.id}>
+                      <TableRow key={c.id} className={highlightId === c.id ? "bg-primary/10 ring-1 ring-primary/30" : ""}>
                         <TableCell className="font-medium">{c.name}</TableCell>
                         <TableCell>{c.phone || "—"}</TableCell>
                         <TableCell>{c.email || "—"}</TableCell>
@@ -151,7 +151,7 @@ function ClientsPage() {
                         <TableCell className="max-w-[200px] truncate">{c.notes || "—"}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            {canEdit && <ClientDialog client={c} onSaved={fetchClients} />}
+                            {canEdit && <ClientDialog client={c} onSaved={fetchClients} autoOpen={highlightId === c.id} onOpened={() => setHighlightId(null)} />}
                             {canDelete && (
                               <Button variant="ghost" size="icon" onClick={() => setToDelete(c)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
