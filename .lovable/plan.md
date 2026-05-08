@@ -1,35 +1,32 @@
 
+## Goal
+
+Make the connection between jobs and clients visible and navigable from both sides:
+- **From a client** → see linked jobs and click to open (already done)
+- **From a job** → see linked client name and click to open client details (missing)
+
 ## Changes
 
-### 1. Client Dialog — Show Linked Jobs
+### 1. Job Dialog — Clickable Client Link (`src/components/AddJobDialog.tsx`)
 
-In `src/routes/clients.tsx`, update the `ClientDialog` component:
+In edit mode, next to the "Linked Client" dropdown, show the linked client's name as a clickable link/button. Clicking it navigates to `/clients` (or opens the client detail in-place if feasible). This gives a quick way to jump from a job to its client record.
 
-- When editing a client (dialog opens), fetch jobs where `client_id = client.id` from the `jobs` table.
-- Display a "Linked Jobs" section below the form fields showing a compact list (date, address, status, price).
-- Each job row is clickable and opens the `JobDialog` in edit mode for that job (reuse existing `JobDialog` component).
+Simple approach: add a small "View" button next to the client select that links to `/clients` with a highlight/search param for the linked client.
 
-### 2. Job Form — Three-Option Client Flow
+### 2. Jobs Table — Client Name Column (`src/components/JobsTable.tsx`)
 
-In `src/components/AddJobDialog.tsx`, replace the current client picker with a radio group (only for non-tech users):
+- Fetch client names for jobs that have a `client_id` (single query joining on loaded jobs).
+- Show a "Client" column (togglable via ColumnToggle) displaying the client name.
+- Clicking the client name navigates to `/clients`.
 
-- **Link existing client** — shows the current Select dropdown to pick from saved clients.
-- **Add new client** — no picker shown; after job submit, a small popup opens to let the user fill in client details (name, phone, email, address, notes) and save. The phone/address from the job form are pre-filled.
-- **Skip** — no client linked (default).
+### 3. Column Toggle — Add "Client" option (`src/components/ColumnToggle.tsx`)
 
-This replaces the current auto-save-by-phone logic with explicit user choice.
-
-### 3. Post-Submit Client Edit Popup
-
-In `src/components/AddJobDialog.tsx`:
-
-- After successful job submission, if the user chose "Add new client", show a small `Dialog` pre-filled with phone and address from the job form.
-- On save, insert into `clients` table and update the just-created job's `client_id`.
-- On skip/close, do nothing.
+Add `"client"` to the available column keys so users can show/hide the client column.
 
 ### Files Touched
 
-- `src/routes/clients.tsx` — add linked jobs query + display + JobDialog import
-- `src/components/AddJobDialog.tsx` — radio group for client mode, post-submit client popup
+- `src/components/AddJobDialog.tsx` — add clickable client link button in edit mode
+- `src/components/JobsTable.tsx` — fetch + display client name column, link to clients page
+- `src/components/ColumnToggle.tsx` — add "client" column key
 
-No database changes needed. No new dependencies.
+No database changes needed.
