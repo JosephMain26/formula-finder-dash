@@ -106,6 +106,7 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
             )}
             {show("actions") && <TableHead className="w-[80px]">Actions</TableHead>}
             {show("job_date") && <TableHead>Date</TableHead>}
+            {show("client") && <TableHead>Client</TableHead>}
             {show("company") && <TableHead>Marketer</TableHead>}
             {show("tech_name") && <TableHead>Tech</TableHead>}
             {show("po_number") && <TableHead>PO #</TableHead>}
