@@ -55,6 +55,7 @@ function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [toDelete, setToDelete] = useState<Client | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   async function fetchClients() {
     setLoading(true);
@@ -63,7 +64,15 @@ function ClientsPage() {
     setLoading(false);
   }
 
-  useEffect(() => { fetchClients(); }, []);
+  useEffect(() => {
+    fetchClients();
+    // Check for highlight param from URL
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const hl = params.get("highlight");
+      if (hl) setHighlightId(hl);
+    }
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
