@@ -40,11 +40,23 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
 
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [statusOptions, setStatusOptions] = useState<string[]>(["Pending","In Progress","Completed","Cancelled"]);
+  const [clientNames, setClientNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadCustomFields().then((f) => setCustomFields(f.filter((x) => x.visibleInTable)));
     loadStatuses().then((s) => setStatusOptions(s.map((x) => x.name)));
   }, []);
+
+  // Fetch client names for jobs that have client_id
+  useEffect(() => {
+    const clientIds = [...new Set(jobs.map((j) => (j as any).client_id).filter(Boolean))] as string[];
+    if (clientIds.length === 0) { setClientNames({}); return; }
+    (supabase as any).from("clients").select("id,name").in("id", clientIds).then(({ data }: any) => {
+      const map: Record<string, string> = {};
+      ((data as { id: string; name: string }[]) || []).forEach((c) => { map[c.id] = c.name; });
+      setClientNames(map);
+    });
+  }, [jobs]);
 
   function renderExtra(job: Job, f: CustomField) {
     const v = ((job as any).extra_fields || {})[f.key];
@@ -93,6 +105,7 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
             )}
             {show("actions") && <TableHead className="w-[80px]">Actions</TableHead>}
             {show("job_date") && <TableHead>Date</TableHead>}
+            {show("client") && <TableHead>Client</TableHead>}
             {show("company") && <TableHead>Marketer</TableHead>}
             {show("tech_name") && <TableHead>Tech</TableHead>}
             {show("po_number") && <TableHead>PO #</TableHead>}
@@ -159,6 +172,15 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
                       </div>
                     </div>
                   )}
+                </TableCell>
+              )}
+              {show("client") && (
+                <TableCell className="text-sm">
+                  {(job as any).client_id && clientNames[(job as any).client_id] ? (
+                    <a href={`/clients?highlight=${(job as any).client_id}`} className="text-primary hover:underline">
+                      {clientNames[(job as any).client_id]}
+                    </a>
+                  ) : "—"}
                 </TableCell>
               )}
               {show("company") && <TableCell className="text-sm font-medium">{job.company_1 || job.company || "—"}</TableCell>}

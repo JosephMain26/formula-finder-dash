@@ -55,6 +55,7 @@ function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [toDelete, setToDelete] = useState<Client | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   async function fetchClients() {
     setLoading(true);
@@ -63,7 +64,15 @@ function ClientsPage() {
     setLoading(false);
   }
 
-  useEffect(() => { fetchClients(); }, []);
+  useEffect(() => {
+    fetchClients();
+    // Check for highlight param from URL
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const hl = params.get("highlight");
+      if (hl) setHighlightId(hl);
+    }
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -134,7 +143,7 @@ function ClientsPage() {
                   </TableHeader>
                   <TableBody>
                     {filtered.map((c) => (
-                      <TableRow key={c.id}>
+                      <TableRow key={c.id} className={highlightId === c.id ? "bg-primary/10 ring-1 ring-primary/30" : ""}>
                         <TableCell className="font-medium">{c.name}</TableCell>
                         <TableCell>{c.phone || "—"}</TableCell>
                         <TableCell>{c.email || "—"}</TableCell>
@@ -142,7 +151,7 @@ function ClientsPage() {
                         <TableCell className="max-w-[200px] truncate">{c.notes || "—"}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            {canEdit && <ClientDialog client={c} onSaved={fetchClients} />}
+                            {canEdit && <ClientDialog client={c} onSaved={fetchClients} autoOpen={highlightId === c.id} onOpened={() => setHighlightId(null)} />}
                             {canDelete && (
                               <Button variant="ghost" size="icon" onClick={() => setToDelete(c)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -179,9 +188,17 @@ function ClientsPage() {
   );
 }
 
-function ClientDialog({ client, onSaved }: { client?: Client; onSaved: () => void }) {
+function ClientDialog({ client, onSaved, autoOpen, onOpened }: { client?: Client; onSaved: () => void; autoOpen?: boolean; onOpened?: () => void }) {
   const isEdit = !!client;
   const [open, setOpen] = useState(false);
+
+  // Auto-open when highlight param matches
+  useEffect(() => {
+    if (autoOpen && !open) {
+      setOpen(true);
+      onOpened?.();
+    }
+  }, [autoOpen]);
   const [loading, setLoading] = useState(false);
   const [linkedJobs, setLinkedJobs] = useState<LinkedJob[]>([]);
   const [editJob, setEditJob] = useState<Tables<"jobs"> | null>(null);

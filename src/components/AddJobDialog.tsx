@@ -702,27 +702,39 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           {canManageClients && isEdit && (
             <div className="col-span-2 mt-2 pt-3 border-t">
               <label className="text-xs font-medium text-muted-foreground">Linked Client</label>
-              <Select
-                value={form.client_id || "__none__"}
-                onValueChange={(id) => {
-                  if (id === "__none__") { update("client_id", ""); return; }
-                  const c = clients.find((x) => x.id === id);
-                  if (!c) return;
-                  setForm((prev) => ({ ...prev, client_id: id }));
-                }}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="No client linked" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">— None —</SelectItem>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}{c.phone ? ` · ${c.phone}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2 items-center mt-1">
+                <Select
+                  value={form.client_id || "__none__"}
+                  onValueChange={(id) => {
+                    if (id === "__none__") { update("client_id", ""); return; }
+                    const c = clients.find((x) => x.id === id);
+                    if (!c) return;
+                    setForm((prev) => ({ ...prev, client_id: id }));
+                  }}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="No client linked" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— None —</SelectItem>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}{c.phone ? ` · ${c.phone}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.client_id && (
+                  <a
+                    href={`/clients?highlight=${form.client_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline whitespace-nowrap"
+                  >
+                    View Client
+                  </a>
+                )}
+              </div>
             </div>
           )}
 
