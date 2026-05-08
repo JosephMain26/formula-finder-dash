@@ -188,9 +188,17 @@ function ClientsPage() {
   );
 }
 
-function ClientDialog({ client, onSaved }: { client?: Client; onSaved: () => void }) {
+function ClientDialog({ client, onSaved, autoOpen, onOpened }: { client?: Client; onSaved: () => void; autoOpen?: boolean; onOpened?: () => void }) {
   const isEdit = !!client;
   const [open, setOpen] = useState(false);
+
+  // Auto-open when highlight param matches
+  useEffect(() => {
+    if (autoOpen && !open) {
+      setOpen(true);
+      onOpened?.();
+    }
+  }, [autoOpen]);
   const [loading, setLoading] = useState(false);
   const [linkedJobs, setLinkedJobs] = useState<LinkedJob[]>([]);
   const [editJob, setEditJob] = useState<Tables<"jobs"> | null>(null);
