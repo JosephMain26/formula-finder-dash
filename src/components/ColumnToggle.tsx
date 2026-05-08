@@ -11,6 +11,7 @@ import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
 export const ALL_COLUMNS = [
   { key: "actions", label: "Actions" },
   { key: "job_date", label: "Date" },
+  { key: "client", label: "Client" },
   { key: "company", label: "Marketer" },
   { key: "tech_name", label: "Tech" },
   { key: "po_number", label: "PO #" },
