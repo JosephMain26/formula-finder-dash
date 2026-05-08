@@ -175,6 +175,15 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
                   )}
                 </TableCell>
               )}
+              {show("client") && (
+                <TableCell className="text-sm">
+                  {(job as any).client_id && clientNames[(job as any).client_id] ? (
+                    <Link to="/clients" search={{ highlight: (job as any).client_id }} className="text-primary hover:underline">
+                      {clientNames[(job as any).client_id]}
+                    </Link>
+                  ) : "—"}
+                </TableCell>
+              )}
               {show("company") && <TableCell className="text-sm font-medium">{job.company_1 || job.company || "—"}</TableCell>}
               {show("tech_name") && (
                 <TableCell className="text-sm p-1">
