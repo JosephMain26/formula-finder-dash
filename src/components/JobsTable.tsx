@@ -178,9 +178,9 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
               {show("client") && (
                 <TableCell className="text-sm">
                   {(job as any).client_id && clientNames[(job as any).client_id] ? (
-                    <Link to="/clients" search={{ highlight: (job as any).client_id }} className="text-primary hover:underline">
+                    <a href={`/clients?highlight=${(job as any).client_id}`} className="text-primary hover:underline">
                       {clientNames[(job as any).client_id]}
-                    </Link>
+                    </a>
                   ) : "—"}
                 </TableCell>
               )}
