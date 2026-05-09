@@ -15,6 +15,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { JobDialog } from "@/components/AddJobDialog";
+import { ImportClientsDialog } from "@/components/ImportClientsDialog";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Client = {
@@ -105,7 +106,10 @@ function ClientsPage() {
               <p className="hidden sm:block text-sm text-muted-foreground mt-0.5">Reusable customer records linked to jobs</p>
             </div>
           </div>
-          <ClientDialog onSaved={fetchClients} />
+          <div className="flex items-center gap-2">
+            <ImportClientsDialog onImported={fetchClients} />
+            <ClientDialog onSaved={fetchClients} />
+          </div>
         </div>
       </header>
 
