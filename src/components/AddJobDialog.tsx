@@ -724,6 +724,24 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                     ))}
                   </SelectContent>
                 </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSavedJobId((job as any)?.id || null);
+                    setNewClientForm({
+                      name: "",
+                      phone: form.phone_no || "",
+                      email: "",
+                      address: form.address || "",
+                      notes: "",
+                    });
+                    setShowNewClientPopup(true);
+                  }}
+                >
+                  + New
+                </Button>
                 {form.client_id && (
                   <a
                     href={`/clients?highlight=${form.client_id}`}
@@ -731,7 +749,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                     rel="noopener noreferrer"
                     className="text-xs text-primary hover:underline whitespace-nowrap"
                   >
-                    View Client
+                    View
                   </a>
                 )}
               </div>
