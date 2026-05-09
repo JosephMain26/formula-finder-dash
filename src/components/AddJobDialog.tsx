@@ -810,6 +810,12 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             if (ins?.id && savedJobId) {
               await supabase.from("jobs").update({ client_id: ins.id } as any).eq("id", savedJobId);
             }
+            // Refresh local clients list and link in form (for edit mode UI)
+            if (ins?.id) {
+              setForm((prev) => ({ ...prev, client_id: ins.id }));
+              const { data: cs } = await (supabase as any).from("clients").select("id,name,phone,address").order("name");
+              setClients((cs as Client[]) || []);
+            }
             toast.success("Client saved & linked to job");
             setShowNewClientPopup(false);
             setSavedJobId(null);
