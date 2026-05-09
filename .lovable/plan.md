@@ -1,32 +1,29 @@
-
 ## Goal
 
-Make the connection between jobs and clients visible and navigable from both sides:
-- **From a client** → see linked jobs and click to open (already done)
-- **From a job** → see linked client name and click to open client details (missing)
+In the job edit dialog, allow linking a brand-new client (not yet in the system) directly from the "Linked Client" section — without leaving the job dialog.
 
-## Changes
+## Current State
 
-### 1. Job Dialog — Clickable Client Link (`src/components/AddJobDialog.tsx`)
+- **New job mode** already supports three client modes: `skip` / `link existing` / `new` (with a popup to fill details after saving).
+- **Edit mode** (`AddJobDialog.tsx`, ~lines 702–740) only has a Select dropdown of existing clients + a "View Client" link. There is no way to create a new client if it doesn't exist.
 
-In edit mode, next to the "Linked Client" dropdown, show the linked client's name as a clickable link/button. Clicking it navigates to `/clients` (or opens the client detail in-place if feasible). This gives a quick way to jump from a job to its client record.
+## Change
 
-Simple approach: add a small "View" button next to the client select that links to `/clients` with a highlight/search param for the linked client.
+### `src/components/AddJobDialog.tsx` — Edit mode "Linked Client" section
 
-### 2. Jobs Table — Client Name Column (`src/components/JobsTable.tsx`)
+Add a small **"+ New"** button next to the existing Select dropdown. Clicking it opens the existing `showNewClientPopup` dialog (already built into this file) prefilled with the job's phone / address.
 
-- Fetch client names for jobs that have a `client_id` (single query joining on loaded jobs).
-- Show a "Client" column (togglable via ColumnToggle) displaying the client name.
-- Clicking the client name navigates to `/clients`.
+On save in that popup:
+- Insert into `clients` table (reuses existing insert logic).
+- Set `form.client_id` to the new client's id.
+- Update the job row with `client_id` so the link persists immediately.
+- Refresh the local `clients` list so the new entry shows in the Select.
+- Toast success.
 
-### 3. Column Toggle — Add "Client" option (`src/components/ColumnToggle.tsx`)
-
-Add `"client"` to the available column keys so users can show/hide the client column.
+No new component, no schema change — reuses the popup, query, and insert path that already exist for the "new" mode in create flow.
 
 ### Files Touched
 
-- `src/components/AddJobDialog.tsx` — add clickable client link button in edit mode
-- `src/components/JobsTable.tsx` — fetch + display client name column, link to clients page
-- `src/components/ColumnToggle.tsx` — add "client" column key
+- `src/components/AddJobDialog.tsx` — add "+ New" button in edit-mode Linked Client row; extend the popup save handler to also work in edit mode (link to current job).
 
-No database changes needed.
+No database changes.
