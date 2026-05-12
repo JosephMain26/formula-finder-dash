@@ -36,6 +36,8 @@ const emptyForm = {
   manual_percentage: "", marketer_percentage: "", created_by: "", maps: "", paid: false,
   installer_id: "", installer_name: "",
   client_id: "",
+  tech_pay_mode: "percent" as "percent" | "fixed",
+  tech_fixed_amount: "",
 };
 
 interface JobDialogProps {
