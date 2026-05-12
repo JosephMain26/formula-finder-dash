@@ -14,6 +14,7 @@ interface EditableCellProps {
   display: React.ReactNode;
   className?: string;
   align?: "left" | "right";
+  step?: string;
   onSaved: () => void;
 }
 
