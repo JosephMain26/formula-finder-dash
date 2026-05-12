@@ -36,6 +36,8 @@ const emptyForm = {
   manual_percentage: "", marketer_percentage: "", created_by: "", maps: "", paid: false,
   installer_id: "", installer_name: "",
   client_id: "",
+  tech_pay_mode: "percent" as "percent" | "fixed",
+  tech_fixed_amount: "",
 };
 
 interface JobDialogProps {
@@ -130,6 +132,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           installer_id: (job as any).installer_id || "",
           installer_name: (job as any).installer_name || "",
           client_id: (job as any).client_id || "",
+          tech_pay_mode: ((job as any).tech_pay_mode === "fixed" ? "fixed" : "percent") as "percent" | "fixed",
+          tech_fixed_amount: (job as any).tech_fixed_amount != null ? String((job as any).tech_fixed_amount) : "",
         });
         setUseManualPercentage(!!job.manual_percentage);
         setUseManualMarketerPercentage(false);
@@ -250,11 +254,22 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     const revenue = price - coParts - officeParts - parts - tip - (isCard ? ccFee : 0);
     const marketerPct = marketerPctRaw / 100;
     const techPct = techPctRaw / 100;
-    const officePct = Math.max(0, 1 - marketerPct - techPct);
+
+    const isFixedTech = form.tech_pay_mode === "fixed";
+    const techFixed = isFixedTech && form.tech_fixed_amount ? parseFloat(form.tech_fixed_amount) : 0;
 
     const totalMarketer = Math.round((revenue * marketerPct + coParts) * 100) / 100;
-    const totalOffice = Math.round((revenue * officePct + officeParts) * 100) / 100;
-    const totalTech = Math.round((revenue * techPct + parts + tip) * 100) / 100;
+
+    let totalTech: number;
+    let totalOffice: number;
+    if (isFixedTech) {
+      totalTech = Math.round((techFixed + parts + tip) * 100) / 100;
+      totalOffice = Math.round((revenue - revenue * marketerPct - techFixed + officeParts) * 100) / 100;
+    } else {
+      const officePct = Math.max(0, 1 - marketerPct - techPct);
+      totalTech = Math.round((revenue * techPct + parts + tip) * 100) / 100;
+      totalOffice = Math.round((revenue * officePct + officeParts) * 100) / 100;
+    }
 
     const payload: any = {
       job_date: form.job_date || null,
@@ -278,6 +293,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       notes: form.notes || null,
       cc_fee: ccFee,
       manual_percentage: techPctRaw,
+      tech_pay_mode: form.tech_pay_mode,
+      tech_fixed_amount: techFixed,
       created_by: form.created_by || null,
       maps: form.maps || null,
       paid: form.paid,
@@ -369,14 +386,38 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 </div>
               ),
               tech_percentage_panel: () => canEditPercentage ? (
-                <div key="tech_percentage_panel" className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
-                  <Checkbox id="manual-pct" checked={useManualPercentage} onCheckedChange={(v) => setUseManualPercentage(!!v)} />
-                  <label htmlFor="manual-pct" className="text-sm cursor-pointer">Override tech percentage for this job</label>
-                  {useManualPercentage ? (
-                    <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="Tech %" value={form.manual_percentage} onChange={(e) => update("manual_percentage", e.target.value)} />
-                  ) : (
-                    <span className="ml-auto text-sm text-muted-foreground">Using tech default %</span>
-                  )}
+                <div key="tech_percentage_panel" className="col-span-2 rounded-lg border p-3 bg-muted/30 space-y-2">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Checkbox id="manual-pct" checked={useManualPercentage} onCheckedChange={(v) => setUseManualPercentage(!!v)} />
+                    <label htmlFor="manual-pct" className="text-sm cursor-pointer">Override tech pay for this job</label>
+                    {useManualPercentage && (
+                      <div className="ml-auto flex items-center gap-2">
+                        <div className="inline-flex rounded-md border bg-background p-0.5 text-xs">
+                          <button
+                            type="button"
+                            className={`px-2.5 py-1 rounded ${form.tech_pay_mode === "percent" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                            onClick={() => update("tech_pay_mode", "percent" as any)}
+                          >% Percent</button>
+                          <button
+                            type="button"
+                            className={`px-2.5 py-1 rounded ${form.tech_pay_mode === "fixed" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                            onClick={() => update("tech_pay_mode", "fixed" as any)}
+                          >$ Fixed</button>
+                        </div>
+                        {form.tech_pay_mode === "fixed" ? (
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                            <Input type="number" step="0.01" min="0" className="w-28 pl-5" placeholder="Amount" value={form.tech_fixed_amount} onChange={(e) => update("tech_fixed_amount", e.target.value)} />
+                          </div>
+                        ) : (
+                          <Input type="number" step="0.001" min="0" max="100" className="w-24" placeholder="Tech %" value={form.manual_percentage} onChange={(e) => update("manual_percentage", e.target.value)} />
+                        )}
+                      </div>
+                    )}
+                    {!useManualPercentage && (
+                      <span className="ml-auto text-sm text-muted-foreground">Using tech default %</span>
+                    )}
+                  </div>
                 </div>
               ) : null,
               marketer_percentage_panel: () => (canSeeMarketerPct && canEditPercentage) ? (

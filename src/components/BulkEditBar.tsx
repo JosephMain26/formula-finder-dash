@@ -79,7 +79,7 @@ function TechPercentInput({ onApply, disabled }: { onApply: (n: number) => void;
   return (
     <div className="flex items-center gap-1">
       <Input
-        type="number" min="0" max="100" placeholder="Tech %" value={v}
+        type="number" step="0.001" min="0" max="100" placeholder="Tech %" value={v}
         onChange={(e) => setV(e.target.value)}
         className="h-8 w-[90px]"
       />
