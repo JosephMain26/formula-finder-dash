@@ -132,6 +132,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           installer_id: (job as any).installer_id || "",
           installer_name: (job as any).installer_name || "",
           client_id: (job as any).client_id || "",
+          tech_pay_mode: ((job as any).tech_pay_mode === "fixed" ? "fixed" : "percent") as "percent" | "fixed",
+          tech_fixed_amount: (job as any).tech_fixed_amount != null ? String((job as any).tech_fixed_amount) : "",
         });
         setUseManualPercentage(!!job.manual_percentage);
         setUseManualMarketerPercentage(false);
