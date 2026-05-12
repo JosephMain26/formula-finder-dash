@@ -27,6 +27,7 @@ export function EditableCell({
   display,
   className,
   align = "left",
+  step,
   onSaved,
 }: EditableCellProps) {
   const [editing, setEditing] = useState(false);
