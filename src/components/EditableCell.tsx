@@ -101,7 +101,7 @@ export function EditableCell({
     <Input
       ref={inputRef}
       type={type === "number" ? "number" : type === "date" ? "date" : "text"}
-      step={type === "number" ? "0.01" : undefined}
+      step={type === "number" ? (step ?? "0.01") : undefined}
       value={draft}
       disabled={saving}
       onChange={(e) => setDraft(e.target.value)}
