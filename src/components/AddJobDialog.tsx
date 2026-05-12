@@ -293,6 +293,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       notes: form.notes || null,
       cc_fee: ccFee,
       manual_percentage: techPctRaw,
+      tech_pay_mode: form.tech_pay_mode,
+      tech_fixed_amount: techFixed,
       created_by: form.created_by || null,
       maps: form.maps || null,
       paid: form.paid,
