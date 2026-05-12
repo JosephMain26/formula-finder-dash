@@ -254,11 +254,22 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     const revenue = price - coParts - officeParts - parts - tip - (isCard ? ccFee : 0);
     const marketerPct = marketerPctRaw / 100;
     const techPct = techPctRaw / 100;
-    const officePct = Math.max(0, 1 - marketerPct - techPct);
+
+    const isFixedTech = form.tech_pay_mode === "fixed";
+    const techFixed = isFixedTech && form.tech_fixed_amount ? parseFloat(form.tech_fixed_amount) : 0;
 
     const totalMarketer = Math.round((revenue * marketerPct + coParts) * 100) / 100;
-    const totalOffice = Math.round((revenue * officePct + officeParts) * 100) / 100;
-    const totalTech = Math.round((revenue * techPct + parts + tip) * 100) / 100;
+
+    let totalTech: number;
+    let totalOffice: number;
+    if (isFixedTech) {
+      totalTech = Math.round((techFixed + parts + tip) * 100) / 100;
+      totalOffice = Math.round((revenue - revenue * marketerPct - techFixed + officeParts) * 100) / 100;
+    } else {
+      const officePct = Math.max(0, 1 - marketerPct - techPct);
+      totalTech = Math.round((revenue * techPct + parts + tip) * 100) / 100;
+      totalOffice = Math.round((revenue * officePct + officeParts) * 100) / 100;
+    }
 
     const payload: any = {
       job_date: form.job_date || null,
