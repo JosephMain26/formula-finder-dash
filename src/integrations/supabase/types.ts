@@ -297,7 +297,9 @@ export type Database = {
           po_number: string | null
           price: number | null
           status: string | null
+          tech_fixed_amount: number
           tech_name: string | null
+          tech_pay_mode: string
           tip: number | null
           total_marketer: number | null
           total_office: number | null
@@ -334,7 +336,9 @@ export type Database = {
           po_number?: string | null
           price?: number | null
           status?: string | null
+          tech_fixed_amount?: number
           tech_name?: string | null
+          tech_pay_mode?: string
           tip?: number | null
           total_marketer?: number | null
           total_office?: number | null
@@ -371,7 +375,9 @@ export type Database = {
           po_number?: string | null
           price?: number | null
           status?: string | null
+          tech_fixed_amount?: number
           tech_name?: string | null
+          tech_pay_mode?: string
           tip?: number | null
           total_marketer?: number | null
           total_office?: number | null
