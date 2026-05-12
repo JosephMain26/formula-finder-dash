@@ -242,13 +242,26 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
               )}
               {show("manual_percentage") && (
                 <TableCell className="text-right text-sm p-1">
-                  {canEditPercentage ? (
-                    <EditableCell jobId={job.id} field="manual_percentage" type="number" value={job.manual_percentage} align="right"
-                      display={<span className="px-2">{job.manual_percentage != null ? `${job.manual_percentage}%` : "—"}</span>}
-                      onSaved={onJobsChanged} />
-                  ) : (
-                    <span className="px-2">{job.manual_percentage != null ? `${job.manual_percentage}%` : "—"}</span>
-                  )}
+                  {(() => {
+                    const isFixed = (job as any).tech_pay_mode === "fixed";
+                    const fixed = Number((job as any).tech_fixed_amount ?? 0);
+                    const pct = job.manual_percentage;
+                    const fmtPct = (n: number) => {
+                      const s = n.toFixed(3).replace(/\.?0+$/, "");
+                      return `${s}%`;
+                    };
+                    const label = isFixed
+                      ? `$${fixed.toFixed(2)}`
+                      : (pct != null ? fmtPct(Number(pct)) : "—");
+                    if (canEditPercentage && !isFixed) {
+                      return (
+                        <EditableCell jobId={job.id} field="manual_percentage" type="number" step="0.001" value={pct} align="right"
+                          display={<span className="px-2">{label}</span>}
+                          onSaved={onJobsChanged} />
+                      );
+                    }
+                    return <span className="px-2">{label}</span>;
+                  })()}
                 </TableCell>
               )}
               {show("total_marketer") && <TableCell className="text-right text-sm font-medium">{currency((job as any).total_marketer ?? 0)}</TableCell>}
