@@ -1,48 +1,46 @@
-## Tech Profit: Percentage or Fixed Amount
+# Make the Users tab fully responsive
 
-### Database
-Add two columns to `jobs`:
-- `tech_pay_mode` text default `'percent'` (allowed: `'percent'` | `'fixed'`)
-- `tech_fixed_amount` numeric default `0`
+The Users tab (`src/components/UsersManager.tsx`) currently breaks on phone screens: the invite row, user rows, and especially the Roles & Permissions matrix push controls off-screen or cause horizontal scrolling that hides headlines/buttons. This plan makes every section usable on a 360px phone with no hidden functionality.
 
-No backfill needed — existing rows default to `'percent'`, preserving current behavior.
+## Scope
 
-### Calculation change (`AddJobDialog.tsx` `handleSubmit`)
+Only `src/components/UsersManager.tsx`. No business logic changes.
 
-Today (percent mode, unchanged):
-```
-totalTech    = revenue * techPct + parts + tip
-totalOffice  = revenue * (1 - marketerPct - techPct) + officeParts
-totalMarketer= revenue * marketerPct + coParts
-```
+## Changes per section
 
-When `tech_pay_mode === 'fixed'`:
-```
-totalTech    = techFixed + parts + tip                 // tech gets a flat $ off revenue
-totalOffice  = revenue - marketerShare - techFixed + officeParts
-totalMarketer= revenue * marketerPct + coParts         // unchanged
-```
-Office is correctly reduced by the fixed tech amount. `manual_percentage` is still saved (for display continuity) but ignored by the math when mode is `fixed`.
+**1. Data Visibility card**
+- Switch from `flex items-start justify-between` to `flex-col sm:flex-row sm:items-start sm:justify-between` so the Switch sits below the description on phones instead of getting squeezed.
 
-### UI — `AddJobDialog` tech_percentage_panel
+**2. Invite Users**
+- Email input: keep `flex-1` but lower `min-w-[220px]` to `min-w-[180px]` so it doesn't force wrap awkwardly.
+- Wrap role Select + Send button in a `flex gap-2 w-full sm:w-auto` group; make Select `flex-1 sm:w-40` so the row collapses to: [email full-width] / [role + send full-width] on small screens.
+- Pending invite rows: stack the meta + action buttons vertically on mobile (`flex-col sm:flex-row sm:items-center`); keep Resend/Cancel side by side in their own row.
 
-Replace the single % input with a compact toggle:
-- Radio/segmented control: **% Percent** | **$ Fixed**
-- Percent → existing `manual_percentage` input (now `step="0.001"`, allowing 3 decimals like `52.125`)
-- Fixed → `tech_fixed_amount` input with `$` prefix, `step="0.01"`
+**3. Users list**
+- Each row: change to `flex-col sm:flex-row sm:items-center` so name/email block sits on top, then a second row holds the role Select (full width on mobile), Edit, and Delete buttons. Use `w-full sm:w-32` on the role SelectTrigger and put Edit/Delete in a `flex gap-1 ml-auto` container.
 
-Override checkbox still gates the whole panel for percent mode. Fixed mode is always an explicit override (auto-disables the "use tech default %" path while active).
+**4. Roles & Permissions (biggest issue)**
+- "New role" input + Add button: already wraps OK; make the Add button `whitespace-nowrap`.
+- The matrix `<table>` is the worst offender — on a 360px screen, columns vanish behind horizontal scroll with no indication. Two-part fix:
+  - Keep `overflow-x-auto` but add a sticky first column: `<th>`/`<td>` for the Permission name get `sticky left-0 bg-background z-10` (header `bg-muted/50`) so users can always see which permission they're toggling while scrolling roles horizontally.
+  - Add `min-w-[110px]` to role headers so checkboxes don't crush together, and shrink padding on phones (`p-1.5 sm:p-2`).
+  - Add a small hint above the table on mobile only: `<p className="text-xs text-muted-foreground sm:hidden">Scroll horizontally to see all roles →</p>`.
 
-### Other places to update for 3 decimals
+**5. Pre-seeded Admin Emails**
+- Add `truncate min-w-0` to the email span so long emails don't push the trash button off-screen.
+- Input + Add button row: make Add `shrink-0`.
 
-- `JobsTable.tsx` Tech % cell: display `manual_percentage` to up to 3 decimals (trim trailing zeros), and the inline `EditableCell` for `manual_percentage` → `step="0.001"`.
-- `BulkEditBar.tsx` `TechPercentInput` → `step="0.001"`.
-- Show Tech Pay column hint: when `tech_pay_mode='fixed'`, render `$XX.XX` in the Tech % column instead of `—`/percent (small, low-effort).
+**6. Edit Profile dialog**
+- `DialogContent` currently `max-w-lg` — add `max-h-[90vh] overflow-y-auto` and `w-[calc(100%-2rem)]` so the dialog fits and scrolls on phones.
 
-### Files touched
-- New migration adding the two columns.
-- `src/components/AddJobDialog.tsx` (UI panel + math + form state).
-- `src/components/JobsTable.tsx` (display + editable step).
-- `src/components/BulkEditBar.tsx` (step).
+**7. Delete confirm AlertDialog**
+- Add `w-[calc(100%-2rem)]` to `AlertDialogContent` for safe phone margins (shadcn default is fine width-wise but footer buttons can clip on 320px — already stacks via shadcn defaults, no change needed beyond width safety).
 
-No new dependencies. No backend functions. RLS unchanged.
+## Out of scope
+
+- The settings page `TabsList` itself (already uses `w-max` inside what should be a horizontal scroller) — only touch if testing reveals the tab strip hides triggers. Quick fix if needed: wrap in `overflow-x-auto`.
+- No DB, server function, or auth changes.
+
+## Verification
+
+After edits, view the Users tab at 360px and 414px in the preview to confirm: every headline visible, every button reachable, the permission matrix scrolls with sticky permission column, dialogs fit the viewport.

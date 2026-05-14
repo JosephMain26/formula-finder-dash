@@ -376,7 +376,7 @@ export function UsersManager() {
       <Card>
         <CardHeader><CardTitle>Data Visibility</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 rounded-md border p-3">
             <div className="min-w-0">
               <Label className="text-sm">Allow all users to see each other's data</Label>
               <p className="text-xs text-muted-foreground mt-1">
@@ -384,7 +384,7 @@ export function UsersManager() {
                 Admins always see everything. You can also grant the <span className="font-medium">View all users' jobs</span> permission to specific roles in the matrix below.
               </p>
             </div>
-            <Switch checked={shareAcrossUsers} disabled={savingVisibility} onCheckedChange={toggleShareAcrossUsers} />
+            <Switch checked={shareAcrossUsers} disabled={savingVisibility} onCheckedChange={toggleShareAcrossUsers} className="shrink-0" />
           </div>
         </CardContent>
       </Card>
