@@ -512,16 +512,18 @@ export function UsersManager() {
               onChange={(e) => setNewRoleName(e.target.value)}
               className="flex-1 h-9"
             />
-            <Button size="sm" onClick={addCustomRole}><Plus className="h-4 w-4 mr-1" /> Add role</Button>
+            <Button size="sm" onClick={addCustomRole} className="shrink-0 whitespace-nowrap"><Plus className="h-4 w-4 mr-1" /> Add role</Button>
           </div>
+
+          <p className="text-xs text-muted-foreground sm:hidden">Scroll horizontally to see all roles →</p>
 
           <div className="overflow-x-auto border rounded-md">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="text-left p-2 font-medium">Permission</th>
+                  <th className="text-left p-1.5 sm:p-2 font-medium sticky left-0 bg-muted/50 z-10">Permission</th>
                   {allRoles.map((r) => (
-                    <th key={r} className="text-center p-2 font-medium capitalize">
+                    <th key={r} className="text-center p-1.5 sm:p-2 font-medium capitalize min-w-[88px]">
                       <div className="flex flex-col items-center gap-1">
                         <span className="flex items-center gap-1">
                           {r}
@@ -546,12 +548,12 @@ export function UsersManager() {
               <tbody>
                 {permissions.map((perm) => (
                   <tr key={perm.key} className="border-t">
-                    <td className="p-2">{perm.label}</td>
+                    <td className="p-1.5 sm:p-2 sticky left-0 bg-background z-10">{perm.label}</td>
                     {allRoles.map((r) => {
                       const checked = r === "admin" || (rolePerms[r]?.has(perm.key) ?? false);
                       const locked = r === "admin";
                       return (
-                        <td key={r} className="p-2 text-center">
+                        <td key={r} className="p-1.5 sm:p-2 text-center">
                           <div className="flex justify-center">
                             <Checkbox
                               checked={checked}
