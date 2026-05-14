@@ -461,7 +461,7 @@ export function UsersManager() {
                   p.email ||
                   "—";
                 return (
-                  <div key={p.id} className="flex flex-wrap items-center gap-3 p-3">
+                  <div key={p.id} className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 p-3">
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{fullName}</div>
                       <div className="text-xs text-muted-foreground truncate">
@@ -469,28 +469,30 @@ export function UsersManager() {
                         {p.job_title ? ` · ${p.job_title}` : ""}
                       </div>
                     </div>
-                    <Select value={roles[p.id] || "user"} onValueChange={(v) => changeRole(p.id, v)}>
-                      <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {BUILT_IN_ROLES.map((r) => (
-                          <SelectItem key={r} value={r}>{r}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingProfile(p)} className="h-9">
-                      <Pencil className="h-4 w-4 mr-1" /> Edit
-                    </Button>
-                    {canDeleteUsers && currentUser?.id !== p.id && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 text-destructive hover:text-destructive"
-                        onClick={() => setDeletingProfile(p)}
-                        title="Delete user"
-                      >
-                        <Trash2 className="h-4 w-4" />
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <Select value={roles[p.id] || "user"} onValueChange={(v) => changeRole(p.id, v)}>
+                        <SelectTrigger className="flex-1 sm:w-32 h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {BUILT_IN_ROLES.map((r) => (
+                            <SelectItem key={r} value={r}>{r}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button variant="ghost" size="sm" onClick={() => setEditingProfile(p)} className="h-9 shrink-0">
+                        <Pencil className="h-4 w-4 mr-1" /> Edit
                       </Button>
-                    )}
+                      {canDeleteUsers && currentUser?.id !== p.id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 shrink-0 text-destructive hover:text-destructive"
+                          onClick={() => setDeletingProfile(p)}
+                          title="Delete user"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
