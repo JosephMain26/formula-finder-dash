@@ -462,9 +462,9 @@ export function UsersManager() {
                   "—";
                 return (
                   <div key={p.id} className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 p-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{fullName}</div>
-                      <div className="text-xs text-muted-foreground truncate">
+                    <div className="flex-1 min-w-0 w-full">
+                      <div className="text-sm font-medium break-words">{fullName}</div>
+                      <div className="text-xs text-muted-foreground break-all">
                         {p.email}
                         {p.job_title ? ` · ${p.job_title}` : ""}
                       </div>
