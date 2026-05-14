@@ -585,8 +585,8 @@ export function UsersManager() {
           <div className="space-y-2">
             {seeds.map((s) => (
               <div key={s.email} className="flex items-center gap-2 border rounded-md p-2">
-                <span className="flex-1 text-sm">{s.email}</span>
-                <Button variant="ghost" size="icon" onClick={() => removeSeed(s.email)} className="h-9 w-9">
+                <span className="flex-1 min-w-0 text-sm truncate">{s.email}</span>
+                <Button variant="ghost" size="icon" onClick={() => removeSeed(s.email)} className="h-9 w-9 shrink-0">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
@@ -599,7 +599,7 @@ export function UsersManager() {
               onChange={(e) => setSeedEmail(e.target.value)}
               className="flex-1 h-9"
             />
-            <Button size="sm" onClick={addSeed}><Plus className="h-4 w-4 mr-1" /> Add</Button>
+            <Button size="sm" onClick={addSeed} className="shrink-0"><Plus className="h-4 w-4 mr-1" /> Add</Button>
           </div>
         </CardContent>
       </Card>
