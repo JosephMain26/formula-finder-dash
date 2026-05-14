@@ -606,7 +606,7 @@ export function UsersManager() {
 
       {/* EDIT PROFILE DIALOG (admin) */}
       <Dialog open={!!editingProfile} onOpenChange={(o) => !o && setEditingProfile(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit user — {editingProfile?.email}</DialogTitle>
           </DialogHeader>
