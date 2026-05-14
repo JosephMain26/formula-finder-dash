@@ -376,7 +376,7 @@ export function UsersManager() {
       <Card>
         <CardHeader><CardTitle>Data Visibility</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-start justify-between gap-4 rounded-md border p-3">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 rounded-md border p-3">
             <div className="min-w-0">
               <Label className="text-sm">Allow all users to see each other's data</Label>
               <p className="text-xs text-muted-foreground mt-1">
@@ -384,7 +384,7 @@ export function UsersManager() {
                 Admins always see everything. You can also grant the <span className="font-medium">View all users' jobs</span> permission to specific roles in the matrix below.
               </p>
             </div>
-            <Switch checked={shareAcrossUsers} disabled={savingVisibility} onCheckedChange={toggleShareAcrossUsers} />
+            <Switch checked={shareAcrossUsers} disabled={savingVisibility} onCheckedChange={toggleShareAcrossUsers} className="shrink-0" />
           </div>
         </CardContent>
       </Card>
@@ -393,25 +393,27 @@ export function UsersManager() {
       <Card>
         <CardHeader><CardTitle>Invite Users</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
             <Input
               type="email"
               placeholder="email@example.com"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              className="flex-1 min-w-[220px] h-9"
+              className="w-full sm:flex-1 sm:min-w-[180px] h-9"
             />
-            <Select value={inviteRole} onValueChange={setInviteRole}>
-              <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {BUILT_IN_ROLES.map((r) => (
-                  <SelectItem key={r} value={r}>{r}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={sendInvite} disabled={inviteSending || !inviteEmail.trim()} size="sm">
-              <Send className="h-4 w-4 mr-1" /> {inviteSending ? "Sending…" : "Send invite"}
-            </Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Select value={inviteRole} onValueChange={setInviteRole}>
+                <SelectTrigger className="flex-1 sm:w-40 h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {BUILT_IN_ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={sendInvite} disabled={inviteSending || !inviteEmail.trim()} size="sm" className="shrink-0">
+                <Send className="h-4 w-4 mr-1" /> {inviteSending ? "Sending…" : "Send invite"}
+              </Button>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground">
             They'll get a magic-link email. Clicking it signs them in and assigns the chosen role automatically.
@@ -420,19 +422,21 @@ export function UsersManager() {
           {pending.length > 0 && (
             <div className="border rounded-md divide-y">
               {pending.map((inv) => (
-                <div key={inv.id} className="flex flex-wrap items-center gap-2 p-3">
+                <div key={inv.id} className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 p-3">
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{inv.email}</div>
                     <div className="text-xs text-muted-foreground">
                       {inv.role} · sent {timeAgo(inv.created_at)} · expires {new Date(inv.expires_at).toLocaleDateString()}
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => resend(inv.email)} className="h-8">
-                    <RotateCw className="h-3 w-3 mr-1" /> Resend
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => cancel(inv.email)} className="h-8 text-destructive">
-                    <X className="h-3 w-3 mr-1" /> Cancel
-                  </Button>
+                  <div className="flex gap-2 sm:gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => resend(inv.email)} className="h-8">
+                      <RotateCw className="h-3 w-3 mr-1" /> Resend
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => cancel(inv.email)} className="h-8 text-destructive">
+                      <X className="h-3 w-3 mr-1" /> Cancel
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -457,7 +461,7 @@ export function UsersManager() {
                   p.email ||
                   "—";
                 return (
-                  <div key={p.id} className="flex flex-wrap items-center gap-3 p-3">
+                  <div key={p.id} className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3 p-3">
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{fullName}</div>
                       <div className="text-xs text-muted-foreground truncate">
@@ -465,28 +469,30 @@ export function UsersManager() {
                         {p.job_title ? ` · ${p.job_title}` : ""}
                       </div>
                     </div>
-                    <Select value={roles[p.id] || "user"} onValueChange={(v) => changeRole(p.id, v)}>
-                      <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {BUILT_IN_ROLES.map((r) => (
-                          <SelectItem key={r} value={r}>{r}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button variant="ghost" size="sm" onClick={() => setEditingProfile(p)} className="h-9">
-                      <Pencil className="h-4 w-4 mr-1" /> Edit
-                    </Button>
-                    {canDeleteUsers && currentUser?.id !== p.id && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 text-destructive hover:text-destructive"
-                        onClick={() => setDeletingProfile(p)}
-                        title="Delete user"
-                      >
-                        <Trash2 className="h-4 w-4" />
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <Select value={roles[p.id] || "user"} onValueChange={(v) => changeRole(p.id, v)}>
+                        <SelectTrigger className="flex-1 sm:w-32 h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {BUILT_IN_ROLES.map((r) => (
+                            <SelectItem key={r} value={r}>{r}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button variant="ghost" size="sm" onClick={() => setEditingProfile(p)} className="h-9 shrink-0">
+                        <Pencil className="h-4 w-4 mr-1" /> Edit
                       </Button>
-                    )}
+                      {canDeleteUsers && currentUser?.id !== p.id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-9 shrink-0 text-destructive hover:text-destructive"
+                          onClick={() => setDeletingProfile(p)}
+                          title="Delete user"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -506,16 +512,18 @@ export function UsersManager() {
               onChange={(e) => setNewRoleName(e.target.value)}
               className="flex-1 h-9"
             />
-            <Button size="sm" onClick={addCustomRole}><Plus className="h-4 w-4 mr-1" /> Add role</Button>
+            <Button size="sm" onClick={addCustomRole} className="shrink-0 whitespace-nowrap"><Plus className="h-4 w-4 mr-1" /> Add role</Button>
           </div>
+
+          <p className="text-xs text-muted-foreground sm:hidden">Scroll horizontally to see all roles →</p>
 
           <div className="overflow-x-auto border rounded-md">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="text-left p-2 font-medium">Permission</th>
+                  <th className="text-left p-1.5 sm:p-2 font-medium sticky left-0 bg-muted/50 z-10">Permission</th>
                   {allRoles.map((r) => (
-                    <th key={r} className="text-center p-2 font-medium capitalize">
+                    <th key={r} className="text-center p-1.5 sm:p-2 font-medium capitalize min-w-[88px]">
                       <div className="flex flex-col items-center gap-1">
                         <span className="flex items-center gap-1">
                           {r}
@@ -540,12 +548,12 @@ export function UsersManager() {
               <tbody>
                 {permissions.map((perm) => (
                   <tr key={perm.key} className="border-t">
-                    <td className="p-2">{perm.label}</td>
+                    <td className="p-1.5 sm:p-2 sticky left-0 bg-background z-10">{perm.label}</td>
                     {allRoles.map((r) => {
                       const checked = r === "admin" || (rolePerms[r]?.has(perm.key) ?? false);
                       const locked = r === "admin";
                       return (
-                        <td key={r} className="p-2 text-center">
+                        <td key={r} className="p-1.5 sm:p-2 text-center">
                           <div className="flex justify-center">
                             <Checkbox
                               checked={checked}
@@ -577,8 +585,8 @@ export function UsersManager() {
           <div className="space-y-2">
             {seeds.map((s) => (
               <div key={s.email} className="flex items-center gap-2 border rounded-md p-2">
-                <span className="flex-1 text-sm">{s.email}</span>
-                <Button variant="ghost" size="icon" onClick={() => removeSeed(s.email)} className="h-9 w-9">
+                <span className="flex-1 min-w-0 text-sm truncate">{s.email}</span>
+                <Button variant="ghost" size="icon" onClick={() => removeSeed(s.email)} className="h-9 w-9 shrink-0">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
@@ -591,14 +599,14 @@ export function UsersManager() {
               onChange={(e) => setSeedEmail(e.target.value)}
               className="flex-1 h-9"
             />
-            <Button size="sm" onClick={addSeed}><Plus className="h-4 w-4 mr-1" /> Add</Button>
+            <Button size="sm" onClick={addSeed} className="shrink-0"><Plus className="h-4 w-4 mr-1" /> Add</Button>
           </div>
         </CardContent>
       </Card>
 
       {/* EDIT PROFILE DIALOG (admin) */}
       <Dialog open={!!editingProfile} onOpenChange={(o) => !o && setEditingProfile(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit user — {editingProfile?.email}</DialogTitle>
           </DialogHeader>
