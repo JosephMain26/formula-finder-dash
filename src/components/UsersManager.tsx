@@ -393,25 +393,27 @@ export function UsersManager() {
       <Card>
         <CardHeader><CardTitle>Invite Users</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
             <Input
               type="email"
               placeholder="email@example.com"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              className="flex-1 min-w-[220px] h-9"
+              className="w-full sm:flex-1 sm:min-w-[180px] h-9"
             />
-            <Select value={inviteRole} onValueChange={setInviteRole}>
-              <SelectTrigger className="w-40 h-9"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {BUILT_IN_ROLES.map((r) => (
-                  <SelectItem key={r} value={r}>{r}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button onClick={sendInvite} disabled={inviteSending || !inviteEmail.trim()} size="sm">
-              <Send className="h-4 w-4 mr-1" /> {inviteSending ? "Sending…" : "Send invite"}
-            </Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Select value={inviteRole} onValueChange={setInviteRole}>
+                <SelectTrigger className="flex-1 sm:w-40 h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {BUILT_IN_ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={sendInvite} disabled={inviteSending || !inviteEmail.trim()} size="sm" className="shrink-0">
+                <Send className="h-4 w-4 mr-1" /> {inviteSending ? "Sending…" : "Send invite"}
+              </Button>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground">
             They'll get a magic-link email. Clicking it signs them in and assigns the chosen role automatically.
