@@ -422,19 +422,21 @@ export function UsersManager() {
           {pending.length > 0 && (
             <div className="border rounded-md divide-y">
               {pending.map((inv) => (
-                <div key={inv.id} className="flex flex-wrap items-center gap-2 p-3">
+                <div key={inv.id} className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 p-3">
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{inv.email}</div>
                     <div className="text-xs text-muted-foreground">
                       {inv.role} · sent {timeAgo(inv.created_at)} · expires {new Date(inv.expires_at).toLocaleDateString()}
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => resend(inv.email)} className="h-8">
-                    <RotateCw className="h-3 w-3 mr-1" /> Resend
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => cancel(inv.email)} className="h-8 text-destructive">
-                    <X className="h-3 w-3 mr-1" /> Cancel
-                  </Button>
+                  <div className="flex gap-2 sm:gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => resend(inv.email)} className="h-8">
+                      <RotateCw className="h-3 w-3 mr-1" /> Resend
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => cancel(inv.email)} className="h-8 text-destructive">
+                      <X className="h-3 w-3 mr-1" /> Cancel
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
