@@ -14,6 +14,8 @@ import { loadFormSchema, type CustomField } from "@/lib/jobSchema";
 import { DynamicField } from "@/components/DynamicField";
 import { getCoreFieldsResolved, type CoreFieldOverride, type CoreFieldKey } from "@/lib/coreFields";
 import { toast } from "sonner";
+import { validateAddressForSave } from "@/lib/addressValidation";
+import { AddressReviewDialog } from "@/components/AddressReviewDialog";
 
 export const Route = createFileRoute("/upload")({
   component: RemoteUploadPage,
@@ -423,7 +425,7 @@ function JobFields({
   );
 }
 
-function buildPayload(draft: DraftForm, identity: TechIdentity | null, extra?: Record<string, any>) {
+function buildPayload(draft: DraftForm, identity: TechIdentity | null, extra?: Record<string, any>, addressOverride?: string) {
   const techName = identity?.tech_name || draft.tech_name || null;
   return {
     job_date: draft.job_date || null,
@@ -431,7 +433,7 @@ function buildPayload(draft: DraftForm, identity: TechIdentity | null, extra?: R
     company_1: draft.company_1 || null,
     tech_name: techName,
     phone_no: draft.phone_no || null,
-    address: draft.address || null,
+    address: (addressOverride ?? draft.address) || null,
     job_type: draft.job_type || null,
     installer_id: draft.installer_id,
     installer_name: draft.installer_name || null,
