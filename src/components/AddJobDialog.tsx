@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -15,6 +15,8 @@ import { loadFormSchema, defaultStatusName, type CustomField, type StatusDef, lo
 import { DynamicField } from "@/components/DynamicField";
 import { getCoreFieldsResolved, type CoreFieldOverride, type CoreFieldKey } from "@/lib/coreFields";
 import { toast } from "sonner";
+import { validateAddressForSave } from "@/lib/addressValidation";
+import { AddressReviewDialog } from "@/components/AddressReviewDialog";
 
 type Company = Tables<"companies">;
 type Technician = {
@@ -81,6 +83,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [showNewClientPopup, setShowNewClientPopup] = useState(false);
   const [savedJobId, setSavedJobId] = useState<string | null>(null);
   const [newClientForm, setNewClientForm] = useState({ name: "", phone: "", email: "", address: "", notes: "" });
+  const [pendingCloseAfterClient, setPendingCloseAfterClient] = useState(false);
+  const [addressPrompt, setAddressPrompt] = useState<null | { mode: "suggestion" | "unresolved"; originalAddress: string; suggestion?: string }>(null);
+  const submitIntentRef = useRef<null | { event?: React.FormEvent; overrideAddress?: string }>(null);
 
   const [form, setForm] = useState(emptyForm);
 
@@ -231,8 +236,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     fetchJobTypes();
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function completeSubmit(overrideAddress?: string) {
     setLoading(true);
 
     const selectedCompany = companies.find(c => c.id === form.company_id);
@@ -278,7 +282,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       tech_name: form.tech_name || null,
       po_number: form.po_number || null,
       phone_no: form.phone_no || null,
-      address: form.address || null,
+      address: (overrideAddress ?? form.address) || null,
       comp_type: form.comp_type || null,
       job_type: form.job_type || null,
       status: form.status || "Pending",
@@ -327,21 +331,48 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
     setLoading(false);
     if (!error) {
-      setOpen(false);
-      onJobSaved();
-      // If "new" client mode, open the new client popup
       if (canManageClients && clientMode === "new" && !isEdit && insertedJobId) {
         setSavedJobId(insertedJobId);
         setNewClientForm({
-          name: (form.address?.split(",")[0]?.trim()) || form.phone_no || "",
+          name: ((overrideAddress ?? form.address)?.split(",")[0]?.trim()) || form.phone_no || "",
           phone: form.phone_no || "",
           email: "",
-          address: form.address || "",
+          address: (overrideAddress ?? form.address) || "",
           notes: "",
         });
-        // Defer so Radix can release the parent dialog's body lock (needed on mobile).
-        setTimeout(() => setShowNewClientPopup(true), 250);
+        setPendingCloseAfterClient(true);
+        setShowNewClientPopup(true);
+        return;
       }
+
+      setOpen(false);
+      onJobSaved();
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const review = await validateAddressForSave(form.address || "");
+    if (review.status === "suggestion") {
+      submitIntentRef.current = { event: e, overrideAddress: review.finalAddress };
+      setAddressPrompt({ mode: "suggestion", originalAddress: review.originalAddress, suggestion: review.suggestion });
+      return;
+    }
+    if (review.status === "unresolved") {
+      submitIntentRef.current = { event: e, overrideAddress: review.finalAddress };
+      setAddressPrompt({ mode: "unresolved", originalAddress: review.originalAddress });
+      return;
+    }
+    await completeSubmit(review.finalAddress);
+  }
+
+  function closeClientPopup() {
+    setShowNewClientPopup(false);
+    setSavedJobId(null);
+    if (pendingCloseAfterClient) {
+      setPendingCloseAfterClient(false);
+      onJobSaved();
+      setOpen(false);
     }
   }
 
@@ -822,7 +853,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     </Dialog>
 
     {/* Post-submit new client popup */}
-    <Dialog open={showNewClientPopup} onOpenChange={(o) => { if (!o) { setShowNewClientPopup(false); setSavedJobId(null); } }}>
+    <Dialog open={showNewClientPopup} onOpenChange={(o) => { if (!o) closeClientPopup(); }}>
       <DialogContent className="max-w-sm w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Save Client Details</DialogTitle>
@@ -859,9 +890,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               setClients((cs as Client[]) || []);
             }
             toast.success("Client saved & linked to job");
-            setShowNewClientPopup(false);
-            setSavedJobId(null);
-            onJobSaved();
+            closeClientPopup();
           }}
           className="space-y-3 mt-3"
         >
@@ -886,12 +915,38 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             <Input value={newClientForm.notes} onChange={(e) => setNewClientForm((p) => ({ ...p, notes: e.target.value }))} maxLength={500} />
           </div>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => { setShowNewClientPopup(false); setSavedJobId(null); }}>Skip</Button>
+            <Button type="button" variant="outline" onClick={closeClientPopup}>Skip</Button>
             <Button type="submit">Save Client</Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
+
+    {addressPrompt && (
+      <AddressReviewDialog
+        open
+        mode={addressPrompt.mode}
+        originalAddress={addressPrompt.originalAddress}
+        suggestion={addressPrompt.suggestion}
+        onCancel={() => {
+          submitIntentRef.current = null;
+          setAddressPrompt(null);
+        }}
+        onKeepOriginal={async () => {
+          const pending = submitIntentRef.current;
+          setAddressPrompt(null);
+          submitIntentRef.current = null;
+          await completeSubmit(pending?.overrideAddress);
+        }}
+        onUseSuggested={addressPrompt.suggestion ? async () => {
+          const pending = submitIntentRef.current;
+          if (addressPrompt.suggestion) update("address", addressPrompt.suggestion);
+          setAddressPrompt(null);
+          submitIntentRef.current = null;
+          await completeSubmit(addressPrompt.suggestion || pending?.overrideAddress);
+        } : undefined}
+      />
+    )}
   </>
   );
 }

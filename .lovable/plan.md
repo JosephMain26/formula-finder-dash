@@ -1,26 +1,67 @@
-## Problem
+## Goal
+Fix the broken post-submit client popup on mobile, and add lightweight address validation so saved jobs with valid addresses appear in the map widget while incorrect addresses prompt a correction suggestion.
 
-After submitting a new job with "New client" mode selected, the follow-up "Save Client Details" popup does not appear on mobile devices. On desktop it works because the dialog open/close timing is more forgiving.
+## What I’ll change
 
-Root cause in `src/components/AddJobDialog.tsx` (lines 329–344): when the job save succeeds we call `setOpen(false)` (closes the parent Add Job dialog) and then synchronously `setShowNewClientPopup(true)` in the same tick. Radix Dialog applies a body scroll/pointer-events lock on close that, on mobile, is still active when the second dialog tries to mount — so the second dialog either never gets focus/pointer events or its overlay is suppressed. The second `DialogContent` is also missing a mobile-safe width.
+### 1) Fix the mobile “Save Client Details” popup reliably
+Update `src/components/AddJobDialog.tsx` so the follow-up client popup is not owned by a dialog subtree that gets closed/unmounted first.
 
-## Fix (frontend only, single file)
+- Keep the add-job dialog open long enough for the client prompt decision path, instead of closing it first and trying to open a second dialog later.
+- Replace the nested follow-up popup with an explicit mobile-safe confirmation flow that survives both:
+  - direct Add Job from dashboard
+  - parsed-message flow where `JobDialog` is controlled by a parent dialog
+- Ensure the popup/container uses phone-safe sizing and scroll behavior.
 
-Edit `src/components/AddJobDialog.tsx`:
+Why this is needed:
+- The current code closes `JobDialog` before opening the client popup.
+- In controlled/mobile flows, that unmounts the component holding `showNewClientPopup`, so the popup never appears.
 
-1. **Defer opening the new-client popup until the parent dialog has finished closing.** In the success branch (around line 333), replace the synchronous `setShowNewClientPopup(true)` with a short `setTimeout(..., 250)` after `setOpen(false)`. This lets Radix release its body lock on the parent dialog before the child dialog mounts. Set `setSavedJobId` and `setNewClientForm` outside the timeout (state can be prepared early); only the visibility flag is delayed.
+### 2) Add address validation/correction on job submit
+Add a small frontend-only address check before inserting a job when an address is present.
 
-2. **Make the new-client popup mobile-safe.** On the `<DialogContent className="max-w-sm">` for the new-client popup (line 825), add `w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto` so it fits inside phone viewports with safe margins and scrolls if the keyboard pushes content.
+Behavior:
+- If the address geocodes cleanly, submit normally.
+- If the address does not geocode, try a lightweight normalized/corrected lookup.
+- If a likely corrected address is found, ask the user:
+  - “Did you mean this address instead?”
+  - allow **Use suggested address** or **Keep original**
+- If no suggestion is found, allow the user to continue with their original address.
 
-3. **Make the parent Add Job dialog mobile-safe** while we're in this file (line 355): add `w-[calc(100%-2rem)]` to the existing `max-w-2xl max-h-[85vh] overflow-y-auto` so the parent dialog also respects phone margins (prevents the parent from clipping behind the screen edge, which can also contribute to perceived "popup not appearing").
+Scope:
+- Main `AddJobDialog` flow
+- Remote `/upload` manual submit flow
+- Remote `/upload` parse-review submit flow
 
-## Out of scope
+### 3) Make map widget pick up new valid-address jobs immediately
+Keep the map behavior simple and cheap:
+- reuse the existing geocoding cache flow in `src/lib/databoard/geocode.ts`
+- normalize addresses consistently before lookup so newly saved jobs are more likely to resolve
+- do not add backend services or paid APIs
 
-- No DB, RLS, auth, or business-logic changes.
-- No changes to other dialogs or the rest of the form layout.
-- The "New client" submission flow itself (insert into `clients`, link `client_id` on the job) is unchanged.
+This ensures a valid submitted address can appear as a pin in the map widget once the jobs list/databoard refreshes.
 
-## Verification
+## Files likely to change
+- `src/components/AddJobDialog.tsx`
+- `src/routes/upload.tsx`
+- `src/lib/databoard/geocode.ts`
+- possibly one shared UI dialog file only if needed for the address suggestion prompt
 
-- Open the preview on mobile viewport, add a job with client mode = "New", submit, and confirm the "Save Client Details" popup appears, is fully visible, and submits/links the client to the saved job.
-- Repeat on desktop to confirm no regression.
+## Technical details
+- Extract a shared address helper that:
+  - trims/normalizes input
+  - attempts primary geocode
+  - attempts a fallback normalized query
+  - returns `{ resolved, suggestion, coordinates }`
+- Use a confirmation modal/dialog before final insert when there is an address ambiguity.
+- Refactor `AddJobDialog` submit flow so the client-save prompt is handled before the component is torn down.
+- Preserve existing business logic for job creation, client linking, and map rendering.
+
+## Validation
+- Reproduce on phone viewport:
+  1. Add job with client mode = New
+  2. Submit
+  3. Confirm the client popup appears and is usable
+- Verify same flow from parsed-message path
+- Submit a job with a valid address and confirm the map widget can resolve/show a pin after refresh
+- Submit a job with a bad address and confirm the correction prompt appears
+- Confirm desktop behavior still works
