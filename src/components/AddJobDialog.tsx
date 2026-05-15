@@ -342,7 +342,6 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         });
         setPendingCloseAfterClient(true);
         setShowNewClientPopup(true);
-        onJobSaved();
         return;
       }
 
@@ -372,6 +371,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     setSavedJobId(null);
     if (pendingCloseAfterClient) {
       setPendingCloseAfterClient(false);
+      onJobSaved();
       setOpen(false);
     }
   }
@@ -891,7 +891,6 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             }
             toast.success("Client saved & linked to job");
             closeClientPopup();
-            onJobSaved();
           }}
           className="space-y-3 mt-3"
         >
