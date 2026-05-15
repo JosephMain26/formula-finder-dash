@@ -282,7 +282,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       tech_name: form.tech_name || null,
       po_number: form.po_number || null,
       phone_no: form.phone_no || null,
-      address: overrideAddress ?? form.address || null,
+      address: (overrideAddress ?? form.address) || null,
       comp_type: form.comp_type || null,
       job_type: form.job_type || null,
       status: form.status || "Pending",
@@ -337,7 +337,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           name: ((overrideAddress ?? form.address)?.split(",")[0]?.trim()) || form.phone_no || "",
           phone: form.phone_no || "",
           email: "",
-          address: overrideAddress ?? form.address || "",
+          address: (overrideAddress ?? form.address) || "",
           notes: "",
         });
         setPendingCloseAfterClient(true);
@@ -365,6 +365,15 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       return;
     }
     await completeSubmit(review.finalAddress);
+  }
+
+  function closeClientPopup() {
+    setShowNewClientPopup(false);
+    setSavedJobId(null);
+    if (pendingCloseAfterClient) {
+      setPendingCloseAfterClient(false);
+      setOpen(false);
+    }
   }
 
   const selectedCompany = companies.find(c => c.id === form.company_id);
@@ -844,7 +853,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     </Dialog>
 
     {/* Post-submit new client popup */}
-    <Dialog open={showNewClientPopup} onOpenChange={(o) => { if (!o) { setShowNewClientPopup(false); setSavedJobId(null); } }}>
+    <Dialog open={showNewClientPopup} onOpenChange={(o) => { if (!o) closeClientPopup(); }}>
       <DialogContent className="max-w-sm w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Save Client Details</DialogTitle>
@@ -881,8 +890,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               setClients((cs as Client[]) || []);
             }
             toast.success("Client saved & linked to job");
-            setShowNewClientPopup(false);
-            setSavedJobId(null);
+            closeClientPopup();
             onJobSaved();
           }}
           className="space-y-3 mt-3"
@@ -908,12 +916,38 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             <Input value={newClientForm.notes} onChange={(e) => setNewClientForm((p) => ({ ...p, notes: e.target.value }))} maxLength={500} />
           </div>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => { setShowNewClientPopup(false); setSavedJobId(null); }}>Skip</Button>
+            <Button type="button" variant="outline" onClick={closeClientPopup}>Skip</Button>
             <Button type="submit">Save Client</Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
+
+    {addressPrompt && (
+      <AddressReviewDialog
+        open
+        mode={addressPrompt.mode}
+        originalAddress={addressPrompt.originalAddress}
+        suggestion={addressPrompt.suggestion}
+        onCancel={() => {
+          submitIntentRef.current = null;
+          setAddressPrompt(null);
+        }}
+        onKeepOriginal={async () => {
+          const pending = submitIntentRef.current;
+          setAddressPrompt(null);
+          submitIntentRef.current = null;
+          await completeSubmit(pending?.overrideAddress);
+        }}
+        onUseSuggested={addressPrompt.suggestion ? async () => {
+          const pending = submitIntentRef.current;
+          if (addressPrompt.suggestion) update("address", addressPrompt.suggestion);
+          setAddressPrompt(null);
+          submitIntentRef.current = null;
+          await completeSubmit(addressPrompt.suggestion || pending?.overrideAddress);
+        } : undefined}
+      />
+    )}
   </>
   );
 }
