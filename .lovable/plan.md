@@ -1,46 +1,26 @@
-# Make the Users tab fully responsive
+## Problem
 
-The Users tab (`src/components/UsersManager.tsx`) currently breaks on phone screens: the invite row, user rows, and especially the Roles & Permissions matrix push controls off-screen or cause horizontal scrolling that hides headlines/buttons. This plan makes every section usable on a 360px phone with no hidden functionality.
+After submitting a new job with "New client" mode selected, the follow-up "Save Client Details" popup does not appear on mobile devices. On desktop it works because the dialog open/close timing is more forgiving.
 
-## Scope
+Root cause in `src/components/AddJobDialog.tsx` (lines 329–344): when the job save succeeds we call `setOpen(false)` (closes the parent Add Job dialog) and then synchronously `setShowNewClientPopup(true)` in the same tick. Radix Dialog applies a body scroll/pointer-events lock on close that, on mobile, is still active when the second dialog tries to mount — so the second dialog either never gets focus/pointer events or its overlay is suppressed. The second `DialogContent` is also missing a mobile-safe width.
 
-Only `src/components/UsersManager.tsx`. No business logic changes.
+## Fix (frontend only, single file)
 
-## Changes per section
+Edit `src/components/AddJobDialog.tsx`:
 
-**1. Data Visibility card**
-- Switch from `flex items-start justify-between` to `flex-col sm:flex-row sm:items-start sm:justify-between` so the Switch sits below the description on phones instead of getting squeezed.
+1. **Defer opening the new-client popup until the parent dialog has finished closing.** In the success branch (around line 333), replace the synchronous `setShowNewClientPopup(true)` with a short `setTimeout(..., 250)` after `setOpen(false)`. This lets Radix release its body lock on the parent dialog before the child dialog mounts. Set `setSavedJobId` and `setNewClientForm` outside the timeout (state can be prepared early); only the visibility flag is delayed.
 
-**2. Invite Users**
-- Email input: keep `flex-1` but lower `min-w-[220px]` to `min-w-[180px]` so it doesn't force wrap awkwardly.
-- Wrap role Select + Send button in a `flex gap-2 w-full sm:w-auto` group; make Select `flex-1 sm:w-40` so the row collapses to: [email full-width] / [role + send full-width] on small screens.
-- Pending invite rows: stack the meta + action buttons vertically on mobile (`flex-col sm:flex-row sm:items-center`); keep Resend/Cancel side by side in their own row.
+2. **Make the new-client popup mobile-safe.** On the `<DialogContent className="max-w-sm">` for the new-client popup (line 825), add `w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto` so it fits inside phone viewports with safe margins and scrolls if the keyboard pushes content.
 
-**3. Users list**
-- Each row: change to `flex-col sm:flex-row sm:items-center` so name/email block sits on top, then a second row holds the role Select (full width on mobile), Edit, and Delete buttons. Use `w-full sm:w-32` on the role SelectTrigger and put Edit/Delete in a `flex gap-1 ml-auto` container.
-
-**4. Roles & Permissions (biggest issue)**
-- "New role" input + Add button: already wraps OK; make the Add button `whitespace-nowrap`.
-- The matrix `<table>` is the worst offender — on a 360px screen, columns vanish behind horizontal scroll with no indication. Two-part fix:
-  - Keep `overflow-x-auto` but add a sticky first column: `<th>`/`<td>` for the Permission name get `sticky left-0 bg-background z-10` (header `bg-muted/50`) so users can always see which permission they're toggling while scrolling roles horizontally.
-  - Add `min-w-[110px]` to role headers so checkboxes don't crush together, and shrink padding on phones (`p-1.5 sm:p-2`).
-  - Add a small hint above the table on mobile only: `<p className="text-xs text-muted-foreground sm:hidden">Scroll horizontally to see all roles →</p>`.
-
-**5. Pre-seeded Admin Emails**
-- Add `truncate min-w-0` to the email span so long emails don't push the trash button off-screen.
-- Input + Add button row: make Add `shrink-0`.
-
-**6. Edit Profile dialog**
-- `DialogContent` currently `max-w-lg` — add `max-h-[90vh] overflow-y-auto` and `w-[calc(100%-2rem)]` so the dialog fits and scrolls on phones.
-
-**7. Delete confirm AlertDialog**
-- Add `w-[calc(100%-2rem)]` to `AlertDialogContent` for safe phone margins (shadcn default is fine width-wise but footer buttons can clip on 320px — already stacks via shadcn defaults, no change needed beyond width safety).
+3. **Make the parent Add Job dialog mobile-safe** while we're in this file (line 355): add `w-[calc(100%-2rem)]` to the existing `max-w-2xl max-h-[85vh] overflow-y-auto` so the parent dialog also respects phone margins (prevents the parent from clipping behind the screen edge, which can also contribute to perceived "popup not appearing").
 
 ## Out of scope
 
-- The settings page `TabsList` itself (already uses `w-max` inside what should be a horizontal scroller) — only touch if testing reveals the tab strip hides triggers. Quick fix if needed: wrap in `overflow-x-auto`.
-- No DB, server function, or auth changes.
+- No DB, RLS, auth, or business-logic changes.
+- No changes to other dialogs or the rest of the form layout.
+- The "New client" submission flow itself (insert into `clients`, link `client_id` on the job) is unchanged.
 
 ## Verification
 
-After edits, view the Users tab at 360px and 414px in the preview to confirm: every headline visible, every button reachable, the permission matrix scrolls with sticky permission column, dialogs fit the viewport.
+- Open the preview on mobile viewport, add a job with client mode = "New", submit, and confirm the "Save Client Details" popup appears, is fully visible, and submits/links the client to the saved job.
+- Repeat on desktop to confirm no regression.

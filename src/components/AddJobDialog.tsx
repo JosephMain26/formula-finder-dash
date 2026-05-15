@@ -339,7 +339,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           address: form.address || "",
           notes: "",
         });
-        setShowNewClientPopup(true);
+        // Defer so Radix can release the parent dialog's body lock (needed on mobile).
+        setTimeout(() => setShowNewClientPopup(true), 250);
       }
     }
   }
@@ -352,7 +353,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       <DialogTrigger asChild>
         {trigger || <Button><Plus className="h-4 w-4 mr-2" /> Add Job</Button>}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl w-[calc(100%-2rem)] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Job" : "Add New Job"}</DialogTitle>
         </DialogHeader>
@@ -822,7 +823,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
     {/* Post-submit new client popup */}
     <Dialog open={showNewClientPopup} onOpenChange={(o) => { if (!o) { setShowNewClientPopup(false); setSavedJobId(null); } }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Save Client Details</DialogTitle>
         </DialogHeader>
