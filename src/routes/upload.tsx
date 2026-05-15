@@ -653,12 +653,12 @@ function ManualTab({ opts, identity }: { opts: Options; identity: TechIdentity |
   const [done, setDone] = useState(false);
   const [draft, setDraft] = useState<DraftForm>(emptyDraft);
   const [extra, setExtra] = useState<Record<string, any>>({});
+  const [addressPrompt, setAddressPrompt] = useState<null | { mode: "suggestion" | "unresolved"; originalAddress: string; suggestion?: string }>(null);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function completeSubmit(addressOverride?: string) {
     setLoading(true);
     try {
-      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity, extra));
+      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity, extra, addressOverride));
       if (error) { toast.error("Failed to submit"); return; }
       setDone(true);
       setDraft(emptyDraft);
@@ -666,6 +666,20 @@ function ManualTab({ opts, identity }: { opts: Options; identity: TechIdentity |
     } finally {
       setLoading(false);
     }
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const review = await validateAddressForSave(draft.address || "");
+    if (review.status === "suggestion") {
+      setAddressPrompt({ mode: "suggestion", originalAddress: review.originalAddress, suggestion: review.suggestion });
+      return;
+    }
+    if (review.status === "unresolved") {
+      setAddressPrompt({ mode: "unresolved", originalAddress: review.originalAddress });
+      return;
+    }
+    await completeSubmit(review.finalAddress);
   }
 
   if (done) return <SuccessCard onAnother={() => setDone(false)} />;
@@ -679,6 +693,25 @@ function ManualTab({ opts, identity }: { opts: Options; identity: TechIdentity |
         </Button>
       </div>
       {!identity && <p className="text-xs text-muted-foreground text-right">Enter your pincode above to enable submission.</p>}
+      {addressPrompt && (
+        <AddressReviewDialog
+          open
+          mode={addressPrompt.mode}
+          originalAddress={addressPrompt.originalAddress}
+          suggestion={addressPrompt.suggestion}
+          onCancel={() => setAddressPrompt(null)}
+          onKeepOriginal={async () => {
+            setAddressPrompt(null);
+            await completeSubmit(draft.address || "");
+          }}
+          onUseSuggested={addressPrompt.suggestion ? async () => {
+            const suggestion = addressPrompt.suggestion!;
+            setDraft((prev) => ({ ...prev, address: suggestion }));
+            setAddressPrompt(null);
+            await completeSubmit(suggestion);
+          } : undefined}
+        />
+      )}
     </form>
   );
 }
