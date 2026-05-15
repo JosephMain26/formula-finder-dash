@@ -461,6 +461,7 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
   const [parsedSnapshot, setParsedSnapshot] = useState<{
     company: string; tech_name: string; job_type: string; payment: string; snippet: string;
   } | null>(null);
+  const [addressPrompt, setAddressPrompt] = useState<null | { mode: "suggestion" | "unresolved"; originalAddress: string; suggestion?: string }>(null);
 
   async function parse() {
     const trimmed = message.trim();
@@ -534,10 +535,10 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
     }
   }
 
-  async function confirmSubmit() {
+  async function completeSubmit(addressOverride?: string) {
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity, extra));
+      const { error } = await supabase.from("jobs").insert(buildPayload(draft, identity, extra, addressOverride));
       if (error) { toast.error("Failed to save job"); return; }
       // Auto-learn: record any field the user corrected
       if (parsedSnapshot) {
@@ -564,6 +565,19 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function confirmSubmit() {
+    const review = await validateAddressForSave(draft.address || "");
+    if (review.status === "suggestion") {
+      setAddressPrompt({ mode: "suggestion", originalAddress: review.originalAddress, suggestion: review.suggestion });
+      return;
+    }
+    if (review.status === "unresolved") {
+      setAddressPrompt({ mode: "unresolved", originalAddress: review.originalAddress });
+      return;
+    }
+    await completeSubmit(review.finalAddress);
   }
 
   if (done) return <SuccessCard onAnother={() => setDone(false)} />;
@@ -609,6 +623,26 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {addressPrompt && (
+        <AddressReviewDialog
+          open
+          mode={addressPrompt.mode}
+          originalAddress={addressPrompt.originalAddress}
+          suggestion={addressPrompt.suggestion}
+          onCancel={() => setAddressPrompt(null)}
+          onKeepOriginal={async () => {
+            setAddressPrompt(null);
+            await completeSubmit(draft.address || "");
+          }}
+          onUseSuggested={addressPrompt.suggestion ? async () => {
+            const suggestion = addressPrompt.suggestion!;
+            setDraft((prev) => ({ ...prev, address: suggestion }));
+            setAddressPrompt(null);
+            await completeSubmit(suggestion);
+          } : undefined}
+        />
+      )}
     </>
   );
 }
