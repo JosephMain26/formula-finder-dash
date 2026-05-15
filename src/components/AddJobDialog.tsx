@@ -823,7 +823,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
     {/* Post-submit new client popup */}
     <Dialog open={showNewClientPopup} onOpenChange={(o) => { if (!o) { setShowNewClientPopup(false); setSavedJobId(null); } }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Save Client Details</DialogTitle>
         </DialogHeader>
