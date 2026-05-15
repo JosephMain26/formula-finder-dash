@@ -339,7 +339,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           address: form.address || "",
           notes: "",
         });
-        setShowNewClientPopup(true);
+        // Defer so Radix can release the parent dialog's body lock (needed on mobile).
+        setTimeout(() => setShowNewClientPopup(true), 250);
       }
     }
   }
