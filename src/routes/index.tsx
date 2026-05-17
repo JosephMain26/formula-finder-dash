@@ -13,7 +13,7 @@ import { ParseMessageDialog } from "@/components/ParseMessageDialog";
 import { DateRangePresets, type DateRange } from "@/components/DateRangePresets";
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { Button } from "@/components/ui/button";
-import { Settings, LogOut, BarChart3 } from "lucide-react";
+import { Settings, LogOut, BarChart3, CalendarClock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Tables } from "@/integrations/supabase/types";
@@ -242,6 +242,9 @@ function Dashboard() {
             </div>
           </div>
           <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0 w-full sm:w-auto">
+            <Link to="/schedule" className="hidden lg:inline-flex">
+              <Button variant="outline"><CalendarClock className="h-4 w-4 mr-2" /> Schedule</Button>
+            </Link>
             {can("databoard.view") && (
               <Link to="/databoard" className="hidden lg:inline-flex">
                 <Button variant="outline"><BarChart3 className="h-4 w-4 mr-2" /> DataBoard</Button>
