@@ -371,9 +371,18 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     setSavedJobId(null);
     if (pendingCloseAfterClient) {
       setPendingCloseAfterClient(false);
-      onJobSaved();
       setOpen(false);
+      onJobSaved();
     }
+  }
+
+  function handleDialogOpenChange(nextOpen: boolean) {
+    if (!nextOpen && showNewClientPopup) {
+      closeClientPopup();
+      return;
+    }
+
+    setOpen(nextOpen);
   }
 
   const selectedCompany = companies.find(c => c.id === form.company_id);
