@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UploadRouteImport } from './routes/upload'
 import { Route as TechniciansRouteImport } from './routes/technicians'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as InstallersRouteImport } from './routes/installers'
 import { Route as DataboardRouteImport } from './routes/databoard'
 import { Route as CompaniesRouteImport } from './routes/companies'
@@ -19,6 +20,7 @@ import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as ApiPublicHooksDispatchJobRemindersRouteImport } from './routes/api/public/hooks/dispatch-job-reminders'
 
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
@@ -33,6 +35,11 @@ const TechniciansRoute = TechniciansRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScheduleRoute = ScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InstallersRoute = InstallersRouteImport.update({
@@ -71,6 +78,12 @@ const LovableEmailQueueProcessRoute =
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksDispatchJobRemindersRoute =
+  ApiPublicHooksDispatchJobRemindersRouteImport.update({
+    id: '/api/public/hooks/dispatch-job-reminders',
+    path: '/api/public/hooks/dispatch-job-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -79,9 +92,11 @@ export interface FileRoutesByFullPath {
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
+  '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/upload': typeof UploadRoute
+  '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
@@ -91,9 +106,11 @@ export interface FileRoutesByTo {
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
+  '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/upload': typeof UploadRoute
+  '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
@@ -104,9 +121,11 @@ export interface FileRoutesById {
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
+  '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/upload': typeof UploadRoute
+  '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
@@ -118,9 +137,11 @@ export interface FileRouteTypes {
     | '/companies'
     | '/databoard'
     | '/installers'
+    | '/schedule'
     | '/settings'
     | '/technicians'
     | '/upload'
+    | '/api/public/hooks/dispatch-job-reminders'
     | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -130,9 +151,11 @@ export interface FileRouteTypes {
     | '/companies'
     | '/databoard'
     | '/installers'
+    | '/schedule'
     | '/settings'
     | '/technicians'
     | '/upload'
+    | '/api/public/hooks/dispatch-job-reminders'
     | '/lovable/email/queue/process'
   id:
     | '__root__'
@@ -142,9 +165,11 @@ export interface FileRouteTypes {
     | '/companies'
     | '/databoard'
     | '/installers'
+    | '/schedule'
     | '/settings'
     | '/technicians'
     | '/upload'
+    | '/api/public/hooks/dispatch-job-reminders'
     | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
@@ -155,9 +180,11 @@ export interface RootRouteChildren {
   CompaniesRoute: typeof CompaniesRoute
   DataboardRoute: typeof DataboardRoute
   InstallersRoute: typeof InstallersRoute
+  ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
   TechniciansRoute: typeof TechniciansRoute
   UploadRoute: typeof UploadRoute
+  ApiPublicHooksDispatchJobRemindersRoute: typeof ApiPublicHooksDispatchJobRemindersRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
@@ -182,6 +209,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedule': {
+      id: '/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof ScheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/installers': {
@@ -233,6 +267,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/dispatch-job-reminders': {
+      id: '/api/public/hooks/dispatch-job-reminders'
+      path: '/api/public/hooks/dispatch-job-reminders'
+      fullPath: '/api/public/hooks/dispatch-job-reminders'
+      preLoaderRoute: typeof ApiPublicHooksDispatchJobRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -243,9 +284,12 @@ const rootRouteChildren: RootRouteChildren = {
   CompaniesRoute: CompaniesRoute,
   DataboardRoute: DataboardRoute,
   InstallersRoute: InstallersRoute,
+  ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
   TechniciansRoute: TechniciansRoute,
   UploadRoute: UploadRoute,
+  ApiPublicHooksDispatchJobRemindersRoute:
+    ApiPublicHooksDispatchJobRemindersRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
