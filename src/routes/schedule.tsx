@@ -162,17 +162,15 @@ function SchedulePage() {
                 scheduled: "after:content-[''] after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:rounded-full after:bg-primary",
               }}
               components={{
-                Day: (props: any) => {
-                  const { date, displayMonth, ...rest } = props;
-                  const isOutside = date.getMonth() !== displayMonth.getMonth();
-                  return (
-                    <td
-                      {...rest}
-                      onDragOver={(e) => { if (!isOutside) e.preventDefault(); }}
-                      onDrop={() => !isOutside && onDropToDay(date)}
-                    />
-                  );
-                },
+                Day: ({ day, children, ...rest }: any) => (
+                  <td
+                    {...rest}
+                    onDragOver={(e) => { e.preventDefault(); }}
+                    onDrop={() => onDropToDay(day.date)}
+                  >
+                    {children}
+                  </td>
+                ),
               }}
               className="pointer-events-auto"
             />
