@@ -86,6 +86,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [pendingCloseAfterClient, setPendingCloseAfterClient] = useState(false);
   const [addressPrompt, setAddressPrompt] = useState<null | { mode: "suggestion" | "unresolved"; originalAddress: string; suggestion?: string }>(null);
   const submitIntentRef = useRef<null | { event?: React.FormEvent; overrideAddress?: string }>(null);
+  const parentDialogVisible = open && !showNewClientPopup;
 
   const [form, setForm] = useState(emptyForm);
 
@@ -389,7 +390,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
   return (
     <>
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={parentDialogVisible} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>
         {trigger || <Button><Plus className="h-4 w-4 mr-2" /> Add Job</Button>}
       </DialogTrigger>
