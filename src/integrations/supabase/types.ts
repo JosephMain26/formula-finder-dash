@@ -285,10 +285,15 @@ export type Database = {
           installer_id: string | null
           installer_name: string | null
           job_date: string | null
+          job_time: string | null
           job_type: string | null
           manual_percentage: number | null
           maps: string | null
           notes: string | null
+          notified_at: string | null
+          notify_channels: string[]
+          notify_enabled: boolean
+          notify_lead_minutes: number
           office_parts: number | null
           paid: boolean | null
           parts: number | null
@@ -324,10 +329,15 @@ export type Database = {
           installer_id?: string | null
           installer_name?: string | null
           job_date?: string | null
+          job_time?: string | null
           job_type?: string | null
           manual_percentage?: number | null
           maps?: string | null
           notes?: string | null
+          notified_at?: string | null
+          notify_channels?: string[]
+          notify_enabled?: boolean
+          notify_lead_minutes?: number
           office_parts?: number | null
           paid?: boolean | null
           parts?: number | null
@@ -363,10 +373,15 @@ export type Database = {
           installer_id?: string | null
           installer_name?: string | null
           job_date?: string | null
+          job_time?: string | null
           job_type?: string | null
           manual_percentage?: number | null
           maps?: string | null
           notes?: string | null
+          notified_at?: string | null
+          notify_channels?: string[]
+          notify_enabled?: boolean
+          notify_lead_minutes?: number
           office_parts?: number | null
           paid?: boolean | null
           parts?: number | null
@@ -418,6 +433,41 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      notification_log: {
+        Row: {
+          channel: string
+          error: string | null
+          id: string
+          job_id: string
+          sent_at: string
+          status: string
+        }
+        Insert: {
+          channel: string
+          error?: string | null
+          id?: string
+          job_id: string
+          sent_at?: string
+          status: string
+        }
+        Update: {
+          channel?: string
+          error?: string | null
+          id?: string
+          job_id?: string
+          sent_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_log_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pending_invites: {
         Row: {

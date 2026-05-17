@@ -1,67 +1,66 @@
-## Goal
-Fix the broken post-submit client popup on mobile, and add lightweight address validation so saved jobs with valid addresses appear in the map widget while incorrect addresses prompt a correction suggestion.
+## Schedule & Reminders
 
-## What I’ll change
+A new `/schedule` page to view, reschedule, and control reminders for every job in one place.
 
-### 1) Fix the mobile “Save Client Details” popup reliably
-Update `src/components/AddJobDialog.tsx` so the follow-up client popup is not owned by a dialog subtree that gets closed/unmounted first.
+### 1. Database (one migration)
 
-- Keep the add-job dialog open long enough for the client prompt decision path, instead of closing it first and trying to open a second dialog later.
-- Replace the nested follow-up popup with an explicit mobile-safe confirmation flow that survives both:
-  - direct Add Job from dashboard
-  - parsed-message flow where `JobDialog` is controlled by a parent dialog
-- Ensure the popup/container uses phone-safe sizing and scroll behavior.
+Add to `jobs`:
+- `job_time time` — scheduled time of day (nullable)
+- `notify_enabled boolean default true` — master per-job toggle
+- `notify_channels text[] default '{}'` — any of `in_app`, `email_tech`, `email_client`, `sms_tech`, `sms_client`
+- `notify_lead_minutes integer default 60` — how far ahead to remind
+- `notified_at timestamptz` — last reminder sent (prevents duplicates)
 
-Why this is needed:
-- The current code closes `JobDialog` before opening the client popup.
-- In controlled/mobile flows, that unmounts the component holding `showNewClientPopup`, so the popup never appears.
+New table `notification_log` (job_id, channel, sent_at, status, error) for auditing + de-duping. RLS: authenticated read; insert via service role only.
 
-### 2) Add address validation/correction on job submit
-Add a small frontend-only address check before inserting a job when an address is present.
+### 2. Schedule page (`src/routes/schedule.tsx`)
 
-Behavior:
-- If the address geocodes cleanly, submit normally.
-- If the address does not geocode, try a lightweight normalized/corrected lookup.
-- If a likely corrected address is found, ask the user:
-  - “Did you mean this address instead?”
-  - allow **Use suggested address** or **Keep original**
-- If no suggestion is found, allow the user to continue with their original address.
+Layout: left = month calendar, right = list of jobs for selected day (or upcoming if no day selected).
 
-Scope:
-- Main `AddJobDialog` flow
-- Remote `/upload` manual submit flow
-- Remote `/upload` parse-review submit flow
+- Calendar reuses the existing `CalendarWidget` pattern with dots for job density.
+- **Drag-to-reschedule**: drag a job from the list onto a different calendar day → updates `job_date` via Supabase.
+- **Quick reschedule dialog**: click a job → date/time picker + reminder controls + Save.
+- Filters bar at top: tech, status, company (mirrors dashboard filters, persisted via `userPrefs`).
+- Time-of-day shown next to each job; sorted by `job_date, job_time`.
+- Empty/loading states; mobile = stacked (calendar on top, list below).
 
-### 3) Make map widget pick up new valid-address jobs immediately
-Keep the map behavior simple and cheap:
-- reuse the existing geocoding cache flow in `src/lib/databoard/geocode.ts`
-- normalize addresses consistently before lookup so newly saved jobs are more likely to resolve
-- do not add backend services or paid APIs
+### 3. Reminder controls (per job)
 
-This ensures a valid submitted address can appear as a pin in the map widget once the jobs list/databoard refreshes.
+Inside the reschedule dialog and as a compact popover from each list row:
+- Toggle: notifications on/off
+- Checkboxes: in-app, email tech, email client, SMS tech, SMS client (channels only shown if contact info exists)
+- Lead time select: 15m / 1h / 3h / 24h / custom
 
-## Files likely to change
-- `src/components/AddJobDialog.tsx`
-- `src/routes/upload.tsx`
-- `src/lib/databoard/geocode.ts`
-- possibly one shared UI dialog file only if needed for the address suggestion prompt
+### 4. Notification delivery
 
-## Technical details
-- Extract a shared address helper that:
-  - trims/normalizes input
-  - attempts primary geocode
-  - attempts a fallback normalized query
-  - returns `{ resolved, suggestion, coordinates }`
-- Use a confirmation modal/dialog before final insert when there is an address ambiguity.
-- Refactor `AddJobDialog` submit flow so the client-save prompt is handled before the component is torn down.
-- Preserve existing business logic for job creation, client linking, and map rendering.
+- **In-app**: on app load, query upcoming jobs within their lead window and show a toast + badge on the nav item; mark seen in `localStorage`.
+- **Email**: use existing Lovable Emails queue (`enqueue_email` RPC) with a new `job_reminder` template (tech variant + client variant).
+- **SMS**: Twilio connector already linked (`TWILIO_API_KEY` present). Send via the gateway pattern.
 
-## Validation
-- Reproduce on phone viewport:
-  1. Add job with client mode = New
-  2. Submit
-  3. Confirm the client popup appears and is usable
-- Verify same flow from parsed-message path
-- Submit a job with a valid address and confirm the map widget can resolve/show a pin after refresh
-- Submit a job with a bad address and confirm the correction prompt appears
-- Confirm desktop behavior still works
+### 5. Scheduled dispatcher
+
+New public TanStack route `src/routes/api/public/hooks/dispatch-job-reminders.ts`:
+- Selects jobs where `notify_enabled`, `job_date`+`job_time` is within now + max lead window, not yet `notified_at`.
+- For each, sends the configured channels, writes `notification_log`, sets `notified_at`.
+- Validates Supabase anon `apikey` header.
+
+`pg_cron` job runs every 5 minutes calling that route.
+
+### 6. Navigation
+
+- Add a "Schedule" link with calendar icon to `MobileNav` and the desktop header (next to DataBoard).
+- New `schedule.view` permission key (admins + technicians can view their own jobs).
+
+### Files
+
+New: `src/routes/schedule.tsx`, `src/components/schedule/ScheduleCalendar.tsx`, `src/components/schedule/JobReminderControls.tsx`, `src/components/schedule/RescheduleDialog.tsx`, `src/routes/api/public/hooks/dispatch-job-reminders.ts`, `src/lib/notifications.ts`.
+
+Modified: `src/components/MobileNav.tsx`, `src/routes/index.tsx` (header link), `src/components/AddJobDialog.tsx` (add job_time field + reminder defaults), `src/lib/jobSchema.ts`.
+
+DB: 1 migration (jobs columns + notification_log). 1 insert (pg_cron job).
+
+### Notes
+
+- Reuses existing email queue, Twilio connector, and userPrefs — no new secrets.
+- Drag-to-reschedule uses native HTML5 DnD (no new dependency).
+- SMS sending is opt-in per job; channels with no contact info are hidden so users can't accidentally enable them.
