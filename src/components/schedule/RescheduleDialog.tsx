@@ -15,8 +15,6 @@ const ALL_CHANNELS: NotifyChannel[] = [
   "in_app",
   "email_tech",
   "email_client",
-  "sms_tech",
-  "sms_client",
 ];
 
 interface Props {

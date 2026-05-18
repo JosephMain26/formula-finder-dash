@@ -80,20 +80,6 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-job-reminders")
                 });
                 await admin.from("notification_log").insert({ job_id: (job as any).id, channel: ch, status: "queued" });
                 sent++;
-              } else if (ch === "sms_tech" || ch === "sms_client") {
-                const phone = await resolvePhone(admin, job, ch);
-                if (!phone) {
-                  await admin.from("notification_log").insert({ job_id: (job as any).id, channel: ch, status: "skipped", error: "no phone" });
-                  continue;
-                }
-                const smsRes = await sendSms(phone, summary);
-                await admin.from("notification_log").insert({
-                  job_id: (job as any).id,
-                  channel: ch,
-                  status: smsRes.ok ? "sent" : "failed",
-                  error: smsRes.ok ? null : smsRes.error,
-                });
-                if (smsRes.ok) sent++;
               } else if (ch === "in_app") {
                 // In-app reminder is read by the client from job.notify_enabled +
                 // due window; just log here for audit.
@@ -134,44 +120,3 @@ async function resolveEmail(admin: any, job: any, ch: string): Promise<string | 
   return null;
 }
 
-async function resolvePhone(admin: any, job: any, ch: string): Promise<string | null> {
-  if (ch === "sms_client") {
-    if (job.phone_no) return normalizePhone(job.phone_no);
-    if (job.client_id) {
-      const { data } = await admin.from("clients").select("phone").eq("id", job.client_id).maybeSingle();
-      return data?.phone ? normalizePhone(data.phone) : null;
-    }
-  }
-  if (ch === "sms_tech" && job.tech_name) {
-    const { data } = await admin.from("technicians").select("phone_number").eq("tech_name", job.tech_name).maybeSingle();
-    return data?.phone_number ? normalizePhone(data.phone_number) : null;
-  }
-  return null;
-}
-
-function normalizePhone(p: string): string {
-  const digits = p.replace(/[^\d+]/g, "");
-  if (digits.startsWith("+")) return digits;
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  return digits.startsWith("+") ? digits : `+${digits}`;
-}
-
-async function sendSms(to: string, body: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const apiKey = process.env.LOVABLE_API_KEY;
-  const twilioKey = process.env.TWILIO_API_KEY;
-  const from = process.env.TWILIO_FROM_NUMBER;
-  if (!apiKey || !twilioKey) return { ok: false, error: "Twilio not configured" };
-  if (!from) return { ok: false, error: "TWILIO_FROM_NUMBER not set" };
-  const res = await fetch("https://connector-gateway.lovable.dev/twilio/Messages.json", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "X-Connection-Api-Key": twilioKey,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({ To: to, From: from, Body: body }),
-  });
-  if (!res.ok) return { ok: false, error: `Twilio ${res.status}: ${(await res.text()).slice(0, 200)}` };
-  return { ok: true };
-}

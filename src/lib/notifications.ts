@@ -13,16 +13,12 @@ export type Job = Tables<"jobs"> & {
 export type NotifyChannel =
   | "in_app"
   | "email_tech"
-  | "email_client"
-  | "sms_tech"
-  | "sms_client";
+  | "email_client";
 
 export const CHANNEL_LABELS: Record<NotifyChannel, string> = {
   in_app: "In-app reminder",
   email_tech: "Email technician",
   email_client: "Email client",
-  sms_tech: "SMS technician",
-  sms_client: "SMS client",
 };
 
 export const LEAD_PRESETS = [
