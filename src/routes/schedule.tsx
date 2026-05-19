@@ -296,6 +296,7 @@ function SchedulePage() {
           open={addOpen}
           onOpenChange={setAddOpen}
           prefill={{ job_date: selectedDay ? fmtDate(selectedDay) : "" }}
+          trigger={<span className="hidden" />}
         />
       )}
 
@@ -305,6 +306,7 @@ function SchedulePage() {
           onJobSaved={() => { load(); setFullEditOpen(false); setEditingFull(null); }}
           open={fullEditOpen}
           onOpenChange={(o) => { setFullEditOpen(o); if (!o) setEditingFull(null); }}
+          trigger={<span className="hidden" />}
         />
       )}
 
