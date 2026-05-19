@@ -5,9 +5,20 @@ import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, BellOff, ArrowLeft, Clock } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Bell, BellOff, ArrowLeft, Clock, Pencil, Trash2, Plus } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 import { RescheduleDialog } from "@/components/schedule/RescheduleDialog";
+import { JobDialog } from "@/components/AddJobDialog";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import type { Job } from "@/lib/notifications";
@@ -27,7 +38,8 @@ function fmtDate(d: Date) {
 }
 
 function SchedulePage() {
-  const { canViewAll } = useAuth();
+  const { canViewAll, isAdmin, isManager } = useAuth();
+  const canDelete = isAdmin || isManager;
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date());
@@ -36,6 +48,10 @@ function SchedulePage() {
   const [companyFilter, setCompanyFilter] = useState("all");
   const [editing, setEditing] = useState<Job | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editingFull, setEditingFull] = useState<Job | null>(null);
+  const [fullEditOpen, setFullEditOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Job | null>(null);
   const [dragJobId, setDragJobId] = useState<string | null>(null);
 
   async function load() {
@@ -93,7 +109,7 @@ function SchedulePage() {
     if (!job || job.job_date === newDate) return;
     const { error } = await (supabase as any)
       .from("jobs")
-      .update({ job_date: newDate, notified_at: null })
+      .update({ job_date: newDate, notified_at: null, notified_lead_minutes: [] })
       .eq("id", job.id);
     if (error) { toast.error(error.message); return; }
     toast.success(`Rescheduled to ${newDate}`);
@@ -109,6 +125,15 @@ function SchedulePage() {
     load();
   }
 
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const { error } = await (supabase as any).from("jobs").delete().eq("id", deleteTarget.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Job deleted");
+    setDeleteTarget(null);
+    load();
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
@@ -117,10 +142,13 @@ function SchedulePage() {
           <Link to="/" className="hidden lg:inline-flex">
             <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Dashboard</Button>
           </Link>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Schedule</h1>
-            <p className="text-xs text-muted-foreground">Drag a job to a day to reschedule. Click to edit or change reminders.</p>
+            <p className="text-xs text-muted-foreground hidden sm:block">Drag a job to a day to reschedule. Click to edit reminders.</p>
           </div>
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> New job
+          </Button>
         </div>
       </header>
 
@@ -151,8 +179,8 @@ function SchedulePage() {
           </Select>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[auto,1fr] gap-4 lg:gap-6">
-          <div className="bg-card border rounded-xl p-2 sm:p-3 w-full lg:w-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+          <div className="bg-card border rounded-xl p-3 sm:p-4">
             <Calendar
               mode="single"
               selected={selectedDay}
@@ -172,7 +200,7 @@ function SchedulePage() {
                   </td>
                 ),
               }}
-              className="pointer-events-auto"
+              className="pointer-events-auto w-full [--cell-size:2.75rem] sm:[--cell-size:3.25rem]"
             />
           </div>
 
@@ -199,10 +227,12 @@ function SchedulePage() {
                       draggable
                       onDragStart={() => setDragJobId(j.id)}
                       onDragEnd={() => setDragJobId(null)}
-                      onClick={() => { setEditing(j); setDialogOpen(true); }}
-                      className="border rounded-md p-3 hover:bg-accent cursor-pointer flex items-start justify-between gap-2"
+                      className="border rounded-md p-3 hover:bg-accent/40 flex items-start justify-between gap-2"
                     >
-                      <div className="min-w-0 flex-1">
+                      <div
+                        className="min-w-0 flex-1 cursor-pointer"
+                        onClick={() => { setEditing(j); setDialogOpen(true); }}
+                      >
                         <div className="flex items-center gap-2 text-sm font-medium">
                           <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                           <span className="shrink-0">{(j.job_time || "—").slice(0, 5)}</span>
@@ -213,17 +243,38 @@ function SchedulePage() {
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
                           Status: {j.status} · ${Number(j.price || 0).toFixed(0)}
+                          {j.notify_lead_minutes_list && j.notify_lead_minutes_list.length > 1 && (
+                            <> · {j.notify_lead_minutes_list.length} reminders</>
+                          )}
                         </div>
                       </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleNotif(j); }}
-                        className="p-1.5 rounded hover:bg-background shrink-0"
-                        title={j.notify_enabled ? "Disable reminders" : "Enable reminders"}
-                      >
-                        {j.notify_enabled ?? true
-                          ? <Bell className="h-4 w-4 text-primary" />
-                          : <BellOff className="h-4 w-4 text-muted-foreground" />}
-                      </button>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleNotif(j); }}
+                          className="p-1.5 rounded hover:bg-background"
+                          title={j.notify_enabled ? "Disable reminders" : "Enable reminders"}
+                        >
+                          {j.notify_enabled ?? true
+                            ? <Bell className="h-4 w-4 text-primary" />
+                            : <BellOff className="h-4 w-4 text-muted-foreground" />}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditingFull(j); setFullEditOpen(true); }}
+                          className="p-1.5 rounded hover:bg-background"
+                          title="Edit job"
+                        >
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeleteTarget(j); }}
+                            className="p-1.5 rounded hover:bg-background"
+                            title="Delete job"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </button>
+                        )}
+                      </div>
                     </li>
                   ))}
               </ul>
@@ -238,6 +289,45 @@ function SchedulePage() {
         onOpenChange={setDialogOpen}
         onSaved={load}
       />
+
+      {addOpen && (
+        <JobDialog
+          onJobSaved={() => { load(); setAddOpen(false); }}
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          prefill={{ job_date: selectedDay ? fmtDate(selectedDay) : "" }}
+          trigger={<span className="hidden" />}
+        />
+      )}
+
+      {fullEditOpen && editingFull && (
+        <JobDialog
+          job={editingFull as any}
+          onJobSaved={() => { load(); setFullEditOpen(false); setEditingFull(null); }}
+          open={fullEditOpen}
+          onOpenChange={(o) => { setFullEditOpen(o); if (!o) setEditingFull(null); }}
+          trigger={<span className="hidden" />}
+        />
+      )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the job
+              {deleteTarget ? ` for ${deleteTarget.company || deleteTarget.company_1 || "—"} on ${deleteTarget.job_date || "—"}` : ""}.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

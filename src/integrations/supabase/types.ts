@@ -291,9 +291,11 @@ export type Database = {
           maps: string | null
           notes: string | null
           notified_at: string | null
+          notified_lead_minutes: number[]
           notify_channels: string[]
           notify_enabled: boolean
           notify_lead_minutes: number
+          notify_lead_minutes_list: number[]
           office_parts: number | null
           paid: boolean | null
           parts: number | null
@@ -335,9 +337,11 @@ export type Database = {
           maps?: string | null
           notes?: string | null
           notified_at?: string | null
+          notified_lead_minutes?: number[]
           notify_channels?: string[]
           notify_enabled?: boolean
           notify_lead_minutes?: number
+          notify_lead_minutes_list?: number[]
           office_parts?: number | null
           paid?: boolean | null
           parts?: number | null
@@ -379,9 +383,11 @@ export type Database = {
           maps?: string | null
           notes?: string | null
           notified_at?: string | null
+          notified_lead_minutes?: number[]
           notify_channels?: string[]
           notify_enabled?: boolean
           notify_lead_minutes?: number
+          notify_lead_minutes_list?: number[]
           office_parts?: number | null
           paid?: boolean | null
           parts?: number | null

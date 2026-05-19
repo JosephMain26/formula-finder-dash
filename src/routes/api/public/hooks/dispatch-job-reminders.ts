@@ -29,7 +29,6 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-job-reminders")
           .from("jobs")
           .select("*")
           .eq("notify_enabled", true)
-          .is("notified_at", null)
           .not("job_date", "is", null)
           .gte("job_date", todayIso)
           .lte("job_date", horizonIso);
@@ -41,62 +40,70 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-job-reminders")
           const time = (job as any).job_time || "09:00:00";
           const dt = new Date(`${(job as any).job_date}T${time}`);
           if (Number.isNaN(dt.getTime())) continue;
-          const lead = ((job as any).notify_lead_minutes ?? 60) * 60_000;
           const diff = dt.getTime() - nowMs;
-          if (diff <= 0 || diff > lead) continue;
+          if (diff <= 0) continue;
+
+          const leadsRaw = (job as any).notify_lead_minutes_list as number[] | null;
+          const leads: number[] = (leadsRaw && leadsRaw.length > 0)
+            ? leadsRaw
+            : [(job as any).notify_lead_minutes ?? 60];
+          const alreadySent: number[] = (job as any).notified_lead_minutes || [];
+
+          // Find leads whose window has opened (diff <= lead) and that haven't been sent yet.
+          const due = leads.filter((m) => diff <= m * 60_000 && !alreadySent.includes(m));
+          if (due.length === 0) continue;
 
           const channels: string[] = (job as any).notify_channels || [];
-          if (channels.length === 0) {
-            // Still mark notified to avoid re-scanning every cycle
-            await admin.from("jobs").update({ notified_at: new Date().toISOString() }).eq("id", (job as any).id);
-            continue;
-          }
-
           const summary = `${(job as any).job_type || "Job"} for ${(job as any).company || (job as any).company_1 || "client"} at ${(job as any).address || "TBD"} on ${(job as any).job_date} ${time.slice(0, 5)}`;
-          const subject = `Reminder: ${(job as any).job_type || "Job"} at ${time.slice(0, 5)}`;
-          const html = `<p>${summary}</p><p>Tech: ${(job as any).tech_name || "—"}</p>`;
 
-          for (const ch of channels) {
-            try {
-              if (ch === "email_tech" || ch === "email_client") {
-                const recipient = await resolveEmail(admin, job, ch);
-                if (!recipient) {
-                  await admin.from("notification_log").insert({ job_id: (job as any).id, channel: ch, status: "skipped", error: "no recipient" });
-                  continue;
+          for (const leadMin of due) {
+            const subject = `Reminder (${leadMin < 60 ? `${leadMin}m` : leadMin < 1440 ? `${Math.round(leadMin / 60)}h` : `${Math.round(leadMin / 1440)}d`} before): ${(job as any).job_type || "Job"} at ${time.slice(0, 5)}`;
+            const html = `<p>${summary}</p><p>Tech: ${(job as any).tech_name || "—"}</p>`;
+
+            for (const ch of channels) {
+              try {
+                if (ch === "email_tech" || ch === "email_client") {
+                  const recipient = await resolveEmail(admin, job, ch);
+                  if (!recipient) {
+                    await admin.from("notification_log").insert({ job_id: (job as any).id, channel: ch, status: "skipped", error: "no recipient" });
+                    continue;
+                  }
+                  await admin.rpc("enqueue_email", {
+                    queue_name: "transactional_emails",
+                    payload: {
+                      to: recipient,
+                      from: FROM_ADDRESS,
+                      sender_domain: SENDER_DOMAIN,
+                      subject,
+                      html,
+                      label: "job_reminder",
+                      purpose: "transactional",
+                      queued_at: new Date().toISOString(),
+                      message_id: `reminder-${(job as any).id}-${ch}-${leadMin}-${Date.now()}`,
+                    },
+                  });
+                  await admin.from("notification_log").insert({ job_id: (job as any).id, channel: ch, status: "queued" });
+                  sent++;
+                } else if (ch === "in_app") {
+                  await admin.from("notification_log").insert({ job_id: (job as any).id, channel: ch, status: "logged" });
+                  sent++;
                 }
-                await admin.rpc("enqueue_email", {
-                  queue_name: "transactional_emails",
-                  payload: {
-                    to: recipient,
-                    from: FROM_ADDRESS,
-                    sender_domain: SENDER_DOMAIN,
-                    subject,
-                    html,
-                    label: "job_reminder",
-                    purpose: "transactional",
-                    queued_at: new Date().toISOString(),
-                    message_id: `reminder-${(job as any).id}-${ch}-${Date.now()}`,
-                  },
+              } catch (e: any) {
+                await admin.from("notification_log").insert({
+                  job_id: (job as any).id,
+                  channel: ch,
+                  status: "failed",
+                  error: String(e?.message || e).slice(0, 500),
                 });
-                await admin.from("notification_log").insert({ job_id: (job as any).id, channel: ch, status: "queued" });
-                sent++;
-              } else if (ch === "in_app") {
-                // In-app reminder is read by the client from job.notify_enabled +
-                // due window; just log here for audit.
-                await admin.from("notification_log").insert({ job_id: (job as any).id, channel: ch, status: "logged" });
-                sent++;
               }
-            } catch (e: any) {
-              await admin.from("notification_log").insert({
-                job_id: (job as any).id,
-                channel: ch,
-                status: "failed",
-                error: String(e?.message || e).slice(0, 500),
-              });
             }
           }
 
-          await admin.from("jobs").update({ notified_at: new Date().toISOString() }).eq("id", (job as any).id);
+          const merged = [...new Set([...alreadySent, ...due])];
+          await admin.from("jobs").update({
+            notified_lead_minutes: merged,
+            notified_at: new Date().toISOString(),
+          }).eq("id", (job as any).id);
         }
 
         return Response.json({ processed: (jobs || []).length, sent });
