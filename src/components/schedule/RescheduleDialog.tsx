@@ -64,6 +64,7 @@ export function RescheduleDialog({ job, open, onOpenChange, onSaved }: Props) {
       .update({
         job_date: date || null,
         job_time: time ? `${time}:00` : null,
+        job_time_end: isRange && endTime ? `${endTime}:00` : null,
         notify_enabled: enabled,
         notify_channels: channels,
         notify_lead_minutes_list: leads.length > 0 ? leads : [60],
