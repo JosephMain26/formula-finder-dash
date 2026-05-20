@@ -412,9 +412,41 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
             const renderers: Record<CoreFieldKey, () => React.ReactNode> = {
               job_date: () => (
-                <div key="job_date">
-                  <label className="text-xs font-medium text-muted-foreground">{labelOf("job_date")}{reqOf("job_date") ? " *" : ""}</label>
-                  <DatePickerField value={form.job_date} onChange={(v) => update("job_date", v)} />
+                <div key="job_date" className="space-y-2">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">{labelOf("job_date")}{reqOf("job_date") ? " *" : ""}</label>
+                    <DatePickerField value={form.job_date} onChange={(v) => update("job_date", v)} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">{form.job_time_end ? "Start time" : "Time"}</label>
+                      <Input type="time" value={form.job_time} onChange={(e) => update("job_time", e.target.value)} />
+                    </div>
+                    <div className="flex items-end justify-between gap-2 pb-1">
+                      <label className="text-xs font-medium text-muted-foreground">Time range</label>
+                      <Switch
+                        checked={!!form.job_time_end}
+                        onCheckedChange={(v) => {
+                          if (v) {
+                            let end = form.job_time_end;
+                            if (!end && form.job_time) {
+                              const [h, m] = form.job_time.split(":").map(Number);
+                              if (!Number.isNaN(h)) end = `${String((h + 2) % 24).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
+                            }
+                            update("job_time_end", end || "");
+                          } else {
+                            update("job_time_end", "");
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {form.job_time_end && (
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">End time</label>
+                      <Input type="time" value={form.job_time_end} onChange={(e) => update("job_time_end", e.target.value)} />
+                    </div>
+                  )}
                 </div>
               ),
               company_id: () => (
