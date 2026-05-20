@@ -290,7 +290,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       address: (overrideAddress ?? form.address) || null,
       comp_type: form.comp_type || null,
       job_type: form.job_type || null,
-      status: form.status || "Pending",
+      status: (form.job_date && (!form.status || form.status === "Pending")) ? "Scheduled" : (form.status || "Pending"),
       price,
       co_parts: coParts,
       office_parts: officeParts,
