@@ -4,6 +4,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export type Job = Tables<"jobs"> & {
   job_time?: string | null;
+  job_time_end?: string | null;
   notify_enabled?: boolean | null;
   notify_channels?: string[] | null;
   notify_lead_minutes?: number | null;
