@@ -22,6 +22,8 @@ interface Props {
 export function RescheduleDialog({ job, open, onOpenChange, onSaved }: Props) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [isRange, setIsRange] = useState(false);
   const [enabled, setEnabled] = useState(true);
   const [channels, setChannels] = useState<NotifyChannel[]>(["in_app"]);
   const [leads, setLeads] = useState<number[]>([60]);
@@ -31,6 +33,8 @@ export function RescheduleDialog({ job, open, onOpenChange, onSaved }: Props) {
     if (!job) return;
     setDate(job.job_date ?? "");
     setTime((job.job_time ?? "").slice(0, 5));
+    setEndTime((job.job_time_end ?? "").slice(0, 5));
+    setIsRange(!!job.job_time_end);
     setEnabled(job.notify_enabled ?? true);
     setChannels(((job.notify_channels ?? ["in_app"]) as NotifyChannel[]));
     const list = job.notify_lead_minutes_list && job.notify_lead_minutes_list.length > 0
