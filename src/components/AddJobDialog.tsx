@@ -111,6 +111,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       if (isEdit && job) {
         setForm({
           job_date: job.job_date || "",
+          job_time: ((job as any).job_time || "").slice(0, 5),
+          job_time_end: ((job as any).job_time_end || "").slice(0, 5),
           company_id: job.company_id || "",
           technician_id: "",
           tech_name: job.tech_name || "",
