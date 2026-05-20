@@ -286,6 +286,7 @@ export type Database = {
           installer_name: string | null
           job_date: string | null
           job_time: string | null
+          job_time_end: string | null
           job_type: string | null
           manual_percentage: number | null
           maps: string | null
@@ -332,6 +333,7 @@ export type Database = {
           installer_name?: string | null
           job_date?: string | null
           job_time?: string | null
+          job_time_end?: string | null
           job_type?: string | null
           manual_percentage?: number | null
           maps?: string | null
@@ -378,6 +380,7 @@ export type Database = {
           installer_name?: string | null
           job_date?: string | null
           job_time?: string | null
+          job_time_end?: string | null
           job_type?: string | null
           manual_percentage?: number | null
           maps?: string | null

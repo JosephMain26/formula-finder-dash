@@ -235,7 +235,10 @@ function SchedulePage() {
                       >
                         <div className="flex items-center gap-2 text-sm font-medium">
                           <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <span className="shrink-0">{(j.job_time || "—").slice(0, 5)}</span>
+                          <span className="shrink-0">
+                            {(j.job_time || "—").slice(0, 5)}
+                            {j.job_time_end ? ` – ${j.job_time_end.slice(0, 5)}` : ""}
+                          </span>
                           <span className="truncate">{j.tech_name || "Unassigned"} · {j.job_type || "Job"}</span>
                         </div>
                         <div className="text-xs text-muted-foreground truncate mt-1">

@@ -22,6 +22,8 @@ interface Props {
 export function RescheduleDialog({ job, open, onOpenChange, onSaved }: Props) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [isRange, setIsRange] = useState(false);
   const [enabled, setEnabled] = useState(true);
   const [channels, setChannels] = useState<NotifyChannel[]>(["in_app"]);
   const [leads, setLeads] = useState<number[]>([60]);
@@ -31,6 +33,8 @@ export function RescheduleDialog({ job, open, onOpenChange, onSaved }: Props) {
     if (!job) return;
     setDate(job.job_date ?? "");
     setTime((job.job_time ?? "").slice(0, 5));
+    setEndTime((job.job_time_end ?? "").slice(0, 5));
+    setIsRange(!!job.job_time_end);
     setEnabled(job.notify_enabled ?? true);
     setChannels(((job.notify_channels ?? ["in_app"]) as NotifyChannel[]));
     const list = job.notify_lead_minutes_list && job.notify_lead_minutes_list.length > 0
@@ -60,6 +64,7 @@ export function RescheduleDialog({ job, open, onOpenChange, onSaved }: Props) {
       .update({
         job_date: date || null,
         job_time: time ? `${time}:00` : null,
+        job_time_end: isRange && endTime ? `${endTime}:00` : null,
         notify_enabled: enabled,
         notify_channels: channels,
         notify_lead_minutes_list: leads.length > 0 ? leads : [60],
@@ -96,10 +101,35 @@ export function RescheduleDialog({ job, open, onOpenChange, onSaved }: Props) {
               <DatePickerField value={date} onChange={setDate} allowClear={false} />
             </div>
             <div>
-              <Label className="text-xs">Time</Label>
+              <Label className="text-xs">{isRange ? "Start time" : "Time"}</Label>
               <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
             </div>
           </div>
+
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Time range (arrival window)</Label>
+            <Switch
+              checked={isRange}
+              onCheckedChange={(v) => {
+                setIsRange(v);
+                if (v && time && !endTime) {
+                  // default to +2 hours
+                  const [h, m] = time.split(":").map(Number);
+                  if (!Number.isNaN(h)) {
+                    const eh = String((h + 2) % 24).padStart(2, "0");
+                    setEndTime(`${eh}:${String(m || 0).padStart(2, "0")}`);
+                  }
+                }
+              }}
+            />
+          </div>
+
+          {isRange && (
+            <div>
+              <Label className="text-xs">End time</Label>
+              <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+            </div>
+          )}
 
           <div className="border-t pt-3 space-y-3">
             <div className="flex items-center justify-between">
