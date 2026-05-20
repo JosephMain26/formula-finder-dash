@@ -31,7 +31,7 @@ type Installer = { id: string; name: string };
 type Client = { id: string; name: string; phone: string | null; address: string | null };
 
 const emptyForm = {
-  job_date: "", company_id: "", technician_id: "", tech_name: "",
+  job_date: "", job_time: "", job_time_end: "", company_id: "", technician_id: "", tech_name: "",
   po_number: "", phone_no: "", address: "", comp_type: "", job_type: "",
   status: "Pending", price: "", co_parts: "", office_parts: "", parts: "", payment: "",
   check_no: "", tip: "", cost: "", notes: "", cc_fee: "",
