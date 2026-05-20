@@ -280,6 +280,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
     const payload: any = {
       job_date: form.job_date || null,
+      job_time: form.job_time ? `${form.job_time}:00` : null,
+      job_time_end: form.job_time_end ? `${form.job_time_end}:00` : null,
       company_id: form.company_id || null,
       company_1: selectedCompany?.company_name || null,
       tech_name: form.tech_name || null,
