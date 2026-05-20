@@ -101,10 +101,35 @@ export function RescheduleDialog({ job, open, onOpenChange, onSaved }: Props) {
               <DatePickerField value={date} onChange={setDate} allowClear={false} />
             </div>
             <div>
-              <Label className="text-xs">Time</Label>
+              <Label className="text-xs">{isRange ? "Start time" : "Time"}</Label>
               <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
             </div>
           </div>
+
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Time range (arrival window)</Label>
+            <Switch
+              checked={isRange}
+              onCheckedChange={(v) => {
+                setIsRange(v);
+                if (v && time && !endTime) {
+                  // default to +2 hours
+                  const [h, m] = time.split(":").map(Number);
+                  if (!Number.isNaN(h)) {
+                    const eh = String((h + 2) % 24).padStart(2, "0");
+                    setEndTime(`${eh}:${String(m || 0).padStart(2, "0")}`);
+                  }
+                }
+              }}
+            />
+          </div>
+
+          {isRange && (
+            <div>
+              <Label className="text-xs">End time</Label>
+              <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+            </div>
+          )}
 
           <div className="border-t pt-3 space-y-3">
             <div className="flex items-center justify-between">
