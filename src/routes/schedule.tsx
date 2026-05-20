@@ -109,7 +109,7 @@ function SchedulePage() {
     if (!job || job.job_date === newDate) return;
     const { error } = await (supabase as any)
       .from("jobs")
-      .update({ job_date: newDate, notified_at: null, notified_lead_minutes: [] })
+      .update({ job_date: newDate, status: "Scheduled", notified_at: null, notified_lead_minutes: [] })
       .eq("id", job.id);
     if (error) { toast.error(error.message); return; }
     toast.success(`Rescheduled to ${newDate}`);
