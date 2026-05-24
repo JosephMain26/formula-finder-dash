@@ -1,12 +1,13 @@
-// Free geocoding via Nominatim (OpenStreetMap). Cached in localStorage.
-// Throttled to 1 req/sec per Nominatim policy.
+// Geocoding via Google Maps connector gateway (server function). Cached in localStorage.
+
+import { geocodeAddressServer } from "@/lib/geocode.functions";
 
 const CACHE_KEY = "geocode_cache_v1";
 const NEG_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days for "not found"
 
 type LatLng = { lat: number; lng: number };
 type DetailedLatLng = LatLng & { displayName: string };
-type CacheEntry = { lat?: number; lng?: number; t: number };
+type CacheEntry = { lat?: number; lng?: number; t: number; displayName?: string };
 
 export function normalizeAddressInput(address: string): string {
   return address
@@ -27,54 +28,54 @@ function writeCache(c: Record<string, CacheEntry>) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch {}
 }
 
-let queue: Promise<any> = Promise.resolve();
-function throttle<T>(fn: () => Promise<T>): Promise<T> {
-  const next = queue.then(() => fn().finally(() => new Promise((r) => setTimeout(r, 1100))));
-  queue = next.catch(() => {});
-  return next as Promise<T>;
-}
-
 export function getCached(address: string): LatLng | null {
   const c = readCache();
   const e = c[normalizeAddressInput(address).toLowerCase()];
   if (!e) return null;
-  if (e.lat == null || e.lng == null) {
-    if (Date.now() - e.t > NEG_TTL_MS) return null;
-    return null;
-  }
+  if (e.lat == null || e.lng == null) return null;
   return { lat: e.lat, lng: e.lng };
 }
+
+const inflight = new Map<string, Promise<DetailedLatLng | null>>();
 
 export async function geocodeAddressDetailed(address: string): Promise<DetailedLatLng | null> {
   const normalized = normalizeAddressInput(address);
   const key = normalized.toLowerCase();
   if (!key) return null;
-  const cached = getCached(normalized);
-  if (cached) return { ...cached, displayName: normalized };
-  const c = readCache();
-  if (c[key] && Date.now() - c[key].t < NEG_TTL_MS && c[key].lat == null) return null;
 
-  return throttle(async () => {
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(normalized)}`;
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
-      if (!res.ok) throw new Error(String(res.status));
-      const arr = await res.json();
-      const c2 = readCache();
-      if (Array.isArray(arr) && arr[0]?.lat && arr[0]?.lon) {
-        const lat = parseFloat(arr[0].lat);
-        const lng = parseFloat(arr[0].lon);
-        c2[key] = { lat, lng, t: Date.now() };
-        writeCache(c2);
-        return { lat, lng, displayName: arr[0].display_name || normalized };
-      }
-      c2[key] = { t: Date.now() };
-      writeCache(c2);
-      return null;
-    } catch {
-      return null;
+  const c = readCache();
+  const e = c[key];
+  if (e) {
+    if (e.lat != null && e.lng != null) {
+      return { lat: e.lat, lng: e.lng, displayName: e.displayName || normalized };
     }
-  });
+    if (Date.now() - e.t < NEG_TTL_MS) return null;
+  }
+
+  const existing = inflight.get(key);
+  if (existing) return existing;
+
+  const p = (async (): Promise<DetailedLatLng | null> => {
+    try {
+      const res = await geocodeAddressServer({ data: { address: normalized } });
+      const cur = readCache();
+      if (res) {
+        cur[key] = { lat: res.lat, lng: res.lng, displayName: res.displayName, t: Date.now() };
+        writeCache(cur);
+        return res;
+      }
+      cur[key] = { t: Date.now() };
+      writeCache(cur);
+      return null;
+    } catch (err) {
+      console.error("geocodeAddressDetailed failed", err);
+      return null;
+    } finally {
+      inflight.delete(key);
+    }
+  })();
+  inflight.set(key, p);
+  return p;
 }
 
 export async function geocodeAddress(address: string): Promise<LatLng | null> {
