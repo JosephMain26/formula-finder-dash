@@ -87,7 +87,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [pendingCloseAfterClient, setPendingCloseAfterClient] = useState(false);
   const [addressPrompt, setAddressPrompt] = useState<null | { mode: "suggestion" | "unresolved"; originalAddress: string; suggestion?: string }>(null);
   const submitIntentRef = useRef<null | { event?: React.FormEvent; overrideAddress?: string }>(null);
-  const parentDialogVisible = open && !showNewClientPopup;
+  
 
   const [form, setForm] = useState(emptyForm);
 
@@ -338,16 +338,24 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     setLoading(false);
     if (!error) {
       if (canManageClients && clientMode === "new" && !isEdit && insertedJobId) {
-        setSavedJobId(insertedJobId);
-        setNewClientForm({
-          name: ((overrideAddress ?? form.address)?.split(",")[0]?.trim()) || form.phone_no || "",
-          phone: form.phone_no || "",
-          email: "",
-          address: (overrideAddress ?? form.address) || "",
-          notes: "",
-        });
+        const seedName = ((overrideAddress ?? form.address)?.split(",")[0]?.trim()) || form.phone_no || "";
+        const seedAddress = (overrideAddress ?? form.address) || "";
         setPendingCloseAfterClient(true);
-        setShowNewClientPopup(true);
+        // Close parent dialog first, then open the follow-up popup once Radix
+        // has fully unmounted the previous one (avoids stuck pointer-events).
+        setOpen(false);
+        onJobSaved();
+        setTimeout(() => {
+          setSavedJobId(insertedJobId);
+          setNewClientForm({
+            name: seedName,
+            phone: form.phone_no || "",
+            email: "",
+            address: seedAddress,
+            notes: "",
+          });
+          setShowNewClientPopup(true);
+        }, 150);
         return;
       }
 
@@ -375,35 +383,22 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   function closeClientPopup() {
     setShowNewClientPopup(false);
     setSavedJobId(null);
-    if (pendingCloseAfterClient) {
-      setPendingCloseAfterClient(false);
-      setOpen(false);
-      onJobSaved();
-    }
-  }
-
-  function handleDialogOpenChange(nextOpen: boolean) {
-    if (!nextOpen && showNewClientPopup) {
-      closeClientPopup();
-      return;
-    }
-
-    setOpen(nextOpen);
+    setPendingCloseAfterClient(false);
   }
 
   const selectedCompany = companies.find(c => c.id === form.company_id);
 
   return (
     <>
-    <Dialog open={parentDialogVisible} onOpenChange={handleDialogOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || <Button><Plus className="h-4 w-4 mr-2" /> Add Job</Button>}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl w-[calc(100%-2rem)] max-h-[85vh] overflow-y-auto">
+      <DialogContent aria-describedby={undefined} className="max-w-2xl w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Job" : "Add New Job"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 mt-4">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
           {(() => {
             const resolved = getCoreFieldsResolved(coreOverrides);
             const visible = resolved.filter((f) => f.visibleInForm);
@@ -879,7 +874,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           {customFields.filter(f => f.visibleInForm).length > 0 && (
             <div className="col-span-2 mt-2 pt-3 border-t">
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Custom fields</div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {customFields.filter(f => f.visibleInForm).map((f) => (
                   <DynamicField
                     key={f.id}
@@ -901,7 +896,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
     {/* Post-submit new client popup */}
     <Dialog open={showNewClientPopup} onOpenChange={(o) => { if (!o) closeClientPopup(); }}>
-      <DialogContent className="max-w-sm w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
+      <DialogContent aria-describedby={undefined} className="max-w-sm w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Save Client Details</DialogTitle>
         </DialogHeader>

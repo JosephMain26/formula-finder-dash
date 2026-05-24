@@ -86,7 +86,7 @@ export function RescheduleDialog({ job, open, onOpenChange, onSaved }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent aria-describedby={undefined} className="max-w-md w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Reschedule & reminders</DialogTitle>
         </DialogHeader>
@@ -96,7 +96,7 @@ export function RescheduleDialog({ job, open, onOpenChange, onSaved }: Props) {
             {job.company || job.company_1 || "—"} · {job.tech_name || "Unassigned"} · {job.address || ""}
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">Date</Label>
               <DatePickerField value={date} onChange={setDate} allowClear={false} />
@@ -172,7 +172,7 @@ export function RescheduleDialog({ job, open, onOpenChange, onSaved }: Props) {
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
         </DialogFooter>

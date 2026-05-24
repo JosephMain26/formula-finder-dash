@@ -115,13 +115,13 @@ function ClientsPage() {
 
       <main className="max-w-[1200px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-2">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <CardTitle className="text-lg">All Clients</CardTitle>
             <Input
               placeholder="Search name, phone, email, address…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="max-w-xs h-9"
+              className="w-full sm:max-w-xs h-9"
             />
           </CardHeader>
           <CardContent>
@@ -278,7 +278,7 @@ function ClientDialog({ client, onSaved, autoOpen, onOpened }: { client?: Client
             <Button><Plus className="h-4 w-4 mr-2" /> Add Client</Button>
           )}
         </DialogTrigger>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent aria-describedby={undefined} className="max-w-lg w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>{isEdit ? "Edit Client" : "Add Client"}</DialogTitle>
           </DialogHeader>

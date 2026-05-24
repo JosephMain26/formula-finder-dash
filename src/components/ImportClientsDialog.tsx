@@ -152,7 +152,7 @@ export function ImportClientsDialog({ onImported }: { onImported: () => void }) 
       <Button variant="outline" onClick={() => setOpen(true)}>
         <Upload className="h-4 w-4 mr-2" /> Import
       </Button>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent aria-describedby={undefined} className="max-w-3xl w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Import Clients {step === 2 && `— ${rows.length} rows`}</DialogTitle>
         </DialogHeader>

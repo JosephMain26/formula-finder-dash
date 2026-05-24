@@ -179,8 +179,8 @@ function SchedulePage() {
           </Select>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-          <div className="bg-card border rounded-xl p-3 sm:p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
+          <div className="bg-card border rounded-xl p-3 sm:p-4 lg:col-span-3 min-w-0">
             <Calendar
               mode="single"
               selected={selectedDay}
@@ -204,7 +204,7 @@ function SchedulePage() {
             />
           </div>
 
-          <div className="bg-card border rounded-xl p-3 sm:p-5 min-w-0">
+          <div className="bg-card border rounded-xl p-3 sm:p-5 min-w-0 lg:col-span-2">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold">
                 {selectedDay ? selectedDay.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) : "Pick a day"}
