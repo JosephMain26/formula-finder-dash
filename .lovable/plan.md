@@ -1,37 +1,54 @@
-## Goal
-Replace the checkbox-grid mapping in Settings → "Job & Comp Types" with a drag-and-drop board so you can drag a Job Type chip into a Comp Type column to assign it (and drag it out / between columns to reassign).
+# Fix: address validator + map pins
 
-## Approach (minimal credits)
-- Keep the existing storage: `app_settings.job_type_groups` JSON `{ groups: { compName: [jobTypeName, ...] } }`. No DB changes, no new tables.
-- Keep the existing add/rename/delete rows for Comp Types and Job Types untouched.
-- Use the browser-native HTML5 drag-and-drop API (no new dependency, zero install cost). Works fine for this list-sized UI.
-- One file edited: `src/components/settings/TypeGroupsManager.tsx`. Nothing else changes.
+## Root cause
 
-## UI
+Geocoding in `src/lib/databoard/geocode.ts` calls `https://nominatim.openstreetmap.org` directly from the browser. That endpoint is unreliable here: it rate-limits aggressively (Nominatim's policy is 1 req/sec and they actively block apps that hit it from many users), and browser calls hit CORS / 403s with no retry. When it fails:
 
-```text
-+-- Unassigned Job Types ------------------+
-| [Install] [Service] [Repair] [Survey]   |  <- draggable chips
-+------------------------------------------+
+- `validateAddressForSave` falls back to `unresolved` → the user sees the "we couldn't verify this address" dialog instead of a clean save.
+- `MapWidget` gets `null` for every address → no pins.
 
-+-- Solar ----------+  +-- HVAC ----------+  +-- Roofing -------+
-| [Install]         |  | [Service]        |  | (drop here)      |
-| [Survey]          |  | [Repair]         |  |                  |
-+-------------------+  +------------------+  +------------------+
-```
+The project already has the Google Maps Platform connector available, and the knowledge says to use it for geocoding. We just never wired it up.
 
-- Each Comp Type is a drop zone (column/card) listing its assigned Job Type chips.
-- A top "Unassigned" zone lists Job Types not in any comp.
-- Drag a chip from one zone into another → save `groups` to `app_settings` immediately (debounced if needed, but a single upsert per drop is fine).
-- A Job Type may belong to multiple comp types (current data model already allows it). Default drag = move from source to target; hold a modifier (or use a small "copy" toggle in the chip's hover menu) to copy instead. Simpler v1: plain move, since multi-assign is rare; can revisit.
-- Mobile fallback: on touch devices, show a small "Assign…" button on each chip that opens a popover with comp-type checkboxes (reuses existing logic), since HTML5 DnD is unreliable on touch. Keeps it usable everywhere without adding a DnD library.
+## What I'll change
 
-## Behaviour details
-- Rename of a comp type → migrate the key in `groups` (already implemented, keep as-is).
-- Delete of a comp type / job type → strip from `groups` (already implemented).
-- "Unassigned" is computed: `jobTypes` minus union of all assigned names.
-- Saves are optimistic: update local `groups` state, then `saveTypeGroups(next)`; toast on failure.
+1. **New server function** `src/lib/geocode.functions.ts`
+   - `geocodeAddressServer({ address })` — calls the Google Maps gateway
+     (`/maps/api/geocode/json`) using `LOVABLE_API_KEY` + `GOOGLE_MAPS_API_KEY`
+     env vars injected by the connector. Returns `{ lat, lng, displayName } | null`.
+   - Keeps response shape identical to the current `geocodeAddressDetailed`.
+
+2. **Rewrite `src/lib/databoard/geocode.ts`**
+   - Drop the direct Nominatim `fetch`. Keep the localStorage cache, the
+     `getCached` helper, the `normalizeAddressInput` helper, and the
+     `geocodeAddress` / `geocodeAddressDetailed` exports (so callers in
+     `MapWidget`, `addressValidation.ts`, `AddJobDialog`, and `upload.tsx`
+     don't change).
+   - Internally, `geocodeAddressDetailed` now calls the server fn via
+     `useServerFn`-equivalent direct import (server fns can be called from
+     client modules — `await geocodeAddressServer({ data: { address } })`).
+   - Cache hits/misses stay in localStorage exactly as today (positive +
+     negative TTL), so we don't re-hit Google for already-resolved addresses.
+   - Remove the 1.1s throttle since Google's quota is far higher; keep a
+     small in-flight de-dupe map so simultaneous calls for the same address
+     share one request.
+
+3. **Connector check**
+   - If the Google Maps connector isn't connected yet, the server fn returns
+     a clear error and I'll prompt to connect it via `standard_connectors--connect`
+     before running. (I'll check `list_connections` first when implementing.)
 
 ## Out of scope
-- No new npm package, no DB migration, no changes to `AddJobDialog` (filter logic already reads `groups` and keeps working unchanged).
-- No reordering within a column (assignment only, not ordering). Can add later if needed.
+
+- No UI changes. `AddressReviewDialog`, `AddJobDialog`, `upload.tsx`,
+  `MapWidget` keep their current behavior — they just start getting real
+  results back.
+- No DB changes.
+- I'm not switching the map tiles to Google Maps; OSM tiles in `MapWidget`
+  stay. Only the geocoder changes.
+
+## Technical notes
+
+- Server fn uses the gateway pattern from the Google Maps connector docs:
+  `fetch('https://connector-gateway.lovable.dev/google_maps/maps/api/geocode/json?address=…', { headers: { Authorization: Bearer ${LOVABLE_API_KEY}, 'X-Connection-Api-Key': ${GOOGLE_MAPS_API_KEY} } })`.
+- Env vars are read inside `.handler()`, not at module scope.
+- `attachSupabaseAuth` middleware is not needed — geocoding is not user-scoped.
