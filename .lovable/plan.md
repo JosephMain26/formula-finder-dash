@@ -1,35 +1,37 @@
 ## Goal
-Manage Comp Types and Job Types from Settings, with a mapping so that selecting a Company/Comp Type in the Job form filters the Job Type dropdown to only the relevant options.
+Replace the checkbox-grid mapping in Settings → "Job & Comp Types" with a drag-and-drop board so you can drag a Job Type chip into a Comp Type column to assign it (and drag it out / between columns to reassign).
 
-## Approach (minimal credits — no schema change)
-- Reuse existing tables: `marketer_types` (= comp types) and `job_types`.
-- Store the mapping in `app_settings` under key `job_type_groups` as JSON:
-  ```json
-  { "groups": { "<compTypeName>": ["JobTypeName1", "JobTypeName2"] } }
-  ```
-- No migration needed.
+## Approach (minimal credits)
+- Keep the existing storage: `app_settings.job_type_groups` JSON `{ groups: { compName: [jobTypeName, ...] } }`. No DB changes, no new tables.
+- Keep the existing add/rename/delete rows for Comp Types and Job Types untouched.
+- Use the browser-native HTML5 drag-and-drop API (no new dependency, zero install cost). Works fine for this list-sized UI.
+- One file edited: `src/components/settings/TypeGroupsManager.tsx`. Nothing else changes.
 
-## Changes
+## UI
 
-### 1. New settings section: `src/components/settings/TypeGroupsManager.tsx`
-One panel with two columns:
-- **Comp Types** list (from `marketer_types`): add / rename / delete.
-- **Job Types** list (from `job_types`): add / rename / delete.
-- For each Comp Type row: a multi-select (checkbox popover) of Job Types that belong to it. Persisted to `app_settings.job_type_groups`.
-- "Unassigned" job types remain available globally (fallback so nothing breaks).
+```text
++-- Unassigned Job Types ------------------+
+| [Install] [Service] [Repair] [Survey]   |  <- draggable chips
++------------------------------------------+
 
-### 2. Wire into `src/routes/settings.tsx`
-Add a new tab/section "Job & Comp Types" rendering `TypeGroupsManager`.
++-- Solar ----------+  +-- HVAC ----------+  +-- Roofing -------+
+| [Install]         |  | [Service]        |  | (drop here)      |
+| [Survey]          |  | [Repair]         |  |                  |
++-------------------+  +------------------+  +------------------+
+```
 
-### 3. `src/components/AddJobDialog.tsx`
-- Load `job_type_groups` mapping alongside job types.
-- When rendering the `job_type` Select, filter `jobTypes` to those mapped to current `form.comp_type`. If comp_type empty or has no mapping, show all job types (current behavior).
-- If current `form.job_type` no longer matches the filtered list, keep showing it as "(other)" item so edits don't lose data.
+- Each Comp Type is a drop zone (column/card) listing its assigned Job Type chips.
+- A top "Unassigned" zone lists Job Types not in any comp.
+- Drag a chip from one zone into another → save `groups` to `app_settings` immediately (debounced if needed, but a single upsert per drop is fine).
+- A Job Type may belong to multiple comp types (current data model already allows it). Default drag = move from source to target; hold a modifier (or use a small "copy" toggle in the chip's hover menu) to copy instead. Simpler v1: plain move, since multi-assign is rare; can revisit.
+- Mobile fallback: on touch devices, show a small "Assign…" button on each chip that opens a popover with comp-type checkboxes (reuses existing logic), since HTML5 DnD is unreliable on touch. Keeps it usable everywhere without adding a DnD library.
 
-### 4. Helper `src/lib/typeGroups.ts`
-`loadTypeGroups()` / `saveTypeGroups(groups)` using the existing `app_settings` pattern (mirrors `loadStatuses` in `jobSchema.ts`).
+## Behaviour details
+- Rename of a comp type → migrate the key in `groups` (already implemented, keep as-is).
+- Delete of a comp type / job type → strip from `groups` (already implemented).
+- "Unassigned" is computed: `jobTypes` minus union of all assigned names.
+- Saves are optimistic: update local `groups` state, then `saveTypeGroups(next)`; toast on failure.
 
 ## Out of scope
-- No DB migration.
-- No changes to Companies page or the comp_type field schema.
-- Filtering job_type in reports/filters can be added later if needed.
+- No new npm package, no DB migration, no changes to `AddJobDialog` (filter logic already reads `groups` and keeps working unchanged).
+- No reordering within a column (assignment only, not ordering). Can add later if needed.

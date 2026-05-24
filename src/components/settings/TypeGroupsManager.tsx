@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, Pencil, X, Check } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, Trash2, Pencil, X, Check, GripVertical, MoreVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { loadTypeGroups, saveTypeGroups, type TypeGroups } from "@/lib/typeGroups";
 import { toast } from "sonner";
 
 type Named = { id: string; name: string };
+
+const UNASSIGNED = "__unassigned__";
 
 export function TypeGroupsManager() {
   const [compTypes, setCompTypes] = useState<Named[]>([]);
@@ -18,6 +21,7 @@ export function TypeGroupsManager() {
   const [newJob, setNewJob] = useState("");
   const [editing, setEditing] = useState<{ table: "marketer_types" | "job_types"; id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dragOver, setDragOver] = useState<string | null>(null);
 
   async function refresh() {
     const [mt, jt, g] = await Promise.all([
@@ -53,7 +57,6 @@ export function TypeGroupsManager() {
     const trimmed = name.trim();
     if (!trimmed || trimmed === oldName) { setEditing(null); return; }
     await (supabase as any).from(table).update({ name: trimmed }).eq("id", id);
-    // If comp type renamed, migrate mapping key
     if (table === "marketer_types" && groups[oldName]) {
       const next = { ...groups };
       next[trimmed] = next[oldName];
@@ -61,7 +64,6 @@ export function TypeGroupsManager() {
       await saveTypeGroups(next);
       setGroups(next);
     }
-    // If job type renamed, update names inside groups
     if (table === "job_types") {
       const next: TypeGroups = {};
       let changed = false;
@@ -99,17 +101,56 @@ export function TypeGroupsManager() {
     refresh();
   }
 
-  async function toggleMapping(compName: string, jobName: string, checked: boolean) {
-    const current = new Set(groups[compName] || []);
-    if (checked) current.add(jobName); else current.delete(jobName);
-    const next = { ...groups, [compName]: Array.from(current) };
+  // Compute unassigned job types
+  const assignedSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const k of Object.keys(groups)) for (const n of groups[k] || []) s.add(n);
+    return s;
+  }, [groups]);
+  const unassigned = jobTypes.filter((j) => !assignedSet.has(j.name));
+
+  async function persist(next: TypeGroups) {
     setGroups(next);
-    await saveTypeGroups(next);
+    try {
+      await saveTypeGroups(next);
+    } catch (e) {
+      toast.error("Failed to save mapping");
+      refresh();
+    }
   }
 
-  async function saveAll() {
-    await saveTypeGroups(groups);
-    toast.success("Job type groups saved");
+  // DnD: payload encodes "<sourceComp>|<jobName>"
+  function onDragStart(e: React.DragEvent, fromComp: string, jobName: string) {
+    e.dataTransfer.setData("text/plain", `${fromComp}|${jobName}`);
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function onDrop(e: React.DragEvent, toComp: string) {
+    e.preventDefault();
+    setDragOver(null);
+    const raw = e.dataTransfer.getData("text/plain");
+    if (!raw) return;
+    const [fromComp, jobName] = raw.split("|");
+    if (!jobName || fromComp === toComp) return;
+
+    const next: TypeGroups = { ...groups };
+    // Remove from source (if real comp)
+    if (fromComp && fromComp !== UNASSIGNED) {
+      next[fromComp] = (next[fromComp] || []).filter((n) => n !== jobName);
+    }
+    // Add to target (if real comp)
+    if (toComp !== UNASSIGNED) {
+      const cur = new Set(next[toComp] || []);
+      cur.add(jobName);
+      next[toComp] = Array.from(cur);
+    }
+    persist(next);
+  }
+
+  function toggleAssign(compName: string, jobName: string, checked: boolean) {
+    const cur = new Set(groups[compName] || []);
+    if (checked) cur.add(jobName); else cur.delete(jobName);
+    persist({ ...groups, [compName]: Array.from(cur) });
   }
 
   if (loading) {
@@ -122,7 +163,6 @@ export function TypeGroupsManager() {
         <CardHeader><CardTitle>Comp Types &amp; Job Types</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Comp Types */}
             <div className="space-y-2">
               <h3 className="text-sm font-semibold">Comp Types</h3>
               <div className="flex gap-2">
@@ -147,7 +187,6 @@ export function TypeGroupsManager() {
               </div>
             </div>
 
-            {/* Job Types */}
             <div className="space-y-2">
               <h3 className="text-sm font-semibold">Job Types</h3>
               <div className="flex gap-2">
@@ -181,44 +220,142 @@ export function TypeGroupsManager() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-xs text-muted-foreground">
-            Tick the job types that belong to each comp type. In the Job form, picking a Comp Type
-            will filter the Job Type list to its mapped options. Leave a comp type with nothing
-            ticked to show all job types.
+            Drag a job type chip into a comp type to assign it. Drag back to "Unassigned" to remove.
+            On touch devices, tap the chip menu to assign.
           </p>
+
           {compTypes.length === 0 || jobTypes.length === 0 ? (
             <p className="text-sm text-muted-foreground">Add at least one comp type and one job type above to set up mappings.</p>
           ) : (
-            <div className="space-y-3">
-              {compTypes.map((c) => {
-                const selected = new Set(groups[c.name] || []);
-                return (
-                  <div key={c.id} className="rounded-md border p-3">
-                    <div className="text-sm font-medium mb-2">{c.name}</div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                      {jobTypes.map((j) => {
-                        const id = `map_${c.id}_${j.id}`;
-                        return (
-                          <label key={j.id} htmlFor={id} className="flex items-center gap-2 text-sm cursor-pointer">
-                            <Checkbox
-                              id={id}
-                              checked={selected.has(j.name)}
-                              onCheckedChange={(v) => toggleMapping(c.name, j.name, !!v)}
-                            />
-                            <span className="truncate">{j.name}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-              <div>
-                <Button size="sm" onClick={saveAll}>Save mapping</Button>
+            <div className="space-y-4">
+              {/* Unassigned zone */}
+              <DropZone
+                title="Unassigned Job Types"
+                isOver={dragOver === UNASSIGNED}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(UNASSIGNED); }}
+                onDragLeave={() => setDragOver((p) => (p === UNASSIGNED ? null : p))}
+                onDrop={(e) => onDrop(e, UNASSIGNED)}
+              >
+                {unassigned.length === 0 ? (
+                  <span className="text-xs text-muted-foreground">All job types assigned.</span>
+                ) : (
+                  unassigned.map((j) => (
+                    <Chip
+                      key={j.id}
+                      name={j.name}
+                      onDragStart={(e) => onDragStart(e, UNASSIGNED, j.name)}
+                      compTypes={compTypes}
+                      groups={groups}
+                      onToggle={(comp, checked) => toggleAssign(comp, j.name, checked)}
+                    />
+                  ))
+                )}
+              </DropZone>
+
+              {/* Comp type columns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {compTypes.map((c) => {
+                  const items = (groups[c.name] || []).filter((n) => jobTypes.some((j) => j.name === n));
+                  return (
+                    <DropZone
+                      key={c.id}
+                      title={c.name}
+                      isOver={dragOver === c.name}
+                      onDragOver={(e) => { e.preventDefault(); setDragOver(c.name); }}
+                      onDragLeave={() => setDragOver((p) => (p === c.name ? null : p))}
+                      onDrop={(e) => onDrop(e, c.name)}
+                    >
+                      {items.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">Drop job types here</span>
+                      ) : (
+                        items.map((name) => (
+                          <Chip
+                            key={name}
+                            name={name}
+                            onDragStart={(e) => onDragStart(e, c.name, name)}
+                            compTypes={compTypes}
+                            groups={groups}
+                            onToggle={(comp, checked) => toggleAssign(comp, name, checked)}
+                          />
+                        ))
+                      )}
+                    </DropZone>
+                  );
+                })}
               </div>
             </div>
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function DropZone({
+  title, isOver, children, onDragOver, onDragLeave, onDrop,
+}: {
+  title: string;
+  isOver: boolean;
+  children: React.ReactNode;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onDrop: (e: React.DragEvent) => void;
+}) {
+  return (
+    <div
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={`rounded-md border p-3 transition-colors ${isOver ? "border-primary bg-primary/5" : "border-border"}`}
+    >
+      <div className="text-sm font-medium mb-2">{title}</div>
+      <div className="flex flex-wrap gap-2 min-h-8">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Chip({
+  name, onDragStart, compTypes, groups, onToggle,
+}: {
+  name: string;
+  onDragStart: (e: React.DragEvent) => void;
+  compTypes: Named[];
+  groups: TypeGroups;
+  onToggle: (compName: string, checked: boolean) => void;
+}) {
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      className="inline-flex items-center gap-1 rounded-full border bg-card px-2 py-1 text-xs cursor-grab active:cursor-grabbing select-none"
+    >
+      <GripVertical className="h-3 w-3 text-muted-foreground" />
+      <span>{name}</span>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button" className="ml-1 rounded p-0.5 hover:bg-muted" aria-label="Assign">
+            <MoreVertical className="h-3 w-3" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-2" align="end">
+          <div className="text-xs font-medium mb-1 px-1">Assign to</div>
+          <div className="max-h-60 overflow-y-auto space-y-1">
+            {compTypes.length === 0 && <p className="text-xs text-muted-foreground px-1">No comp types</p>}
+            {compTypes.map((c) => {
+              const checked = (groups[c.name] || []).includes(name);
+              const id = `chip_${c.id}_${name}`;
+              return (
+                <label key={c.id} htmlFor={id} className="flex items-center gap-2 text-sm rounded px-1 py-1 hover:bg-muted cursor-pointer">
+                  <Checkbox id={id} checked={checked} onCheckedChange={(v) => onToggle(c.name, !!v)} />
+                  <span className="truncate">{c.name}</span>
+                </label>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
