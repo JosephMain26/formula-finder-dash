@@ -1,44 +1,35 @@
 ## Goal
-Fix the missing post-job client popup, then make the main app flows fully responsive on mobile so content no longer gets cut off.
+Manage Comp Types and Job Types from Settings, with a mapping so that selecting a Company/Comp Type in the Job form filters the Job Type dropdown to only the relevant options.
 
-## What I’ll change
+## Approach (minimal credits — no schema change)
+- Reuse existing tables: `marketer_types` (= comp types) and `job_types`.
+- Store the mapping in `app_settings` under key `job_type_groups` as JSON:
+  ```json
+  { "groups": { "<compTypeName>": ["JobTypeName1", "JobTypeName2"] } }
+  ```
+- No migration needed.
 
-### 1. Fix the missing “add client after job save” popup
-- Repair the `AddJobDialog` flow so choosing **Client → Add new** reliably opens the follow-up client dialog after the job is created.
-- Verify the parent job dialog and the secondary client dialog do not conflict with each other.
-- Add the missing dialog accessibility description wiring while touching this flow, since the current dialogs are logging warnings.
+## Changes
 
-### 2. Make the Add Job / Edit Job experience mobile-safe
-- Convert the job form from a fixed 2-column layout to a mobile-first layout that stacks cleanly on phones and expands to multiple columns on larger screens.
-- Fix the client section, custom fields section, time range controls, and action buttons so they wrap instead of overflowing.
-- Ensure dialog width/height stays within the viewport with no clipped edges or unreachable fields.
+### 1. New settings section: `src/components/settings/TypeGroupsManager.tsx`
+One panel with two columns:
+- **Comp Types** list (from `marketer_types`): add / rename / delete.
+- **Job Types** list (from `job_types`): add / rename / delete.
+- For each Comp Type row: a multi-select (checkbox popover) of Job Types that belong to it. Persisted to `app_settings.job_type_groups`.
+- "Unassigned" job types remain available globally (fallback so nothing breaks).
 
-### 3. Make the Schedule screen responsive without cut areas
-- Rework the calendar + day-jobs layout so it uses space better on tablet/desktop and stacks cleanly on mobile.
-- Tighten header/filter wrapping and card internals so action buttons, times, and metadata do not overflow.
-- Check the reschedule dialog for the same mobile-safe behavior.
+### 2. Wire into `src/routes/settings.tsx`
+Add a new tab/section "Job & Comp Types" rendering `TypeGroupsManager`.
 
-### 4. Make the main data-heavy screens degrade gracefully on phones
-- Review and fix the highest-risk mobile overflow points on:
-  - dashboard/home
-  - jobs table area
-  - clients
-  - companies
-  - technicians
-  - installers
-  - import/edit dialogs tied to those screens
-- Keep large tables horizontally scrollable where necessary, but remove avoidable clipping and make surrounding controls/headers wrap correctly.
+### 3. `src/components/AddJobDialog.tsx`
+- Load `job_type_groups` mapping alongside job types.
+- When rendering the `job_type` Select, filter `jobTypes` to those mapped to current `form.comp_type`. If comp_type empty or has no mapping, show all job types (current behavior).
+- If current `form.job_type` no longer matches the filtered list, keep showing it as "(other)" item so edits don't lose data.
 
-## Files I expect to touch
-- `src/components/AddJobDialog.tsx`
-- `src/components/schedule/RescheduleDialog.tsx`
-- `src/routes/schedule.tsx`
-- `src/components/JobsTable.tsx`
-- `src/components/JobFilters.tsx`
-- likely a small set of route/dialog files for clients/companies/technicians/installers where mobile overflow exists
+### 4. Helper `src/lib/typeGroups.ts`
+`loadTypeGroups()` / `saveTypeGroups(groups)` using the existing `app_settings` pattern (mirrors `loadStatuses` in `jobSchema.ts`).
 
-## Technical details
-- Root cause likely sits in nested dialog state handling inside `AddJobDialog` (`parentDialogVisible`, `showNewClientPopup`, and close/open sequencing).
-- I’ll use the existing design system and keep changes surgical to minimize cost.
-- I’ll prioritize responsive fixes in the app’s active operational flows first, rather than redesigning unrelated screens.
-- After implementation, I’ll validate the affected screens in mobile-sized layouts and confirm the popup flow works end-to-end.
+## Out of scope
+- No DB migration.
+- No changes to Companies page or the comp_type field schema.
+- Filtering job_type in reports/filters can be added later if needed.
