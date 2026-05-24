@@ -874,7 +874,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           {customFields.filter(f => f.visibleInForm).length > 0 && (
             <div className="col-span-2 mt-2 pt-3 border-t">
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Custom fields</div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {customFields.filter(f => f.visibleInForm).map((f) => (
                   <DynamicField
                     key={f.id}
@@ -896,7 +896,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
     {/* Post-submit new client popup */}
     <Dialog open={showNewClientPopup} onOpenChange={(o) => { if (!o) closeClientPopup(); }}>
-      <DialogContent className="max-w-sm w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
+      <DialogContent aria-describedby={undefined} className="max-w-sm w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Save Client Details</DialogTitle>
         </DialogHeader>
