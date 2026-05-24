@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth-context";
 import { loadFormSchema, defaultStatusName, type CustomField, type StatusDef, loadStatuses } from "@/lib/jobSchema";
 import { DynamicField } from "@/components/DynamicField";
 import { getCoreFieldsResolved, type CoreFieldOverride, type CoreFieldKey } from "@/lib/coreFields";
+import { loadTypeGroups, filterJobTypesByComp, type TypeGroups } from "@/lib/typeGroups";
 import { toast } from "sonner";
 import { validateAddressForSave } from "@/lib/addressValidation";
 import { AddressReviewDialog } from "@/components/AddressReviewDialog";
@@ -79,6 +80,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [coreOverrides, setCoreOverrides] = useState<CoreFieldOverride[] | null>(null);
   const [statuses, setStatuses] = useState<StatusDef[]>([]);
+  const [typeGroups, setTypeGroups] = useState<TypeGroups>({});
   const [extra, setExtra] = useState<Record<string, any>>({});
   const [clientMode, setClientMode] = useState<"skip" | "link" | "new">("skip");
   const [showNewClientPopup, setShowNewClientPopup] = useState(false);
@@ -106,6 +108,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       loadPaymentMethods().then((m) => setPaymentMethods(m));
       loadFormSchema().then((s) => { setCustomFields(s.fields); setCoreOverrides(s.core); });
       loadStatuses().then((s) => setStatuses(s));
+      loadTypeGroups().then((g) => setTypeGroups(g));
       const seedExtra = (isEdit && job ? ((job as any).extra_fields || {}) : {}) as Record<string, any>;
       setExtra(seedExtra);
 
@@ -577,7 +580,10 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                   <Select value={form.job_type} onValueChange={(v) => update("job_type", v)}>
                     <SelectTrigger><SelectValue placeholder="Select job type" /></SelectTrigger>
                     <SelectContent>
-                      {jobTypes.map(jt => <SelectItem key={jt.id} value={jt.name}>{jt.name}</SelectItem>)}
+                      {filterJobTypesByComp(jobTypes, form.comp_type, typeGroups).map(jt => <SelectItem key={jt.id} value={jt.name}>{jt.name}</SelectItem>)}
+                      {form.job_type && !filterJobTypesByComp(jobTypes, form.comp_type, typeGroups).some(jt => jt.name === form.job_type) && (
+                        <SelectItem value={form.job_type}>{form.job_type} (other)</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   {managingJobTypes && (

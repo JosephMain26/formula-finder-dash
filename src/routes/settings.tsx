@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput } from "lucide-react";
 import { JobFormBuilder } from "@/components/settings/JobFormBuilder";
 import { StatusesManager } from "@/components/settings/StatusesManager";
+import { TypeGroupsManager } from "@/components/settings/TypeGroupsManager";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { UsersManager } from "@/components/UsersManager";
 import { MyProfileCard } from "@/components/MyProfileCard";
@@ -187,6 +188,7 @@ function SettingsPage() {
             <TabsList className="w-max">
               <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" /> My Profile</TabsTrigger>
               <TabsTrigger value="form"><FormInput className="h-4 w-4 mr-1" /> Job Form & Statuses</TabsTrigger>
+              <TabsTrigger value="types">Job & Comp Types</TabsTrigger>
               <TabsTrigger value="payment">Payment Methods</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
               <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Training</TabsTrigger>
@@ -204,6 +206,10 @@ function SettingsPage() {
           <TabsContent value="form" className="mt-4 space-y-6">
             <StatusesManager />
             <JobFormBuilder />
+          </TabsContent>
+
+          <TabsContent value="types" className="mt-4">
+            <TypeGroupsManager />
           </TabsContent>
 
           <TabsContent value="payment" className="mt-4">
