@@ -2,7 +2,7 @@
 
 import { geocodeAddressServer } from "@/lib/geocode.functions";
 
-const CACHE_KEY = "geocode_cache_v1";
+const CACHE_KEY = "geocode_cache_v2";
 const NEG_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days for "not found"
 
 type LatLng = { lat: number; lng: number };
