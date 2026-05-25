@@ -19,6 +19,10 @@ import { loadTypeGroups, filterJobTypesByComp, type TypeGroups } from "@/lib/typ
 import { toast } from "sonner";
 import { validateAddressForSave } from "@/lib/addressValidation";
 import { AddressReviewDialog } from "@/components/AddressReviewDialog";
+import { JobInstallationsEditor } from "@/components/JobInstallationsEditor";
+import { loadJobInstallations, saveJobInstallations, type JobInstallation } from "@/lib/installCatalog";
+import { SendMessageDialog } from "@/components/SendMessageDialog";
+import { Send } from "lucide-react";
 
 type Company = Tables<"companies">;
 type Technician = {
