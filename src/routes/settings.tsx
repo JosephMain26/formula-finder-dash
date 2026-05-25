@@ -195,10 +195,13 @@ function SettingsPage() {
               <TabsTrigger value="payment">Payment Methods</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
               <TabsTrigger value="messages"><MessageSquare className="h-4 w-4 mr-1" /> Message Templates</TabsTrigger>
+              <TabsTrigger value="catalog">Installation Catalog</TabsTrigger>
+              <TabsTrigger value="doors">Door Centers</TabsTrigger>
               <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Training</TabsTrigger>
               <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
             </TabsList>
           </div>
+
 
           {/* PAYMENT METHODS */}
           {/* MY PROFILE */}
