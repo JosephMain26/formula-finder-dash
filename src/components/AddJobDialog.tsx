@@ -363,6 +363,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
     setLoading(false);
     if (!error) {
+      if (insertedJobId) {
+        try { await saveJobInstallations(insertedJobId, installations); } catch {}
+      }
       if (canManageClients && clientMode === "new" && !isEdit && insertedJobId) {
         const seedName = ((overrideAddress ?? form.address)?.split(",")[0]?.trim()) || form.phone_no || "";
         const seedAddress = (overrideAddress ?? form.address) || "";
