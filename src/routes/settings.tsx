@@ -6,8 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare } from "lucide-react";
 import { JobFormBuilder } from "@/components/settings/JobFormBuilder";
+import { MessageTemplatesManager } from "@/components/settings/MessageTemplatesManager";
 import { StatusesManager } from "@/components/settings/StatusesManager";
 import { TypeGroupsManager } from "@/components/settings/TypeGroupsManager";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
@@ -191,6 +192,7 @@ function SettingsPage() {
               <TabsTrigger value="types">Job & Comp Types</TabsTrigger>
               <TabsTrigger value="payment">Payment Methods</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
+              <TabsTrigger value="messages"><MessageSquare className="h-4 w-4 mr-1" /> Message Templates</TabsTrigger>
               <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Training</TabsTrigger>
               <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
             </TabsList>
@@ -333,6 +335,11 @@ function SettingsPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* MESSAGE TEMPLATES */}
+          <TabsContent value="messages" className="mt-4">
+            <MessageTemplatesManager />
           </TabsContent>
 
           {/* AI TRAINING */}
