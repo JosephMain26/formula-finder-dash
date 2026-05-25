@@ -921,13 +921,27 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               </div>
             </div>
           )}
+          <div className="col-span-2 mt-2 pt-3 border-t">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Installations</div>
+            <JobInstallationsEditor value={installations} onChange={setInstallations} />
+          </div>
+
           <div className="col-span-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-2">
+            {isEdit && (
+              <Button type="button" variant="outline" onClick={() => setSendOpen(true)} className="w-full sm:w-auto sm:mr-auto">
+                <Send className="h-4 w-4 mr-2" /> Send message
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
             <Button type="submit" disabled={loading} className="w-full sm:w-auto">{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Job"}</Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
+
+    {isEdit && job && (
+      <SendMessageDialog job={job} open={sendOpen} onOpenChange={setSendOpen} />
+    )}
 
     {/* Post-submit new client popup */}
     <Dialog open={showNewClientPopup} onOpenChange={(o) => { if (!o) closeClientPopup(); }}>
