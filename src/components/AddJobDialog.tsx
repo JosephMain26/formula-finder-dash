@@ -820,6 +820,66 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             return visible.map((f) => renderers[f.key]?.());
           })()}
 
+          {form.status === SCHEDULED_INSTALL_STATUS && (
+            <div className="col-span-2 mt-2 pt-3 border-t rounded-lg border bg-muted/30 p-3 space-y-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Deposit</div>
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="deposit-received"
+                  checked={form.deposit_received}
+                  onCheckedChange={(v) => setForm((p) => ({ ...p, deposit_received: !!v }))}
+                />
+                <label htmlFor="deposit-received" className="text-sm cursor-pointer">Paid deposit</label>
+              </div>
+              {form.deposit_received && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Amount</label>
+                    <Input
+                      type="number" step="0.01" min="0"
+                      value={form.deposit_amount}
+                      onChange={(e) => update("deposit_amount", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Date collected</label>
+                    <DatePickerField value={form.deposit_date} onChange={(v) => update("deposit_date", v)} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Payment method</label>
+                    <Select
+                      value={form.deposit_payment_method || ""}
+                      onValueChange={(v) => update("deposit_payment_method", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={paymentMethods.length ? "Select method" : "Add methods in Settings"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentMethods.map((m) => (
+                          <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {form.deposit_payment_method?.toLowerCase().includes("check") && (
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Check number</label>
+                      <Input
+                        value={form.deposit_check_no}
+                        onChange={(e) => update("deposit_check_no", e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                Deposit is tracked separately and is not counted in revenue. Revenue counts only when status is Completed.
+              </p>
+            </div>
+          )}
+
+
+
           {canManageClients && !isEdit && (
             <div className="col-span-2 mt-2 pt-3 border-t">
               <label className="text-xs font-medium text-muted-foreground mb-2 block">Client</label>
