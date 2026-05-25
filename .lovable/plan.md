@@ -1,41 +1,58 @@
-# Plan
+## 1. Deposit tracking on jobs
 
-## What I’ll fix
-1. Make the shared job form usable on mobile across every place it appears.
-2. Restore the post-submit “Add Client” popup after saving a job.
-3. Verify both flows in the preview so this does not regress again.
+Add three columns to `jobs`:
+- `deposit_received` (boolean, default false)
+- `deposit_amount` (numeric, default 0)
+- `deposit_date` (date, nullable)
 
-## Changes
+UI changes:
+- **Job form (`AddJobDialog`)**: new "Deposit" panel with a checkbox; when checked, reveals amount + date.
+- **Jobs table (`JobsTable`)**: a small "💰 Deposit" badge on rows where `deposit_received = true` (tooltip shows amount + date).
+- **Filters**: a "Has deposit" quick filter.
 
-### 1) Tighten the mobile layout in the shared add-job dialog
-Update `src/components/AddJobDialog.tsx` so the form behaves properly on small screens:
-- Stack cramped inline controls vertically on mobile instead of forcing them into one row.
-- Make narrow fixed-width inputs expand to full width on small screens.
-- Wrap the client-mode radio controls and footer actions cleanly.
-- Keep two-column layout only from small/desktop breakpoints upward.
-- Improve dialog sizing/spacing so fields are readable and tappable on phone widths.
+## 2. Completion / install date
 
-This will fix the mobile issue everywhere the same dialog is used: dashboard, clients, schedule, databoard, and parse-message follow-up.
+Add two columns to `jobs`:
+- `scheduled_completion_date` (date, nullable) — planned install/completion day
+- `completed_at_date` (date, nullable) — actual completion; auto-set when status flips to "Completed", editable.
 
-### 2) Fix the post-submit client popup flow
-In `src/components/AddJobDialog.tsx`, repair the logic that opens the follow-up client dialog after creating a job with “Add new” selected.
-- Remove the fragile open/close timing path that can fail when one dialog closes and another opens.
-- Ensure the saved job ID and seeded client data are preserved before the parent dialog closes.
-- Open the client popup in a deterministic way after submit success.
-- Keep the job list refresh and client linking behavior intact.
+UI:
+- Two new date fields in the job form, grouped near `job_date`.
+- Surfaced as optional columns in the dashboard table and schedule view.
 
-### 3) Improve the remote/mobile submit form where needed
-Update `src/routes/upload.tsx` only if needed for the phone layout issues that also appear there:
-- Convert hard-coded two-column mobile grids to single-column on phones.
-- Keep parse/review dialogs readable and scrollable on small screens.
+## 3. Message templates system
 
-## Validation
-- Check the job form on the current mobile-sized preview.
-- Confirm the “Add new” client flow opens the popup after saving a new job.
-- Confirm the popup can save and link the client back to the created job.
-- Check for any remaining dialog warnings relevant to this flow and clean up obvious accessibility issues if they are part of the same components.
+### New tables
+- `message_templates` — admin-managed library
+  - `name`, `recipient_type` ('technician' | 'marketer' | 'installer' | 'client'), `channel_default` ('whatsapp' | 'sms'), `body` (text with `{{variables}}`), `is_active`
+- `message_send_log` — audit of sent/opened messages
+  - `job_id`, `template_id`, `recipient_type`, `recipient_name`, `recipient_phone`, `channel`, `body_rendered`, `sent_by`, `sent_at`
+
+RLS: admins/managers manage templates; authenticated users insert send logs.
+
+### Settings UI
+New **"Message Templates"** tab in `/settings`:
+- List + create/edit/delete templates.
+- Editor: name, recipient type, default channel, body textarea, and a sidebar of insertable variables (click to insert `{{var}}` at cursor).
+- Live preview rendered with a sample job.
+
+### Supported variables
+From the job: `{{client_name}}`, `{{address}}`, `{{phone}}`, `{{job_date}}`, `{{job_time}}`, `{{job_type}}`, `{{comp_type}}`, `{{price}}`, `{{deposit_amount}}`, `{{scheduled_completion_date}}`, `{{tech_name}}`, `{{installer_name}}`, `{{marketer}}`, `{{notes}}`, `{{po_number}}`.
+
+### Send-message dialog (from a job row)
+- New "Send message" action in the job row menu.
+- Dialog: pick recipient type → pick template (filtered by type) → pick recipient (auto-loaded from job's tech/installer/marketer with editable phone) → choose channel (WhatsApp link / Twilio SMS) → editable preview with variables already filled → Send.
+- **WhatsApp**: opens `https://wa.me/<phone>?text=<encoded>` in a new tab.
+- **SMS via Twilio**: server function calls Twilio through the existing connector and writes a row to `message_send_log`.
+- Both paths log to `message_send_log`.
 
 ## Technical notes
-- Primary files: `src/components/AddJobDialog.tsx`, possibly `src/routes/upload.tsx`.
-- No backend schema changes are needed.
-- The fix stays scoped to the two issues you reported: mobile layout and missing popup.
+- Twilio send: `createServerFn` with `requireSupabaseAuth` calling Twilio Messages API via the connector gateway (`TWILIO_API_KEY` already present). Validate phone (E.164) and body length with Zod.
+- Variable rendering is a small pure helper (`renderTemplate(body, job)`) used in both preview and send paths.
+- Completion auto-set: handled in the existing job-update path (no trigger needed) so it stays editable.
+- No edge functions added; all backend work goes through TanStack server functions.
+
+## Validation
+- Save job with deposit → badge shows in table.
+- Move job to Completed → `completed_at_date` auto-fills, still editable.
+- Create installer template with `{{address}} {{job_date}}` → send via WhatsApp → URL opens with rendered text. Send via SMS → message arrives, log row written.
