@@ -151,9 +151,9 @@ export function ParseMessageDialog({ onJobSaved }: { onJobSaved: () => void }) {
 
       {prefill && (
         <JobDialog
-          onJobSaved={() => { setPrefill(null); onJobSaved(); }}
+          onJobSaved={() => { onJobSaved(); }}
           open={jobDialogOpen}
-          onOpenChange={(o) => { setJobDialogOpen(o); if (!o) setPrefill(null); }}
+          onOpenChange={(o) => { setJobDialogOpen(o); }}
           prefill={prefill}
         />
       )}
