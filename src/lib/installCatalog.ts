@@ -89,3 +89,46 @@ export function renderInstallVariables(installations: JobInstallation[]) {
     install_count: String(installations.length),
   };
 }
+
+export type DoorCenter = {
+  id: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  contact_name: string | null;
+};
+
+export async function loadDoorCenters(): Promise<DoorCenter[]> {
+  const { data } = await (supabase as any)
+    .from("door_centers")
+    .select("id,name,address,phone,contact_name")
+    .order("sort_order")
+    .order("name");
+  return (data as DoorCenter[]) || [];
+}
+
+export async function loadDoorCenter(id: string | null | undefined): Promise<DoorCenter | null> {
+  if (!id) return null;
+  const { data } = await (supabase as any)
+    .from("door_centers")
+    .select("id,name,address,phone,contact_name")
+    .eq("id", id)
+    .maybeSingle();
+  return (data as DoorCenter) || null;
+}
+
+export function renderPickupVariables(dc: DoorCenter | null): Record<string, string> {
+  if (!dc) {
+    return { pickup_name: "", pickup_address: "", pickup_phone: "", pickup_link: "" };
+  }
+  const link = dc.address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dc.address)}`
+    : "";
+  return {
+    pickup_name: dc.name || "",
+    pickup_address: dc.address || "",
+    pickup_phone: dc.phone || "",
+    pickup_link: link,
+  };
+}
+
