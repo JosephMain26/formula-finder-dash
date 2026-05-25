@@ -98,6 +98,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   
 
   const [form, setForm] = useState(emptyForm);
+  const [installations, setInstallations] = useState<JobInstallation[]>([]);
+  const [sendOpen, setSendOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
