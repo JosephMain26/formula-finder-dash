@@ -87,7 +87,7 @@ function useOptions(): Options {
 // Field wrapper
 function Field({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
   return (
-    <div className={full ? "col-span-2" : ""}>
+    <div className={full ? "sm:col-span-2" : ""}>
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
       {children}
     </div>
