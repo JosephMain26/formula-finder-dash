@@ -11,6 +11,8 @@ import { JobFormBuilder } from "@/components/settings/JobFormBuilder";
 import { MessageTemplatesManager } from "@/components/settings/MessageTemplatesManager";
 import { StatusesManager } from "@/components/settings/StatusesManager";
 import { TypeGroupsManager } from "@/components/settings/TypeGroupsManager";
+import { InstallationCatalogManager } from "@/components/settings/InstallationCatalogManager";
+import { DoorCentersManager } from "@/components/settings/DoorCentersManager";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { UsersManager } from "@/components/UsersManager";
 import { MyProfileCard } from "@/components/MyProfileCard";
