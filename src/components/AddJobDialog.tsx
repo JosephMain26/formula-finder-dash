@@ -410,9 +410,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (form.status === SCHEDULED_INSTALL_STATUS) {
+    if (form.status === SCHEDULED_INSTALL_STATUS && canManageClients) {
       const hasLinkedClient = !!form.client_id;
-      const willCreateClient = clientMode === "new" && canManageClients;
+      const willCreateClient = clientMode === "new";
       const existingClientName = clients.find((c) => c.id === form.client_id)?.name?.trim();
       if (!hasLinkedClient && !willCreateClient && !existingClientName) {
         toast.error("Client name is required for door installation jobs.");
