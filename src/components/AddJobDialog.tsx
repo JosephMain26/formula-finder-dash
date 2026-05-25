@@ -75,6 +75,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [installers, setInstallers] = useState<Installer[]>([]);
+  const [doorCenters, setDoorCenters] = useState<DoorCenter[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [useManualPercentage, setUseManualPercentage] = useState(false);
   const [useManualMarketerPercentage, setUseManualMarketerPercentage] = useState(false);
