@@ -34,6 +34,11 @@ export const TEMPLATE_VARIABLES: { key: string; label: string }[] = [
   { key: "po_number", label: "PO #" },
   { key: "notes", label: "Notes" },
   { key: "status", label: "Status" },
+  { key: "install_types", label: "Installation types (comma-separated)" },
+  { key: "install_models", label: "Installation models" },
+  { key: "install_colors", label: "Installation colors" },
+  { key: "install_items", label: "Installation items checklist" },
+  { key: "install_count", label: "# of installations" },
 ];
 
 type Job = Tables<"jobs"> & { extra_fields?: any };
