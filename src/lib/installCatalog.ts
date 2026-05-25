@@ -3,6 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 export type InstallGroup = { id: string; name: string; sort_order: number };
 export type InstallSubItem = { id: string; group_id: string; name: string; sort_order: number };
 export type InstallModel = { id: string; group_id: string; name: string; colors: string[]; sort_order: number };
+export type InstallColor = { id: string; name: string; sort_order: number };
+export type InstallSize = { id: string; width: string; height: string; label: string | null; sort_order: number };
+
+export type SystemType = "extension" | "torsion" | null;
 
 export type JobInstallationSubItem = {
   sub_item_id?: string | null;
@@ -18,6 +22,9 @@ export type JobInstallation = {
   model_id: string | null;
   model_name: string | null;
   color: string | null;
+  system_type: SystemType;
+  size_id: string | null;
+  size_label: string | null;
   notes: string | null;
   sub_items: JobInstallationSubItem[];
   sort_order: number;
