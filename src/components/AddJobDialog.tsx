@@ -48,9 +48,12 @@ const emptyForm = {
   tech_pay_mode: "percent" as "percent" | "fixed",
   tech_fixed_amount: "",
   deposit_received: false, deposit_amount: "", deposit_date: "",
+  deposit_payment_method: "", deposit_check_no: "",
   scheduled_completion_date: "", completed_at_date: "",
   pickup_door_center_id: "",
 };
+
+const SCHEDULED_INSTALL_STATUS = "Scheduled installation";
 
 interface JobDialogProps {
   onJobSaved: () => void;
