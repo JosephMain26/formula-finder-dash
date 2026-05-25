@@ -164,6 +164,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           deposit_received: !!(job as any).deposit_received,
           deposit_amount: (job as any).deposit_amount != null ? String((job as any).deposit_amount) : "",
           deposit_date: (job as any).deposit_date || "",
+          deposit_payment_method: (job as any).deposit_payment_method || "",
+          deposit_check_no: (job as any).deposit_check_no || "",
           scheduled_completion_date: (job as any).scheduled_completion_date || "",
           completed_at_date: (job as any).completed_at_date || "",
           pickup_door_center_id: (job as any).pickup_door_center_id || "",
