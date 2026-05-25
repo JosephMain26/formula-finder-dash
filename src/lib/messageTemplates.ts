@@ -39,6 +39,10 @@ export const TEMPLATE_VARIABLES: { key: string; label: string }[] = [
   { key: "install_colors", label: "Installation colors" },
   { key: "install_items", label: "Installation items checklist" },
   { key: "install_count", label: "# of installations" },
+  { key: "pickup_name", label: "Pickup location name" },
+  { key: "pickup_address", label: "Pickup address" },
+  { key: "pickup_phone", label: "Pickup phone" },
+  { key: "pickup_link", label: "Pickup navigation link" },
 ];
 
 type Job = Tables<"jobs"> & { extra_fields?: any };
