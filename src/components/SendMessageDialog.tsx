@@ -19,6 +19,7 @@ import {
   type MessageChannel,
 } from "@/lib/messageTemplates";
 import { sendSms } from "@/lib/messages.functions";
+import { loadJobInstallations, renderInstallVariables } from "@/lib/installCatalog";
 
 type Job = Tables<"jobs">;
 
@@ -40,6 +41,7 @@ export function SendMessageDialog({
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [clientName, setClientName] = useState<string>("");
+  const [installVars, setInstallVars] = useState<Record<string, string>>({});
 
   const sendSmsFn = useServerFn(sendSms);
 
@@ -51,6 +53,11 @@ export function SendMessageDialog({
         .then(({ data }: any) => setClientName(data?.name || ""));
     } else {
       setClientName("");
+    }
+    if (job?.id) {
+      loadJobInstallations(job.id).then((list) => setInstallVars(renderInstallVariables(list)));
+    } else {
+      setInstallVars({});
     }
     setTemplateId("");
     setBody("");
@@ -95,8 +102,8 @@ export function SendMessageDialog({
   );
 
   const variables = useMemo(
-    () => (job ? buildJobVariables(job as any, { client_name: clientName }) : {}),
-    [job, clientName]
+    () => (job ? { ...buildJobVariables(job as any, { client_name: clientName }), ...installVars } : {}),
+    [job, clientName, installVars]
   );
 
   function pickTemplate(id: string) {

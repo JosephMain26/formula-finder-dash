@@ -218,6 +218,97 @@ export type Database = {
         }
         Relationships: []
       }
+      install_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      install_models: {
+        Row: {
+          colors: string[]
+          created_at: string
+          group_id: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          colors?: string[]
+          created_at?: string
+          group_id: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          colors?: string[]
+          created_at?: string
+          group_id?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "install_models_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "install_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      install_sub_items: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "install_sub_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "install_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       installers: {
         Row: {
           created_at: string
@@ -247,6 +338,66 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      job_installations: {
+        Row: {
+          color: string | null
+          created_at: string
+          group_id: string | null
+          group_name: string | null
+          id: string
+          job_id: string
+          model_id: string | null
+          model_name: string | null
+          notes: string | null
+          sort_order: number
+          sub_items: Json
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          group_id?: string | null
+          group_name?: string | null
+          id?: string
+          job_id: string
+          model_id?: string | null
+          model_name?: string | null
+          notes?: string | null
+          sort_order?: number
+          sub_items?: Json
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          group_id?: string | null
+          group_name?: string | null
+          id?: string
+          job_id?: string
+          model_id?: string | null
+          model_name?: string | null
+          notes?: string | null
+          sort_order?: number
+          sub_items?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_installations_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "install_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_installations_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "install_models"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       job_types: {
         Row: {

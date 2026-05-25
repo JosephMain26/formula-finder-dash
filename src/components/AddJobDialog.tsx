@@ -19,6 +19,10 @@ import { loadTypeGroups, filterJobTypesByComp, type TypeGroups } from "@/lib/typ
 import { toast } from "sonner";
 import { validateAddressForSave } from "@/lib/addressValidation";
 import { AddressReviewDialog } from "@/components/AddressReviewDialog";
+import { JobInstallationsEditor } from "@/components/JobInstallationsEditor";
+import { loadJobInstallations, saveJobInstallations, type JobInstallation } from "@/lib/installCatalog";
+import { SendMessageDialog } from "@/components/SendMessageDialog";
+import { Send } from "lucide-react";
 
 type Company = Tables<"companies">;
 type Technician = {
@@ -94,6 +98,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   
 
   const [form, setForm] = useState(emptyForm);
+  const [installations, setInstallations] = useState<JobInstallation[]>([]);
+  const [sendOpen, setSendOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -155,10 +161,12 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           completed_at_date: (job as any).completed_at_date || "",
         });
         setUseManualPercentage(!!job.manual_percentage);
+        loadJobInstallations(job.id).then(setInstallations);
         setUseManualMarketerPercentage(false);
       } else {
         const seedStatus = statuses.length ? defaultStatusName(statuses) : "Pending";
         setForm({ ...emptyForm, status: seedStatus, ...(prefill || {}) } as typeof emptyForm);
+        setInstallations([]);
         setUseManualPercentage(false);
         setUseManualMarketerPercentage(false);
         setClientMode("skip");
@@ -355,6 +363,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
     setLoading(false);
     if (!error) {
+      if (insertedJobId) {
+        try { await saveJobInstallations(insertedJobId, installations); } catch {}
+      }
       if (canManageClients && clientMode === "new" && !isEdit && insertedJobId) {
         const seedName = ((overrideAddress ?? form.address)?.split(",")[0]?.trim()) || form.phone_no || "";
         const seedAddress = (overrideAddress ?? form.address) || "";
@@ -910,13 +921,27 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               </div>
             </div>
           )}
+          <div className="col-span-2 mt-2 pt-3 border-t">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Installations</div>
+            <JobInstallationsEditor value={installations} onChange={setInstallations} />
+          </div>
+
           <div className="col-span-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-2">
+            {isEdit && (
+              <Button type="button" variant="outline" onClick={() => setSendOpen(true)} className="w-full sm:w-auto sm:mr-auto">
+                <Send className="h-4 w-4 mr-2" /> Send message
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
             <Button type="submit" disabled={loading} className="w-full sm:w-auto">{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Job"}</Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
+
+    {isEdit && job && (
+      <SendMessageDialog job={job} open={sendOpen} onOpenChange={setSendOpen} />
+    )}
 
     {/* Post-submit new client popup */}
     <Dialog open={showNewClientPopup} onOpenChange={(o) => { if (!o) closeClientPopup(); }}>
