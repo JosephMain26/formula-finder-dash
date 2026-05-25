@@ -1,48 +1,60 @@
-## 1. Door Centers (new feature)
+# Scheduled-installation flow
 
-New table `door_centers` (admin-managed):
-- `id`, `name`, `address`, `phone`, `contact_name`, `notes`, `sort_order`, timestamps
-- RLS: authenticated read; admin/manager manage (same shape as `install_groups`).
+Goal: a single status drives the whole "got the job → send to installer → completed → counted as revenue" flow, reusing the fields and UI we already built (installer, date/time window, pickup location, deposit, send-message dialog).
 
-New manager component `src/components/settings/DoorCentersManager.tsx`:
-- List + add/edit/delete inline (name, address, phone, contact name, notes).
-- Mounted as a new tab in `/settings` ("Door Centers").
+## 1. New status
 
-## 2. Per-job pickup location
+Seed `"Scheduled installation"` (color: purple) into `app_settings.job_statuses` so it shows up in the status dropdown, filters, and badges automatically. Existing `StatusesManager` lets the user rename/recolor it later.
 
-Add nullable column `pickup_door_center_id` (uuid) to `jobs`.
+## 2. Database
 
-In `AddJobDialog`, add a "Pickup location" select inside the Installations panel (top of it, single per job). Loads `door_centers`, saves on submit.
+Add 2 nullable columns to `jobs` for deposit payment details (deposit amount/date/received already exist):
+- `deposit_payment_method text`
+- `deposit_check_no text`
 
-## 3. Installer message variables
+No other schema changes — `installer_id`, `job_time` / `job_time_end` (2-hour window), `pickup_door_center_id`, `client_id`, `deposit_received`, `deposit_amount`, `deposit_date` all already exist.
 
-Extend `renderInstallVariables` / `buildJobVariables` and the variables sidebar with:
-- `{{pickup_name}}` — door center name
-- `{{pickup_address}}` — full address
-- `{{pickup_phone}}` — contact phone
-- `{{pickup_link}}` — `https://www.google.com/maps/search/?api=1&query=<urlencoded address>` (universal — opens in the installer's default maps app on mobile)
+## 3. AddJobDialog — conditional UI when status = "Scheduled installation"
 
-Recommended template snippet for installers:
+In `src/components/AddJobDialog.tsx` (no new components needed):
+
+- **Always-visible block when this status is selected** (regardless of core-field visibility settings):
+  - Installer select + installer-name fallback
+  - Date + Start time + End time (default end = start + 2h on first pick)
+  - Pickup location select (door centers)
+  - Installations editor (already in the dialog)
+- **Deposit panel** (checkbox "Paid deposit"):
+  - When checked: amount, date (DatePickerField), payment method (reuse `paymentMethods`), and if method is Check → check number input
+- **Client requirement**: on submit, if `status === "Scheduled installation"` and neither `client_id` is set nor a non-empty client name is provided (link existing OR create new with name), block the save with a toast: "Client name is required for door installation jobs." This only gates this status; other statuses are unchanged.
+- **Send-to-installer button**: the existing `SendMessageDialog` button stays in the footer; user can hit it once the job is saved.
+
+## 4. Revenue rule — only count completed jobs
+
+In `src/lib/databoard/metrics.ts`, gate revenue/profit/avg-ticket helpers so non-completed jobs return 0:
+
+```ts
+revenue: (j) => isCompleted(j) ? num(j.price) : 0,
+profit:  (j) => isCompleted(j) ? num(j.total_office) : 0,
+techPay: (j) => isCompleted(j) ? num(j.total_tech) : 0,
+marketerPay: (j) => isCompleted(j) ? num(j.total_marketer) : 0,
 ```
-Pickup: {{pickup_name}} — {{pickup_link}}
-```
-The name + link line gives the installer a tappable link that opens navigation to the address.
 
-`SendMessageDialog` loads the job's pickup center alongside installations and feeds these into `renderTemplate`.
+Deposit columns are already separate from `price`, so they were never in revenue — no extra exclusion needed. Scheduled-installation jobs will show up in pipeline/count widgets but contribute $0 to revenue/profit until status flips to Completed. This makes the existing "Completed only" KPI toggle effectively the default everywhere.
 
-## 4. Catalog management entry point (no new code)
+## 5. Files touched
 
-The "Installation Catalog" tab in `/settings` (built earlier with `InstallationCatalogManager`) already provides add/edit/delete for groups, sub-items, and models with colors. This plan only adds the Door Centers tab next to it; no extra catalog page is needed. If the previous turn's settings tab wiring is not yet present, this plan also wires up the Installation Catalog tab in `/settings` in the same edit.
+- migration: add 2 columns + seed status row in `app_settings`
+- `src/components/AddJobDialog.tsx`: form state for `deposit_payment_method` / `deposit_check_no`, conditional block, client-required guard, payload mapping
+- `src/lib/databoard/metrics.ts`: gate money metrics by `isCompleted`
+- `src/lib/messageTemplates.ts` (tiny): expose `{{deposit_amount}}` / `{{deposit_method}}` for installer messages (optional, only if you want them in the SMS)
 
-## Technical notes
+No new routes, no new server functions, no new components — least credits.
 
-- Migration: 1 new table (`door_centers`) + 1 new column on `jobs`. No new server functions.
-- Frontend: 1 new manager component, 2 small edits (`settings.tsx` tabs, `AddJobDialog.tsx` pickup select), and minor changes to `installCatalog.ts` + `SendMessageDialog.tsx` for the new variables.
-- "Least credits": no new routes, no new server functions, reuse existing settings shell and existing job dialog.
+## 6. Validation
 
-## Validation
-
-- Create 2 door centers in Settings → Door Centers tab.
-- Open a job → choose a pickup location → save.
-- Send installer message using `{{pickup_name}}` + `{{pickup_link}}` → preview shows clickable Google Maps link that opens directions in the installer's maps app.
-- Sent message logged in `message_send_log` as before.
+1. Add a job, pick status "Scheduled installation" with no client → save blocked with toast.
+2. Add client + installer + date + 8:00 start (end auto-fills 10:00) + pickup center → save succeeds.
+3. Tick "Paid deposit" → enter $200, today's date, method Check, check #1234 → saved.
+4. Open job in DataBoard → revenue KPI shows $0; pipeline count includes the job.
+5. Flip status to Completed → revenue KPI now includes the job's price; deposit amount is not double-counted.
+6. Hit "Send" → installer SMS preview includes pickup link, installations, date/time window.

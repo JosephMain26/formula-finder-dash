@@ -48,9 +48,12 @@ const emptyForm = {
   tech_pay_mode: "percent" as "percent" | "fixed",
   tech_fixed_amount: "",
   deposit_received: false, deposit_amount: "", deposit_date: "",
+  deposit_payment_method: "", deposit_check_no: "",
   scheduled_completion_date: "", completed_at_date: "",
   pickup_door_center_id: "",
 };
+
+const SCHEDULED_INSTALL_STATUS = "Scheduled installation";
 
 interface JobDialogProps {
   onJobSaved: () => void;
@@ -161,6 +164,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           deposit_received: !!(job as any).deposit_received,
           deposit_amount: (job as any).deposit_amount != null ? String((job as any).deposit_amount) : "",
           deposit_date: (job as any).deposit_date || "",
+          deposit_payment_method: (job as any).deposit_payment_method || "",
+          deposit_check_no: (job as any).deposit_check_no || "",
           scheduled_completion_date: (job as any).scheduled_completion_date || "",
           completed_at_date: (job as any).completed_at_date || "",
           pickup_door_center_id: (job as any).pickup_door_center_id || "",
@@ -341,6 +346,10 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       deposit_received: !!form.deposit_received,
       deposit_amount: form.deposit_amount ? parseFloat(form.deposit_amount) : 0,
       deposit_date: form.deposit_date || null,
+      deposit_payment_method: form.deposit_received ? (form.deposit_payment_method || null) : null,
+      deposit_check_no: form.deposit_received && form.deposit_payment_method?.toLowerCase().includes("check")
+        ? (form.deposit_check_no || null)
+        : null,
       scheduled_completion_date: form.scheduled_completion_date || null,
       completed_at_date: form.completed_at_date
         || (form.status === "Completed" && !(isEdit && (job as any)?.completed_at_date)
@@ -401,6 +410,15 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.status === SCHEDULED_INSTALL_STATUS && canManageClients) {
+      const hasLinkedClient = !!form.client_id;
+      const willCreateClient = clientMode === "new";
+      const existingClientName = clients.find((c) => c.id === form.client_id)?.name?.trim();
+      if (!hasLinkedClient && !willCreateClient && !existingClientName) {
+        toast.error("Client name is required for door installation jobs.");
+        return;
+      }
+    }
     const review = await validateAddressForSave(form.address || "");
     if (review.status === "suggestion") {
       submitIntentRef.current = { event: e, overrideAddress: review.finalAddress };
@@ -436,7 +454,11 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
           {(() => {
             const resolved = getCoreFieldsResolved(coreOverrides);
-            const visible = resolved.filter((f) => f.visibleInForm);
+            const isSchedInstall = form.status === SCHEDULED_INSTALL_STATUS;
+            const forceKeys: CoreFieldKey[] = isSchedInstall
+              ? (["installer", "job_date", "technician_id"] as CoreFieldKey[])
+              : [];
+            const visible = resolved.filter((f) => f.visibleInForm || forceKeys.includes(f.key));
             const labelOf = (k: CoreFieldKey) => resolved.find((f) => f.key === k)?.effectiveLabel || k;
             const reqOf = (k: CoreFieldKey) => resolved.find((f) => f.key === k)?.required || false;
 
@@ -797,6 +819,66 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
             return visible.map((f) => renderers[f.key]?.());
           })()}
+
+          {form.status === SCHEDULED_INSTALL_STATUS && (
+            <div className="col-span-2 mt-2 pt-3 border-t rounded-lg border bg-muted/30 p-3 space-y-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Deposit</div>
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="deposit-received"
+                  checked={form.deposit_received}
+                  onCheckedChange={(v) => setForm((p) => ({ ...p, deposit_received: !!v }))}
+                />
+                <label htmlFor="deposit-received" className="text-sm cursor-pointer">Paid deposit</label>
+              </div>
+              {form.deposit_received && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Amount</label>
+                    <Input
+                      type="number" step="0.01" min="0"
+                      value={form.deposit_amount}
+                      onChange={(e) => update("deposit_amount", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Date collected</label>
+                    <DatePickerField value={form.deposit_date} onChange={(v) => update("deposit_date", v)} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Payment method</label>
+                    <Select
+                      value={form.deposit_payment_method || ""}
+                      onValueChange={(v) => update("deposit_payment_method", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={paymentMethods.length ? "Select method" : "Add methods in Settings"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentMethods.map((m) => (
+                          <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {form.deposit_payment_method?.toLowerCase().includes("check") && (
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground">Check number</label>
+                      <Input
+                        value={form.deposit_check_no}
+                        onChange={(e) => update("deposit_check_no", e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                Deposit is tracked separately and is not counted in revenue. Revenue counts only when status is Completed.
+              </p>
+            </div>
+          )}
+
+
 
           {canManageClients && !isEdit && (
             <div className="col-span-2 mt-2 pt-3 border-t">

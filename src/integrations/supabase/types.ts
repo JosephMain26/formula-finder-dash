@@ -469,7 +469,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           deposit_amount: number | null
+          deposit_check_no: string | null
           deposit_date: string | null
+          deposit_payment_method: string | null
           deposit_received: boolean
           extra_fields: Json
           id: string
@@ -522,7 +524,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deposit_amount?: number | null
+          deposit_check_no?: string | null
           deposit_date?: string | null
+          deposit_payment_method?: string | null
           deposit_received?: boolean
           extra_fields?: Json
           id?: string
@@ -575,7 +579,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deposit_amount?: number | null
+          deposit_check_no?: string | null
           deposit_date?: string | null
+          deposit_payment_method?: string | null
           deposit_received?: boolean
           extra_fields?: Json
           id?: string
