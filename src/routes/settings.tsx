@@ -347,6 +347,15 @@ function SettingsPage() {
             <MessageTemplatesManager />
           </TabsContent>
 
+          <TabsContent value="catalog" className="mt-4">
+            <InstallationCatalogManager />
+          </TabsContent>
+
+          <TabsContent value="doors" className="mt-4">
+            <DoorCentersManager />
+          </TabsContent>
+
+
           {/* AI TRAINING */}
           <TabsContent value="ai" className="mt-4 space-y-6">
             <Card>
