@@ -277,9 +277,13 @@ export type Database = {
           company: string | null
           company_1: string | null
           company_id: string | null
+          completed_at_date: string | null
           cost: number | null
           created_at: string
           created_by: string | null
+          deposit_amount: number | null
+          deposit_date: string | null
+          deposit_received: boolean
           extra_fields: Json
           id: string
           installer_id: string | null
@@ -304,6 +308,7 @@ export type Database = {
           phone_no: string | null
           po_number: string | null
           price: number | null
+          scheduled_completion_date: string | null
           status: string | null
           tech_fixed_amount: number
           tech_name: string | null
@@ -324,9 +329,13 @@ export type Database = {
           company?: string | null
           company_1?: string | null
           company_id?: string | null
+          completed_at_date?: string | null
           cost?: number | null
           created_at?: string
           created_by?: string | null
+          deposit_amount?: number | null
+          deposit_date?: string | null
+          deposit_received?: boolean
           extra_fields?: Json
           id?: string
           installer_id?: string | null
@@ -351,6 +360,7 @@ export type Database = {
           phone_no?: string | null
           po_number?: string | null
           price?: number | null
+          scheduled_completion_date?: string | null
           status?: string | null
           tech_fixed_amount?: number
           tech_name?: string | null
@@ -371,9 +381,13 @@ export type Database = {
           company?: string | null
           company_1?: string | null
           company_id?: string | null
+          completed_at_date?: string | null
           cost?: number | null
           created_at?: string
           created_by?: string | null
+          deposit_amount?: number | null
+          deposit_date?: string | null
+          deposit_received?: boolean
           extra_fields?: Json
           id?: string
           installer_id?: string | null
@@ -398,6 +412,7 @@ export type Database = {
           phone_no?: string | null
           po_number?: string | null
           price?: number | null
+          scheduled_completion_date?: string | null
           status?: string | null
           tech_fixed_amount?: number
           tech_name?: string | null
@@ -440,6 +455,84 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      message_send_log: {
+        Row: {
+          body_rendered: string
+          channel: string
+          error: string | null
+          id: string
+          job_id: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          recipient_type: string | null
+          sent_at: string
+          sent_by: string | null
+          status: string
+          template_id: string | null
+        }
+        Insert: {
+          body_rendered: string
+          channel: string
+          error?: string | null
+          id?: string
+          job_id?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          recipient_type?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          template_id?: string | null
+        }
+        Update: {
+          body_rendered?: string
+          channel?: string
+          error?: string | null
+          id?: string
+          job_id?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          recipient_type?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          template_id?: string | null
+        }
+        Relationships: []
+      }
+      message_templates: {
+        Row: {
+          body: string
+          channel_default: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          recipient_type: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          channel_default?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          recipient_type: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          channel_default?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          recipient_type?: string
+          updated_at?: string
         }
         Relationships: []
       }
