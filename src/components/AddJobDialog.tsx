@@ -454,7 +454,11 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
           {(() => {
             const resolved = getCoreFieldsResolved(coreOverrides);
-            const visible = resolved.filter((f) => f.visibleInForm);
+            const isSchedInstall = form.status === SCHEDULED_INSTALL_STATUS;
+            const forceKeys: CoreFieldKey[] = isSchedInstall
+              ? (["installer", "job_date", "technician_id"] as CoreFieldKey[])
+              : [];
+            const visible = resolved.filter((f) => f.visibleInForm || forceKeys.includes(f.key));
             const labelOf = (k: CoreFieldKey) => resolved.find((f) => f.key === k)?.effectiveLabel || k;
             const reqOf = (k: CoreFieldKey) => resolved.find((f) => f.key === k)?.required || false;
 
