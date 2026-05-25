@@ -42,6 +42,8 @@ const emptyForm = {
   client_id: "",
   tech_pay_mode: "percent" as "percent" | "fixed",
   tech_fixed_amount: "",
+  deposit_received: false, deposit_amount: "", deposit_date: "",
+  scheduled_completion_date: "", completed_at_date: "",
 };
 
 interface JobDialogProps {
