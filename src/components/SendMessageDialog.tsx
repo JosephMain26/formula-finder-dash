@@ -19,6 +19,7 @@ import {
   type MessageChannel,
 } from "@/lib/messageTemplates";
 import { sendSms } from "@/lib/messages.functions";
+import { loadJobInstallations, renderInstallVariables } from "@/lib/installCatalog";
 
 type Job = Tables<"jobs">;
 
