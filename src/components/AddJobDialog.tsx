@@ -895,9 +895,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               </div>
             </div>
           )}
-          <div className="col-span-2 flex justify-end gap-2 mt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Job"}</Button>
+          <div className="col-span-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+            <Button type="submit" disabled={loading} className="w-full sm:w-auto">{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Job"}</Button>
           </div>
         </form>
       </DialogContent>
