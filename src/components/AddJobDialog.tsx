@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { validateAddressForSave } from "@/lib/addressValidation";
 import { AddressReviewDialog } from "@/components/AddressReviewDialog";
 import { JobInstallationsEditor } from "@/components/JobInstallationsEditor";
-import { loadJobInstallations, saveJobInstallations, type JobInstallation } from "@/lib/installCatalog";
+import { loadJobInstallations, saveJobInstallations, loadDoorCenters, type JobInstallation, type DoorCenter } from "@/lib/installCatalog";
 import { SendMessageDialog } from "@/components/SendMessageDialog";
 import { Send } from "lucide-react";
 
