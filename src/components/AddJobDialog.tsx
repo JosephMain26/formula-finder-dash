@@ -166,6 +166,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       } else {
         const seedStatus = statuses.length ? defaultStatusName(statuses) : "Pending";
         setForm({ ...emptyForm, status: seedStatus, ...(prefill || {}) } as typeof emptyForm);
+        setInstallations([]);
         setUseManualPercentage(false);
         setUseManualMarketerPercentage(false);
         setClientMode("skip");
