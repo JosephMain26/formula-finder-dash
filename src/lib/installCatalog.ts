@@ -31,16 +31,25 @@ export type JobInstallation = {
 };
 
 export async function loadCatalog() {
-  const [g, s, m] = await Promise.all([
+  const [g, s, m, c, sz] = await Promise.all([
     (supabase as any).from("install_groups").select("*").order("sort_order").order("name"),
     (supabase as any).from("install_sub_items").select("*").order("sort_order").order("name"),
     (supabase as any).from("install_models").select("*").order("sort_order").order("name"),
+    (supabase as any).from("install_colors").select("*").order("sort_order").order("name"),
+    (supabase as any).from("install_sizes").select("*").order("sort_order"),
   ]);
   return {
     groups: (g.data as InstallGroup[]) || [],
     subItems: (s.data as InstallSubItem[]) || [],
     models: (m.data as InstallModel[]) || [],
+    colors: (c.data as InstallColor[]) || [],
+    sizes: (sz.data as InstallSize[]) || [],
   };
+}
+
+export function formatSize(sz: { width: string; height: string; label?: string | null }): string {
+  if (sz.label) return sz.label;
+  return `${sz.width} × ${sz.height}`;
 }
 
 export async function loadJobInstallations(jobId: string): Promise<JobInstallation[]> {
@@ -53,7 +62,6 @@ export async function loadJobInstallations(jobId: string): Promise<JobInstallati
 }
 
 export async function saveJobInstallations(jobId: string, items: JobInstallation[]) {
-  // Replace strategy: delete then insert. Simple and consistent.
   await (supabase as any).from("job_installations").delete().eq("job_id", jobId);
   if (items.length === 0) return;
   const rows = items.map((it, idx) => ({
@@ -63,12 +71,17 @@ export async function saveJobInstallations(jobId: string, items: JobInstallation
     model_id: it.model_id,
     model_name: it.model_name,
     color: it.color,
+    system_type: it.system_type,
+    size_id: it.size_id,
+    size_label: it.size_label,
     notes: it.notes,
     sub_items: it.sub_items,
     sort_order: idx,
   }));
   await (supabase as any).from("job_installations").insert(rows);
 }
+
+const SYSTEM_LABEL: Record<string, string> = { extension: "Extension", torsion: "Torsion" };
 
 /** Render installations into template variables. */
 export function renderInstallVariables(installations: JobInstallation[]) {
@@ -77,21 +90,32 @@ export function renderInstallVariables(installations: JobInstallation[]) {
     .filter((i) => i.model_name)
     .map((i) => `${i.group_name || ""}: ${i.model_name}`);
   const colors = installations.map((i) => i.color).filter(Boolean) as string[];
+  const systems = installations
+    .map((i) => (i.system_type ? SYSTEM_LABEL[i.system_type] || i.system_type : null))
+    .filter(Boolean) as string[];
+  const sizes = installations.map((i) => i.size_label).filter(Boolean) as string[];
 
   const itemsBlocks = installations.map((i) => {
+    const parens = [i.model_name, i.color].filter(Boolean).join(", ");
     const header = [
       i.group_name || "Installation",
-      i.model_name ? `(${i.model_name}${i.color ? `, ${i.color}` : ""})` : (i.color ? `(${i.color})` : ""),
+      parens ? `(${parens})` : "",
     ].filter(Boolean).join(" ");
+    const meta: string[] = [];
+    if (i.size_label) meta.push(i.size_label);
+    if (i.system_type) meta.push(`${SYSTEM_LABEL[i.system_type] || i.system_type} system`);
+    const headerFull = meta.length ? `${header} — ${meta.join(" — ")}` : header;
     const checked = i.sub_items.filter((s) => s.checked);
     const lines = checked.map((s) => `- ${s.name}`);
-    return [header + ":", ...lines].join("\n");
+    return [headerFull + ":", ...lines].join("\n");
   });
 
   return {
     install_types: types.join(", "),
     install_models: models.join(", "),
     install_colors: colors.join(", "),
+    install_systems: systems.join(", "),
+    install_sizes: sizes.join(", "),
     install_items: itemsBlocks.join("\n\n"),
     install_count: String(installations.length),
   };
