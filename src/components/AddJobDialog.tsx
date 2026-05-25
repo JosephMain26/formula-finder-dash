@@ -928,8 +928,30 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           )}
           <div className="col-span-2 mt-2 pt-3 border-t">
             <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Installations</div>
+            <div className="mb-3">
+              <Label className="text-xs">Pickup location (Door Center)</Label>
+              <Select
+                value={form.pickup_door_center_id || "__none__"}
+                onValueChange={(v) =>
+                  setForm((prev) => ({ ...prev, pickup_door_center_id: v === "__none__" ? "" : v }))
+                }
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder={doorCenters.length ? "Select pickup location" : "No locations — add in Settings"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— None —</SelectItem>
+                  {doorCenters.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}{d.address ? ` · ${d.address}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <JobInstallationsEditor value={installations} onChange={setInstallations} />
           </div>
+
 
           <div className="col-span-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-2">
             {isEdit && (
