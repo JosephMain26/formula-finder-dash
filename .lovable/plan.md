@@ -1,66 +1,48 @@
+## 1. Door Centers (new feature)
 
-## 1. Send button + send history
+New table `door_centers` (admin-managed):
+- `id`, `name`, `address`, `phone`, `contact_name`, `notes`, `sort_order`, timestamps
+- RLS: authenticated read; admin/manager manage (same shape as `install_groups`).
 
-- Add a "Send message" action on each row in `JobsTable` (icon button in actions column) that opens the existing `SendMessageDialog` for that job.
-- Add the same "Send message" button inside `AddJobDialog` (footer, only when editing an existing job).
-- The existing `message_send_log` table already records every send. Surface history:
-  - New "Messages" tab inside `AddJobDialog` showing all rows from `message_send_log` for this job (recipient, channel, template, sent_at, status).
-  - Small badge on the job row showing the count of sent messages, with a tooltip listing the last one.
+New manager component `src/components/settings/DoorCentersManager.tsx`:
+- List + add/edit/delete inline (name, address, phone, contact name, notes).
+- Mounted as a new tab in `/settings` ("Door Centers").
 
-## 2. Installation catalog (admin-managed in Settings)
+## 2. Per-job pickup location
 
-New "Installation Catalog" tab in `/settings` with three nested editors. Backed by three new tables:
+Add nullable column `pickup_door_center_id` (uuid) to `jobs`.
 
-- `install_groups` — `id`, `name` (e.g. "Garage Door", "Opener", "Trims")
-- `install_sub_items` — `id`, `group_id`, `name` (e.g. "Tracks", "Rollers", "Panels")
-- `install_models` — `id`, `group_id`, `name` (e.g. "Lincoln 1000"), `colors` (text[])
+In `AddJobDialog`, add a "Pickup location" select inside the Installations panel (top of it, single per job). Loads `door_centers`, saves on submit.
 
-RLS: everyone authenticated can read; admins/managers manage.
+## 3. Installer message variables
 
-UI: pick a group on the left, edit its sub-items and models on the right, with a colors chip-list per model.
+Extend `renderInstallVariables` / `buildJobVariables` and the variables sidebar with:
+- `{{pickup_name}}` — door center name
+- `{{pickup_address}}` — full address
+- `{{pickup_phone}}` — contact phone
+- `{{pickup_link}}` — `https://www.google.com/maps/search/?api=1&query=<urlencoded address>` (universal — opens in the installer's default maps app on mobile)
 
-## 3. Per-job installations (multiple per job)
+Recommended template snippet for installers:
+```
+Pickup: {{pickup_name}} — {{pickup_link}}
+```
+The name + link line gives the installer a tappable link that opens navigation to the address.
 
-New table `job_installations`:
-- `id`, `job_id`, `group_id`, `model_id` (nullable), `color` (text, nullable), `notes` (text)
-- `sub_items` (jsonb) — array of `{ sub_item_id?, name, checked }` so admins can also add custom (per-job override) items not in the catalog.
+`SendMessageDialog` loads the job's pickup center alongside installations and feeds these into `renderTemplate`.
 
-UI: new "Installation" panel inside `AddJobDialog`:
-- "Add installation" button → row with: Group select → Model select (filtered by group) → Color select (filtered by model's colors, free-text fallback) → checklist of that group's sub-items (auto-loaded, all checked by default, can uncheck) + "Add custom item" link.
-- Multiple installations stack as collapsible cards.
-- Saved alongside the job in the same submit.
+## 4. Catalog management entry point (no new code)
 
-RLS: same as `jobs` (any authenticated user can read/write rows tied to a job they can access).
-
-## 4. Message variables for installations
-
-Extend `buildJobVariables` and the variables sidebar with:
-- `{{install_types}}` — comma-separated group names ("Garage Door, Opener")
-- `{{install_models}}` — comma-separated "Group: Model" pairs
-- `{{install_colors}}` — comma-separated colors
-- `{{install_items}}` — bullet list of checked sub-items, grouped by installation:
-  ```
-  Garage Door (Lincoln 2000, White):
-  - Tracks
-  - Rollers
-  Opener:
-  - Rail
-  ```
-- Plus `{{install_count}}` for the number of installations.
-
-`SendMessageDialog` loads `job_installations` (+ joins) when opened and feeds these into `renderTemplate`.
+The "Installation Catalog" tab in `/settings` (built earlier with `InstallationCatalogManager`) already provides add/edit/delete for groups, sub-items, and models with colors. This plan only adds the Door Centers tab next to it; no extra catalog page is needed. If the previous turn's settings tab wiring is not yet present, this plan also wires up the Installation Catalog tab in `/settings` in the same edit.
 
 ## Technical notes
 
-- All work is frontend + migration + minor changes to `messageTemplates.ts`. No new server functions.
-- Migration adds 4 tables (`install_groups`, `install_sub_items`, `install_models`, `job_installations`) with RLS.
-- `JobsTable` actions column gets one new icon button; no other table changes.
-- `AddJobDialog` gets one new tabbed/collapsible section for installations and one new tab for message history.
-- Settings tab list grows by one: "Installation Catalog".
+- Migration: 1 new table (`door_centers`) + 1 new column on `jobs`. No new server functions.
+- Frontend: 1 new manager component, 2 small edits (`settings.tsx` tabs, `AddJobDialog.tsx` pickup select), and minor changes to `installCatalog.ts` + `SendMessageDialog.tsx` for the new variables.
+- "Least credits": no new routes, no new server functions, reuse existing settings shell and existing job dialog.
 
 ## Validation
 
-- Create groups → sub-items → models → colors in Settings.
-- On a job, add 2 installations (Garage Door + Opener), pick model + color, uncheck one sub-item → save.
-- Click "Send message" from the job row → installer template using `{{install_items}}` renders the bullet list correctly with the unchecked item omitted.
-- Send via WhatsApp and SMS → both appear in the job's "Messages" tab with timestamp, channel, status.
+- Create 2 door centers in Settings → Door Centers tab.
+- Open a job → choose a pickup location → save.
+- Send installer message using `{{pickup_name}}` + `{{pickup_link}}` → preview shows clickable Google Maps link that opens directions in the installer's maps app.
+- Sent message logged in `message_send_log` as before.
