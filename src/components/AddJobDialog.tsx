@@ -333,6 +333,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       total_marketer: totalMarketer,
       installer_id: form.installer_id || null,
       installer_name: form.installer_name || null,
+      pickup_door_center_id: form.pickup_door_center_id || null,
       extra_fields: extra || {},
       deposit_received: !!form.deposit_received,
       deposit_amount: form.deposit_amount ? parseFloat(form.deposit_amount) : 0,
