@@ -108,6 +108,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       supabase.from("companies").select("*").order("company_name").then(({ data }) => setCompanies(data || []));
       supabase.from("technicians").select("*").order("tech_name").then(({ data }) => setTechnicians((data as Technician[]) || []));
       (supabase as any).from("installers").select("id,name").order("name").then(({ data }: any) => setInstallers((data as Installer[]) || []));
+      loadDoorCenters().then(setDoorCenters);
       if (canManageClients) {
         (supabase as any).from("clients").select("id,name,phone,address").order("name").then(({ data }: any) => setClients((data as Client[]) || []));
       }
