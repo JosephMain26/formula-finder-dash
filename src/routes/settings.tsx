@@ -337,6 +337,11 @@ function SettingsPage() {
             </Card>
           </TabsContent>
 
+          {/* MESSAGE TEMPLATES */}
+          <TabsContent value="messages" className="mt-4">
+            <MessageTemplatesManager />
+          </TabsContent>
+
           {/* AI TRAINING */}
           <TabsContent value="ai" className="mt-4 space-y-6">
             <Card>
