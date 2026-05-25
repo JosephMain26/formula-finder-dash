@@ -346,6 +346,10 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       deposit_received: !!form.deposit_received,
       deposit_amount: form.deposit_amount ? parseFloat(form.deposit_amount) : 0,
       deposit_date: form.deposit_date || null,
+      deposit_payment_method: form.deposit_received ? (form.deposit_payment_method || null) : null,
+      deposit_check_no: form.deposit_received && form.deposit_payment_method?.toLowerCase().includes("check")
+        ? (form.deposit_check_no || null)
+        : null,
       scheduled_completion_date: form.scheduled_completion_date || null,
       completed_at_date: form.completed_at_date
         || (form.status === "Completed" && !(isEdit && (job as any)?.completed_at_date)
