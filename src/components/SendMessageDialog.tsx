@@ -41,6 +41,7 @@ export function SendMessageDialog({
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [clientName, setClientName] = useState<string>("");
+  const [installVars, setInstallVars] = useState<Record<string, string>>({});
 
   const sendSmsFn = useServerFn(sendSms);
 
