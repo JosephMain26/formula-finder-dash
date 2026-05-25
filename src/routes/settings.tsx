@@ -11,6 +11,8 @@ import { JobFormBuilder } from "@/components/settings/JobFormBuilder";
 import { MessageTemplatesManager } from "@/components/settings/MessageTemplatesManager";
 import { StatusesManager } from "@/components/settings/StatusesManager";
 import { TypeGroupsManager } from "@/components/settings/TypeGroupsManager";
+import { InstallationCatalogManager } from "@/components/settings/InstallationCatalogManager";
+import { DoorCentersManager } from "@/components/settings/DoorCentersManager";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { UsersManager } from "@/components/UsersManager";
 import { MyProfileCard } from "@/components/MyProfileCard";
@@ -193,10 +195,13 @@ function SettingsPage() {
               <TabsTrigger value="payment">Payment Methods</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
               <TabsTrigger value="messages"><MessageSquare className="h-4 w-4 mr-1" /> Message Templates</TabsTrigger>
+              <TabsTrigger value="catalog">Installation Catalog</TabsTrigger>
+              <TabsTrigger value="doors">Door Centers</TabsTrigger>
               <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Training</TabsTrigger>
               <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
             </TabsList>
           </div>
+
 
           {/* PAYMENT METHODS */}
           {/* MY PROFILE */}
@@ -341,6 +346,15 @@ function SettingsPage() {
           <TabsContent value="messages" className="mt-4">
             <MessageTemplatesManager />
           </TabsContent>
+
+          <TabsContent value="catalog" className="mt-4">
+            <InstallationCatalogManager />
+          </TabsContent>
+
+          <TabsContent value="doors" className="mt-4">
+            <DoorCentersManager />
+          </TabsContent>
+
 
           {/* AI TRAINING */}
           <TabsContent value="ai" className="mt-4 space-y-6">

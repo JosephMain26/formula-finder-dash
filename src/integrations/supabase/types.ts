@@ -131,6 +131,42 @@ export type Database = {
         }
         Relationships: []
       }
+      door_centers: {
+        Row: {
+          address: string | null
+          contact_name: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -457,6 +493,7 @@ export type Database = {
           parts: number | null
           payment: string | null
           phone_no: string | null
+          pickup_door_center_id: string | null
           po_number: string | null
           price: number | null
           scheduled_completion_date: string | null
@@ -509,6 +546,7 @@ export type Database = {
           parts?: number | null
           payment?: string | null
           phone_no?: string | null
+          pickup_door_center_id?: string | null
           po_number?: string | null
           price?: number | null
           scheduled_completion_date?: string | null
@@ -561,6 +599,7 @@ export type Database = {
           parts?: number | null
           payment?: string | null
           phone_no?: string | null
+          pickup_door_center_id?: string | null
           po_number?: string | null
           price?: number | null
           scheduled_completion_date?: string | null

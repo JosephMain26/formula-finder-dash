@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { loadPaymentMethods, type PaymentMethod } from "@/lib/settings";
@@ -20,7 +21,7 @@ import { toast } from "sonner";
 import { validateAddressForSave } from "@/lib/addressValidation";
 import { AddressReviewDialog } from "@/components/AddressReviewDialog";
 import { JobInstallationsEditor } from "@/components/JobInstallationsEditor";
-import { loadJobInstallations, saveJobInstallations, type JobInstallation } from "@/lib/installCatalog";
+import { loadJobInstallations, saveJobInstallations, loadDoorCenters, type JobInstallation, type DoorCenter } from "@/lib/installCatalog";
 import { SendMessageDialog } from "@/components/SendMessageDialog";
 import { Send } from "lucide-react";
 
@@ -48,6 +49,7 @@ const emptyForm = {
   tech_fixed_amount: "",
   deposit_received: false, deposit_amount: "", deposit_date: "",
   scheduled_completion_date: "", completed_at_date: "",
+  pickup_door_center_id: "",
 };
 
 interface JobDialogProps {
@@ -74,6 +76,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [jobTypes, setJobTypes] = useState<JobType[]>([]);
   const [installers, setInstallers] = useState<Installer[]>([]);
+  const [doorCenters, setDoorCenters] = useState<DoorCenter[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [useManualPercentage, setUseManualPercentage] = useState(false);
   const [useManualMarketerPercentage, setUseManualMarketerPercentage] = useState(false);
@@ -106,6 +109,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       supabase.from("companies").select("*").order("company_name").then(({ data }) => setCompanies(data || []));
       supabase.from("technicians").select("*").order("tech_name").then(({ data }) => setTechnicians((data as Technician[]) || []));
       (supabase as any).from("installers").select("id,name").order("name").then(({ data }: any) => setInstallers((data as Installer[]) || []));
+      loadDoorCenters().then(setDoorCenters);
       if (canManageClients) {
         (supabase as any).from("clients").select("id,name,phone,address").order("name").then(({ data }: any) => setClients((data as Client[]) || []));
       }
@@ -159,6 +163,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           deposit_date: (job as any).deposit_date || "",
           scheduled_completion_date: (job as any).scheduled_completion_date || "",
           completed_at_date: (job as any).completed_at_date || "",
+          pickup_door_center_id: (job as any).pickup_door_center_id || "",
         });
         setUseManualPercentage(!!job.manual_percentage);
         loadJobInstallations(job.id).then(setInstallations);
@@ -331,6 +336,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       total_marketer: totalMarketer,
       installer_id: form.installer_id || null,
       installer_name: form.installer_name || null,
+      pickup_door_center_id: form.pickup_door_center_id || null,
       extra_fields: extra || {},
       deposit_received: !!form.deposit_received,
       deposit_amount: form.deposit_amount ? parseFloat(form.deposit_amount) : 0,
@@ -923,8 +929,30 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           )}
           <div className="col-span-2 mt-2 pt-3 border-t">
             <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Installations</div>
+            <div className="mb-3">
+              <Label className="text-xs">Pickup location (Door Center)</Label>
+              <Select
+                value={form.pickup_door_center_id || "__none__"}
+                onValueChange={(v) =>
+                  setForm((prev) => ({ ...prev, pickup_door_center_id: v === "__none__" ? "" : v }))
+                }
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder={doorCenters.length ? "Select pickup location" : "No locations — add in Settings"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— None —</SelectItem>
+                  {doorCenters.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}{d.address ? ` · ${d.address}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <JobInstallationsEditor value={installations} onChange={setInstallations} />
           </div>
+
 
           <div className="col-span-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-2">
             {isEdit && (

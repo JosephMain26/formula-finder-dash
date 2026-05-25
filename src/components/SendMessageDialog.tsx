@@ -19,7 +19,7 @@ import {
   type MessageChannel,
 } from "@/lib/messageTemplates";
 import { sendSms } from "@/lib/messages.functions";
-import { loadJobInstallations, renderInstallVariables } from "@/lib/installCatalog";
+import { loadJobInstallations, renderInstallVariables, loadDoorCenter, renderPickupVariables } from "@/lib/installCatalog";
 
 type Job = Tables<"jobs">;
 
@@ -55,7 +55,13 @@ export function SendMessageDialog({
       setClientName("");
     }
     if (job?.id) {
-      loadJobInstallations(job.id).then((list) => setInstallVars(renderInstallVariables(list)));
+      setInstallVars({});
+      loadJobInstallations(job.id).then((list) =>
+        setInstallVars((prev) => ({ ...prev, ...renderInstallVariables(list) }))
+      );
+      loadDoorCenter((job as any).pickup_door_center_id).then((dc) =>
+        setInstallVars((prev) => ({ ...prev, ...renderPickupVariables(dc) }))
+      );
     } else {
       setInstallVars({});
     }
