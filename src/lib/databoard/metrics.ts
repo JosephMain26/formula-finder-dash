@@ -13,16 +13,26 @@ const num = (v: unknown) => {
  * of the app already writes/displays, so the dashboard reflects the true stored
  * values for every job — never a re-derived approximation.
  */
+export function isCompleted(j: Job): boolean {
+  return (j.status || "").toLowerCase() === "completed";
+}
+
+/**
+ * Money metrics only count when the job is Completed. Scheduled / pending /
+ * cancelled jobs contribute $0 to revenue, profit, tech pay, etc., and the
+ * collected deposit (stored separately on `deposit_amount`) is never part of
+ * `price`, so it is never double-counted as revenue.
+ */
 export const jobMetric = {
-  revenue: (j: Job) => num(j.price),
+  revenue: (j: Job) => isCompleted(j) ? num(j.price) : 0,
   /** Office take-home as stored by the app (already net of parts/cc fee/etc). */
-  profit: (j: Job) => num((j as any).total_office),
-  techPay: (j: Job) => num(j.total_tech),
-  marketerPay: (j: Job) => num((j as any).total_marketer),
-  partsCost: (j: Job) => num(j.parts) + num((j as any).office_parts) + num((j as any).co_parts),
-  tip: (j: Job) => num(j.tip),
-  cost: (j: Job) => num(j.cost),
-  ccFee: (j: Job) => num(j.cc_fee),
+  profit: (j: Job) => isCompleted(j) ? num((j as any).total_office) : 0,
+  techPay: (j: Job) => isCompleted(j) ? num(j.total_tech) : 0,
+  marketerPay: (j: Job) => isCompleted(j) ? num((j as any).total_marketer) : 0,
+  partsCost: (j: Job) => isCompleted(j) ? (num(j.parts) + num((j as any).office_parts) + num((j as any).co_parts)) : 0,
+  tip: (j: Job) => isCompleted(j) ? num(j.tip) : 0,
+  cost: (j: Job) => isCompleted(j) ? num(j.cost) : 0,
+  ccFee: (j: Job) => isCompleted(j) ? num(j.cc_fee) : 0,
   /** A job always counts as 1 — never silently filtered. */
   count: (_j: Job) => 1,
 };
@@ -31,10 +41,6 @@ export const jobMetric = {
 export function extraNumber(j: Job, key: string): number {
   const v = ((j as any).extra_fields || {})[key];
   return num(v);
-}
-
-export function isCompleted(j: Job): boolean {
-  return (j.status || "").toLowerCase() === "completed";
 }
 
 export function sumBy<T>(arr: T[], sel: (x: T) => number): number {
