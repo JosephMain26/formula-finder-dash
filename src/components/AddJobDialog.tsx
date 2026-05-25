@@ -775,7 +775,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                   setClientMode(v as "skip" | "link" | "new");
                   if (v !== "link") update("client_id", "");
                 }}
-                className="flex gap-4"
+                className="flex flex-wrap gap-x-4 gap-y-2"
               >
                 <div className="flex items-center gap-1.5">
                   <RadioGroupItem value="skip" id="cm-skip" />
