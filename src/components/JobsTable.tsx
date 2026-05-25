@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { JobDialog } from "@/components/AddJobDialog";
 import { EditableCell } from "@/components/EditableCell";
@@ -11,6 +11,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import type { ColumnKey } from "@/components/ColumnToggle";
 import { StatusBadge } from "@/components/StatusBadge";
 import { loadCustomFields, loadStatuses, type CustomField, type StatusDef } from "@/lib/jobSchema";
+import { SendMessageDialog } from "@/components/SendMessageDialog";
 
 type Job = Tables<"jobs">;
 
