@@ -87,7 +87,7 @@ function useOptions(): Options {
 // Field wrapper
 function Field({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
   return (
-    <div className={full ? "col-span-2" : ""}>
+    <div className={full ? "sm:col-span-2" : ""}>
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
       {children}
     </div>
@@ -401,15 +401,15 @@ function JobFields({
   const visibleCustom = opts.customFields.filter((f) => f.visibleInForm);
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {resolved
         .filter((f) => visibleKey(f.key))
         .map((f) => renderers[f.key]?.())}
 
       {visibleCustom.length > 0 && (
-        <div className="col-span-2 mt-2 pt-3 border-t">
+        <div className="sm:col-span-2 mt-2 pt-3 border-t">
           <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Custom fields</div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {visibleCustom.map((f) => (
               <DynamicField
                 key={f.id}
