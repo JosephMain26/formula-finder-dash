@@ -39,6 +39,8 @@ export const TEMPLATE_VARIABLES: { key: string; label: string }[] = [
   { key: "install_colors", label: "Installation colors" },
   { key: "install_items", label: "Installation items checklist" },
   { key: "install_count", label: "# of installations" },
+  { key: "install_systems", label: "Installation systems (Extension/Torsion)" },
+  { key: "install_sizes", label: "Installation sizes" },
   { key: "pickup_name", label: "Pickup location name" },
   { key: "pickup_address", label: "Pickup address" },
   { key: "pickup_phone", label: "Pickup phone" },
