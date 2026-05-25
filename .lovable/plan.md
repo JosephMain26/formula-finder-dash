@@ -1,60 +1,56 @@
-# Scheduled-installation flow
+## Goal
+Make colors global (not per-model), add a System type (Extension/Torsion) per installation, and add a manageable Sizes catalog (height × width) selectable per installation.
 
-Goal: a single status drives the whole "got the job → send to installer → completed → counted as revenue" flow, reusing the fields and UI we already built (installer, date/time window, pickup location, deposit, send-message dialog).
+## 1. Database changes (single migration)
 
-## 1. New status
+- New table `install_colors` — global color list: `name` (unique), `sort_order`. RLS: admin/manager manage, authenticated view (same pattern as `install_groups`).
+- New table `install_sizes` — global size list: `width` (text, e.g. `16'`), `height` (text, e.g. `7'`), `label` (optional display override), `sort_order`. RLS same as above.
+- Seed `install_colors` from any distinct values currently sitting in `install_models.colors[]` so nothing is lost.
+- Add columns to `job_installations`:
+  - `system_type` text nullable (`extension` | `torsion` | null)
+  - `size_id` uuid nullable, `size_label` text nullable (snapshot, like `group_name`/`model_name`)
+- Keep `install_models.colors` column for now (ignored by UI). It can be dropped later — keeping it avoids touching `types.ts` regen risks and keeps migration minimal.
 
-Seed `"Scheduled installation"` (color: purple) into `app_settings.job_statuses` so it shows up in the status dropdown, filters, and badges automatically. Existing `StatusesManager` lets the user rename/recolor it later.
+## 2. Catalog UI (`InstallationCatalogManager.tsx`)
 
-## 2. Database
+Restructure into three sections instead of "Models & colors per group":
+- **Groups** (unchanged)
+- **Sub-items** for active group (unchanged)
+- **Models** for active group — name only, no color editor anymore
+- **Global Colors** (new top-level section, not group-scoped) — add / rename / delete
+- **Global Sizes** (new top-level section) — width + height + optional label, add / edit / delete
 
-Add 2 nullable columns to `jobs` for deposit payment details (deposit amount/date/received already exist):
-- `deposit_payment_method text`
-- `deposit_check_no text`
+## 3. Installation editor (`JobInstallationsEditor.tsx`)
 
-No other schema changes — `installer_id`, `job_time` / `job_time_end` (2-hour window), `pickup_door_center_id`, `client_id`, `deposit_received`, `deposit_amount`, `deposit_date` all already exist.
+For each installation row, replace the model-specific color dropdown with global lists, and add system + size:
+- **Color**: dropdown of all `install_colors` (free-text fallback kept). No longer depends on model.
+- **System**: dropdown — `Extension` / `Torsion` / —. Shown only when the active group looks door-related; simplest rule: always show, optional. (Catalog-level "applies to group" flag can come later if needed.)
+- **Size**: dropdown of `install_sizes` rendered as `W × H` (e.g. `16' × 7'`). Stores `size_id` + `size_label` snapshot.
 
-## 3. AddJobDialog — conditional UI when status = "Scheduled installation"
+`installCatalog.ts` updates:
+- `loadCatalog()` also returns `colors` and `sizes`.
+- `JobInstallation` type gains `system_type`, `size_id`, `size_label`.
+- `saveJobInstallations()` persists the new columns.
+- `renderInstallVariables()` includes system + size in the per-installation block, e.g.
+  `Garage Door (Lincoln 2000, White) — 16' × 7' — Torsion system:`
+- New aggregate variables: `install_systems`, `install_sizes` (comma-joined) for templates.
 
-In `src/components/AddJobDialog.tsx` (no new components needed):
+## 4. Message templates
 
-- **Always-visible block when this status is selected** (regardless of core-field visibility settings):
-  - Installer select + installer-name fallback
-  - Date + Start time + End time (default end = start + 2h on first pick)
-  - Pickup location select (door centers)
-  - Installations editor (already in the dialog)
-- **Deposit panel** (checkbox "Paid deposit"):
-  - When checked: amount, date (DatePickerField), payment method (reuse `paymentMethods`), and if method is Check → check number input
-- **Client requirement**: on submit, if `status === "Scheduled installation"` and neither `client_id` is set nor a non-empty client name is provided (link existing OR create new with name), block the save with a toast: "Client name is required for door installation jobs." This only gates this status; other statuses are unchanged.
-- **Send-to-installer button**: the existing `SendMessageDialog` button stays in the footer; user can hit it once the job is saved.
+No required template change. Existing `{{install_items}}` automatically picks up the new lines. Document the two new optional variables in `messageTemplates.ts` variable list so users can reference them.
 
-## 4. Revenue rule — only count completed jobs
+## Files touched
+- 1 new migration (tables, columns, seed)
+- `src/components/settings/InstallationCatalogManager.tsx` (restructure)
+- `src/components/JobInstallationsEditor.tsx` (color/system/size pickers)
+- `src/lib/installCatalog.ts` (types, load, save, render)
+- `src/lib/messageTemplates.ts` (variable list only)
 
-In `src/lib/databoard/metrics.ts`, gate revenue/profit/avg-ticket helpers so non-completed jobs return 0:
+No new routes, no new server functions, no new pages — minimum credits.
 
-```ts
-revenue: (j) => isCompleted(j) ? num(j.price) : 0,
-profit:  (j) => isCompleted(j) ? num(j.total_office) : 0,
-techPay: (j) => isCompleted(j) ? num(j.total_tech) : 0,
-marketerPay: (j) => isCompleted(j) ? num(j.total_marketer) : 0,
-```
-
-Deposit columns are already separate from `price`, so they were never in revenue — no extra exclusion needed. Scheduled-installation jobs will show up in pipeline/count widgets but contribute $0 to revenue/profit until status flips to Completed. This makes the existing "Completed only" KPI toggle effectively the default everywhere.
-
-## 5. Files touched
-
-- migration: add 2 columns + seed status row in `app_settings`
-- `src/components/AddJobDialog.tsx`: form state for `deposit_payment_method` / `deposit_check_no`, conditional block, client-required guard, payload mapping
-- `src/lib/databoard/metrics.ts`: gate money metrics by `isCompleted`
-- `src/lib/messageTemplates.ts` (tiny): expose `{{deposit_amount}}` / `{{deposit_method}}` for installer messages (optional, only if you want them in the SMS)
-
-No new routes, no new server functions, no new components — least credits.
-
-## 6. Validation
-
-1. Add a job, pick status "Scheduled installation" with no client → save blocked with toast.
-2. Add client + installer + date + 8:00 start (end auto-fills 10:00) + pickup center → save succeeds.
-3. Tick "Paid deposit" → enter $200, today's date, method Check, check #1234 → saved.
-4. Open job in DataBoard → revenue KPI shows $0; pipeline count includes the job.
-5. Flip status to Completed → revenue KPI now includes the job's price; deposit amount is not double-counted.
-6. Hit "Send" → installer SMS preview includes pickup link, installations, date/time window.
+## Validation
+1. Add a color in Settings → it appears in every installation's color dropdown.
+2. Add a size `16' × 7'` → selectable in installation; rendered in installer SMS preview.
+3. Set System = Torsion on an installation → appears in `{{install_items}}`.
+4. Existing jobs/installations still load (new columns nullable).
+5. Old per-model colors still readable (column kept) but UI now uses global list.
