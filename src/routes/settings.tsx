@@ -192,6 +192,7 @@ function SettingsPage() {
               <TabsTrigger value="types">Job & Comp Types</TabsTrigger>
               <TabsTrigger value="payment">Payment Methods</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
+              <TabsTrigger value="messages"><MessageSquare className="h-4 w-4 mr-1" /> Message Templates</TabsTrigger>
               <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Training</TabsTrigger>
               <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
             </TabsList>
