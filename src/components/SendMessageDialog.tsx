@@ -56,6 +56,9 @@ export function SendMessageDialog({
     }
     if (job?.id) {
       loadJobInstallations(job.id).then((list) => setInstallVars(renderInstallVariables(list)));
+      loadDoorCenter((job as any).pickup_door_center_id).then((dc) =>
+        setInstallVars((prev) => ({ ...prev, ...renderPickupVariables(dc) }))
+      );
     } else {
       setInstallVars({});
     }
