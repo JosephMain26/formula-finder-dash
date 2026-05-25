@@ -102,8 +102,8 @@ export function SendMessageDialog({
   );
 
   const variables = useMemo(
-    () => (job ? buildJobVariables(job as any, { client_name: clientName }) : {}),
-    [job, clientName]
+    () => (job ? { ...buildJobVariables(job as any, { client_name: clientName }), ...installVars } : {}),
+    [job, clientName, installVars]
   );
 
   function pickTemplate(id: string) {
