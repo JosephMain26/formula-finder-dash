@@ -466,47 +466,50 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 <div key="tech_percentage_panel" className="col-span-2 rounded-lg border p-3 bg-muted/30 space-y-2">
                   <div className="flex items-center gap-3 flex-wrap">
                     <Checkbox id="manual-pct" checked={useManualPercentage} onCheckedChange={(v) => setUseManualPercentage(!!v)} />
-                    <label htmlFor="manual-pct" className="text-sm cursor-pointer">Override tech pay for this job</label>
-                    {useManualPercentage && (
-                      <div className="ml-auto flex items-center gap-2">
-                        <div className="inline-flex rounded-md border bg-background p-0.5 text-xs">
-                          <button
-                            type="button"
-                            className={`px-2.5 py-1 rounded ${form.tech_pay_mode === "percent" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-                            onClick={() => update("tech_pay_mode", "percent" as any)}
-                          >% Percent</button>
-                          <button
-                            type="button"
-                            className={`px-2.5 py-1 rounded ${form.tech_pay_mode === "fixed" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-                            onClick={() => update("tech_pay_mode", "fixed" as any)}
-                          >$ Fixed</button>
-                        </div>
-                        {form.tech_pay_mode === "fixed" ? (
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                            <Input type="number" step="0.01" min="0" className="w-28 pl-5" placeholder="Amount" value={form.tech_fixed_amount} onChange={(e) => update("tech_fixed_amount", e.target.value)} />
-                          </div>
-                        ) : (
-                          <Input type="number" step="0.001" min="0" max="100" className="w-24" placeholder="Tech %" value={form.manual_percentage} onChange={(e) => update("manual_percentage", e.target.value)} />
-                        )}
-                      </div>
-                    )}
+                    <label htmlFor="manual-pct" className="text-sm cursor-pointer flex-1 min-w-0">Override tech pay for this job</label>
                     {!useManualPercentage && (
-                      <span className="ml-auto text-sm text-muted-foreground">Using tech default %</span>
+                      <span className="text-sm text-muted-foreground sm:ml-auto">Using tech default %</span>
                     )}
                   </div>
+                  {useManualPercentage && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="inline-flex rounded-md border bg-background p-0.5 text-xs shrink-0">
+                        <button
+                          type="button"
+                          className={`px-2.5 py-1 rounded ${form.tech_pay_mode === "percent" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                          onClick={() => update("tech_pay_mode", "percent" as any)}
+                        >% Percent</button>
+                        <button
+                          type="button"
+                          className={`px-2.5 py-1 rounded ${form.tech_pay_mode === "fixed" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                          onClick={() => update("tech_pay_mode", "fixed" as any)}
+                        >$ Fixed</button>
+                      </div>
+                      {form.tech_pay_mode === "fixed" ? (
+                        <div className="relative flex-1 min-w-[8rem]">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                          <Input type="number" step="0.01" min="0" className="w-full pl-5" placeholder="Amount" value={form.tech_fixed_amount} onChange={(e) => update("tech_fixed_amount", e.target.value)} />
+                        </div>
+                      ) : (
+                        <Input type="number" step="0.001" min="0" max="100" className="flex-1 min-w-[6rem]" placeholder="Tech %" value={form.manual_percentage} onChange={(e) => update("manual_percentage", e.target.value)} />
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : null,
               marketer_percentage_panel: () => (canSeeMarketerPct && canEditPercentage) ? (
-                <div key="marketer_percentage_panel" className="col-span-2 flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
-                  <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
-                  <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer">Override marketer percentage for this job</label>
-                  {useManualMarketerPercentage ? (
-                    <Input type="number" step="0.01" min="0" max="100" className="w-24 ml-auto" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
-                  ) : (
-                    <span className="ml-auto text-sm text-muted-foreground">
-                      Using marketer default {selectedCompany?.percentage != null ? `(${selectedCompany.percentage}%)` : "%"}
-                    </span>
+                <div key="marketer_percentage_panel" className="col-span-2 rounded-lg border p-3 bg-muted/30 space-y-2">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
+                    <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer flex-1 min-w-0">Override marketer percentage for this job</label>
+                    {!useManualMarketerPercentage && (
+                      <span className="text-sm text-muted-foreground sm:ml-auto">
+                        Using marketer default {selectedCompany?.percentage != null ? `(${selectedCompany.percentage}%)` : "%"}
+                      </span>
+                    )}
+                  </div>
+                  {useManualMarketerPercentage && (
+                    <Input type="number" step="0.01" min="0" max="100" className="w-full sm:w-32" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
                   )}
                 </div>
               ) : null,
