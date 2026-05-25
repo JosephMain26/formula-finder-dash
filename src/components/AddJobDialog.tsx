@@ -965,9 +965,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             <label className="text-xs font-medium text-muted-foreground">Notes</label>
             <Input value={newClientForm.notes} onChange={(e) => setNewClientForm((p) => ({ ...p, notes: e.target.value }))} maxLength={500} />
           </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={closeClientPopup}>Skip</Button>
-            <Button type="submit">Save Client</Button>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button type="button" variant="outline" onClick={closeClientPopup} className="w-full sm:w-auto">Skip</Button>
+            <Button type="submit" className="w-full sm:w-auto">Save Client</Button>
           </div>
         </form>
       </DialogContent>
