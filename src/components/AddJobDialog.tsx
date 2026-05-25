@@ -48,6 +48,7 @@ const emptyForm = {
   tech_fixed_amount: "",
   deposit_received: false, deposit_amount: "", deposit_date: "",
   scheduled_completion_date: "", completed_at_date: "",
+  pickup_door_center_id: "",
 };
 
 interface JobDialogProps {
