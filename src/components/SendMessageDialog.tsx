@@ -54,6 +54,11 @@ export function SendMessageDialog({
     } else {
       setClientName("");
     }
+    if (job?.id) {
+      loadJobInstallations(job.id).then((list) => setInstallVars(renderInstallVariables(list)));
+    } else {
+      setInstallVars({});
+    }
     setTemplateId("");
     setBody("");
   }, [open, job]);
