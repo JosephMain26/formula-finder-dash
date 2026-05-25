@@ -148,6 +148,11 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           client_id: (job as any).client_id || "",
           tech_pay_mode: ((job as any).tech_pay_mode === "fixed" ? "fixed" : "percent") as "percent" | "fixed",
           tech_fixed_amount: (job as any).tech_fixed_amount != null ? String((job as any).tech_fixed_amount) : "",
+          deposit_received: !!(job as any).deposit_received,
+          deposit_amount: (job as any).deposit_amount != null ? String((job as any).deposit_amount) : "",
+          deposit_date: (job as any).deposit_date || "",
+          scheduled_completion_date: (job as any).scheduled_completion_date || "",
+          completed_at_date: (job as any).completed_at_date || "",
         });
         setUseManualPercentage(!!job.manual_percentage);
         setUseManualMarketerPercentage(false);
