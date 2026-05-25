@@ -324,6 +324,14 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       installer_id: form.installer_id || null,
       installer_name: form.installer_name || null,
       extra_fields: extra || {},
+      deposit_received: !!form.deposit_received,
+      deposit_amount: form.deposit_amount ? parseFloat(form.deposit_amount) : 0,
+      deposit_date: form.deposit_date || null,
+      scheduled_completion_date: form.scheduled_completion_date || null,
+      completed_at_date: form.completed_at_date
+        || (form.status === "Completed" && !(isEdit && (job as any)?.completed_at_date)
+            ? new Date().toISOString().slice(0, 10)
+            : null),
     };
 
     // Client linking based on clientMode
