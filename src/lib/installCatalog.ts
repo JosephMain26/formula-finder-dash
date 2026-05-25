@@ -1,0 +1,91 @@
+import { supabase } from "@/integrations/supabase/client";
+
+export type InstallGroup = { id: string; name: string; sort_order: number };
+export type InstallSubItem = { id: string; group_id: string; name: string; sort_order: number };
+export type InstallModel = { id: string; group_id: string; name: string; colors: string[]; sort_order: number };
+
+export type JobInstallationSubItem = {
+  sub_item_id?: string | null;
+  name: string;
+  checked: boolean;
+};
+
+export type JobInstallation = {
+  id?: string;
+  job_id?: string;
+  group_id: string | null;
+  group_name: string | null;
+  model_id: string | null;
+  model_name: string | null;
+  color: string | null;
+  notes: string | null;
+  sub_items: JobInstallationSubItem[];
+  sort_order: number;
+};
+
+export async function loadCatalog() {
+  const [g, s, m] = await Promise.all([
+    (supabase as any).from("install_groups").select("*").order("sort_order").order("name"),
+    (supabase as any).from("install_sub_items").select("*").order("sort_order").order("name"),
+    (supabase as any).from("install_models").select("*").order("sort_order").order("name"),
+  ]);
+  return {
+    groups: (g.data as InstallGroup[]) || [],
+    subItems: (s.data as InstallSubItem[]) || [],
+    models: (m.data as InstallModel[]) || [],
+  };
+}
+
+export async function loadJobInstallations(jobId: string): Promise<JobInstallation[]> {
+  const { data } = await (supabase as any)
+    .from("job_installations")
+    .select("*")
+    .eq("job_id", jobId)
+    .order("sort_order");
+  return (data as JobInstallation[]) || [];
+}
+
+export async function saveJobInstallations(jobId: string, items: JobInstallation[]) {
+  // Replace strategy: delete then insert. Simple and consistent.
+  await (supabase as any).from("job_installations").delete().eq("job_id", jobId);
+  if (items.length === 0) return;
+  const rows = items.map((it, idx) => ({
+    job_id: jobId,
+    group_id: it.group_id,
+    group_name: it.group_name,
+    model_id: it.model_id,
+    model_name: it.model_name,
+    color: it.color,
+    notes: it.notes,
+    sub_items: it.sub_items,
+    sort_order: idx,
+  }));
+  await (supabase as any).from("job_installations").insert(rows);
+}
+
+/** Render installations into template variables. */
+export function renderInstallVariables(installations: JobInstallation[]) {
+  const types = installations.map((i) => i.group_name).filter(Boolean) as string[];
+  const models = installations
+    .filter((i) => i.model_name)
+    .map((i) => `${i.group_name || ""}: ${i.model_name}`);
+  const colors = installations.map((i) => i.color).filter(Boolean) as string[];
+
+  const itemsBlocks = installations.map((i) => {
+    const header = [
+      i.group_name || "Installation",
+      i.model_name ? `(${i.model_name}${i.color ? `, ${i.color}` : ""})` : (i.color ? `(${i.color})` : ""),
+    ].filter(Boolean).join(" ");
+    const checked = i.sub_items.filter((s) => s.checked);
+    const lines = checked.map((s) => `- ${s.name}`);
+    return [header + ":", ...lines].join("\n");
+  });
+
+  return {
+    install_types: types.join(", "),
+    install_models: models.join(", "),
+    install_colors: colors.join(", "),
+    install_items: itemsBlocks.join("\n\n"),
+    install_count: String(installations.length),
+  };
+}
