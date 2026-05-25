@@ -254,6 +254,30 @@ export type Database = {
         }
         Relationships: []
       }
+      install_colors: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       install_groups: {
         Row: {
           created_at: string
@@ -312,6 +336,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      install_sizes: {
+        Row: {
+          created_at: string
+          height: string
+          id: string
+          label: string | null
+          sort_order: number
+          updated_at: string
+          width: string
+        }
+        Insert: {
+          created_at?: string
+          height: string
+          id?: string
+          label?: string | null
+          sort_order?: number
+          updated_at?: string
+          width: string
+        }
+        Update: {
+          created_at?: string
+          height?: string
+          id?: string
+          label?: string | null
+          sort_order?: number
+          updated_at?: string
+          width?: string
+        }
+        Relationships: []
       }
       install_sub_items: {
         Row: {
@@ -386,8 +440,11 @@ export type Database = {
           model_id: string | null
           model_name: string | null
           notes: string | null
+          size_id: string | null
+          size_label: string | null
           sort_order: number
           sub_items: Json
+          system_type: string | null
           updated_at: string
         }
         Insert: {
@@ -400,8 +457,11 @@ export type Database = {
           model_id?: string | null
           model_name?: string | null
           notes?: string | null
+          size_id?: string | null
+          size_label?: string | null
           sort_order?: number
           sub_items?: Json
+          system_type?: string | null
           updated_at?: string
         }
         Update: {
@@ -414,8 +474,11 @@ export type Database = {
           model_id?: string | null
           model_name?: string | null
           notes?: string | null
+          size_id?: string | null
+          size_label?: string | null
           sort_order?: number
           sub_items?: Json
+          system_type?: string | null
           updated_at?: string
         }
         Relationships: [

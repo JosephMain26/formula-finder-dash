@@ -6,9 +6,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, X } from "lucide-react";
 import {
   loadCatalog,
+  formatSize,
   type InstallGroup,
   type InstallSubItem,
   type InstallModel,
+  type InstallColor,
+  type InstallSize,
   type JobInstallation,
 } from "@/lib/installCatalog";
 
@@ -21,6 +24,8 @@ export function JobInstallationsEditor({ value, onChange }: Props) {
   const [groups, setGroups] = useState<InstallGroup[]>([]);
   const [subItems, setSubItems] = useState<InstallSubItem[]>([]);
   const [models, setModels] = useState<InstallModel[]>([]);
+  const [colors, setColors] = useState<InstallColor[]>([]);
+  const [sizes, setSizes] = useState<InstallSize[]>([]);
   const [customSub, setCustomSub] = useState<Record<number, string>>({});
 
   useEffect(() => {
@@ -28,6 +33,8 @@ export function JobInstallationsEditor({ value, onChange }: Props) {
       setGroups(c.groups);
       setSubItems(c.subItems);
       setModels(c.models);
+      setColors(c.colors);
+      setSizes(c.sizes);
     });
   }, []);
 
@@ -44,6 +51,9 @@ export function JobInstallationsEditor({ value, onChange }: Props) {
         model_id: null,
         model_name: null,
         color: null,
+        system_type: null,
+        size_id: null,
+        size_label: null,
         notes: null,
         sub_items: [],
         sort_order: value.length,
@@ -64,19 +74,28 @@ export function JobInstallationsEditor({ value, onChange }: Props) {
       group_name: g.name,
       model_id: null,
       model_name: null,
-      color: null,
       sub_items: groupSubs.map((s) => ({ sub_item_id: s.id, name: s.name, checked: true })),
     });
   }
 
   function pickModel(idx: number, modelId: string) {
     if (modelId === "__none__") {
-      update(idx, { model_id: null, model_name: null, color: null });
+      update(idx, { model_id: null, model_name: null });
       return;
     }
     const m = models.find((x) => x.id === modelId);
     if (!m) return;
-    update(idx, { model_id: m.id, model_name: m.name, color: null });
+    update(idx, { model_id: m.id, model_name: m.name });
+  }
+
+  function pickSize(idx: number, sizeId: string) {
+    if (sizeId === "__none__") {
+      update(idx, { size_id: null, size_label: null });
+      return;
+    }
+    const s = sizes.find((x) => x.id === sizeId);
+    if (!s) return;
+    update(idx, { size_id: s.id, size_label: formatSize(s) });
   }
 
   function toggleSub(idx: number, subIdx: number) {
@@ -112,8 +131,6 @@ export function JobInstallationsEditor({ value, onChange }: Props) {
 
       {value.map((it, idx) => {
         const groupModels = models.filter((m) => m.group_id === it.group_id);
-        const activeModel = models.find((m) => m.id === it.model_id);
-        const colorOptions = activeModel?.colors || [];
         return (
           <div key={idx} className="rounded-lg border p-3 space-y-2 bg-muted/30">
             <div className="flex items-center justify-between gap-2">
@@ -153,7 +170,7 @@ export function JobInstallationsEditor({ value, onChange }: Props) {
               </div>
               <div>
                 <label className="text-[11px] font-medium text-muted-foreground">Color</label>
-                {colorOptions.length > 0 ? (
+                {colors.length > 0 ? (
                   <Select
                     value={it.color || "__none__"}
                     onValueChange={(v) => update(idx, { color: v === "__none__" ? null : v })}
@@ -161,8 +178,8 @@ export function JobInstallationsEditor({ value, onChange }: Props) {
                     <SelectTrigger className="h-9"><SelectValue placeholder="Pick color" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">— None —</SelectItem>
-                      {colorOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                      {it.color && !colorOptions.includes(it.color) && (
+                      {colors.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                      {it.color && !colors.some((c) => c.name === it.color) && (
                         <SelectItem value={it.color}>{it.color} (custom)</SelectItem>
                       )}
                     </SelectContent>
@@ -175,6 +192,40 @@ export function JobInstallationsEditor({ value, onChange }: Props) {
                     onChange={(e) => update(idx, { color: e.target.value || null })}
                   />
                 )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground">System</label>
+                <Select
+                  value={it.system_type || "__none__"}
+                  onValueChange={(v) => update(idx, { system_type: v === "__none__" ? null : (v as any) })}
+                >
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Pick system" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— None —</SelectItem>
+                    <SelectItem value="extension">Extension</SelectItem>
+                    <SelectItem value="torsion">Torsion</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground">Size</label>
+                <Select
+                  value={it.size_id || "__none__"}
+                  onValueChange={(v) => pickSize(idx, v)}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder={sizes.length ? "Pick size" : "Add sizes in Settings"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— None —</SelectItem>
+                    {sizes.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{formatSize(s)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
