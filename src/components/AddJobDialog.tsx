@@ -555,18 +555,19 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               ) : null,
               marketer_percentage_panel: () => (canSeeMarketerPct && canEditPercentage) ? (
                 <div key="marketer_percentage_panel" className="col-span-2 rounded-lg border p-3 bg-muted/30 space-y-2">
-                  <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-3">
                     <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
                     <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer flex-1 min-w-0">Override marketer percentage for this job</label>
-                    {!useManualMarketerPercentage && (
-                      <span className="text-sm text-muted-foreground sm:ml-auto">
-                        Using marketer default {selectedCompany?.percentage != null ? `(${selectedCompany.percentage}%)` : "%"}
-                      </span>
-                    )}
                   </div>
+                  {!useManualMarketerPercentage && (
+                    <span className="block text-xs text-muted-foreground">
+                      Using marketer default {selectedCompany?.percentage != null ? `(${selectedCompany.percentage}%)` : "%"}
+                    </span>
+                  )}
                   {useManualMarketerPercentage && (
                     <Input type="number" step="0.01" min="0" max="100" className="w-full sm:w-32" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
                   )}
+
                 </div>
               ) : null,
               technician_id: () => (
