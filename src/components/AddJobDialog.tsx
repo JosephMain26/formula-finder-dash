@@ -447,7 +447,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       <DialogTrigger asChild>
         {trigger || <Button><Plus className="h-4 w-4 mr-2" /> Add Job</Button>}
       </DialogTrigger>
-      <DialogContent aria-describedby={undefined} className="max-w-2xl w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+      <DialogContent aria-describedby={undefined} className="max-w-2xl w-[calc(100vw-0.5rem)] sm:w-[calc(100%-2rem)] max-h-[92vh] sm:max-h-[85vh] overflow-y-auto p-3 sm:p-6">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Job" : "Add New Job"}</DialogTitle>
         </DialogHeader>
