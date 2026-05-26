@@ -1,0 +1,1 @@
+ALTER TABLE public.job_installations ADD COLUMN parts_po text;

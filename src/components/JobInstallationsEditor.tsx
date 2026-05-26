@@ -55,6 +55,7 @@ export function JobInstallationsEditor({ value, onChange }: Props) {
         size_id: null,
         size_label: null,
         notes: null,
+        parts_po: null,
         sub_items: [],
         sort_order: value.length,
       },
@@ -261,14 +262,25 @@ export function JobInstallationsEditor({ value, onChange }: Props) {
               </div>
             )}
 
-            <div>
-              <label className="text-[11px] font-medium text-muted-foreground">Notes</label>
-              <Input
-                className="h-9"
-                value={it.notes || ""}
-                onChange={(e) => update(idx, { notes: e.target.value || null })}
-                placeholder="Optional"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground">Parts PO / Order PO</label>
+                <Input
+                  className="h-9"
+                  value={it.parts_po || ""}
+                  onChange={(e) => update(idx, { parts_po: e.target.value || null })}
+                  placeholder="e.g. PO-12345"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground">Notes</label>
+                <Input
+                  className="h-9"
+                  value={it.notes || ""}
+                  onChange={(e) => update(idx, { notes: e.target.value || null })}
+                  placeholder="Optional"
+                />
+              </div>
             </div>
           </div>
         );

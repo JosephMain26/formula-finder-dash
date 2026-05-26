@@ -26,6 +26,7 @@ export type JobInstallation = {
   size_id: string | null;
   size_label: string | null;
   notes: string | null;
+  parts_po: string | null;
   sub_items: JobInstallationSubItem[];
   sort_order: number;
 };
@@ -75,6 +76,7 @@ export async function saveJobInstallations(jobId: string, items: JobInstallation
     size_id: it.size_id,
     size_label: it.size_label,
     notes: it.notes,
+    parts_po: it.parts_po,
     sub_items: it.sub_items,
     sort_order: idx,
   }));
@@ -94,6 +96,7 @@ export function renderInstallVariables(installations: JobInstallation[]) {
     .map((i) => (i.system_type ? SYSTEM_LABEL[i.system_type] || i.system_type : null))
     .filter(Boolean) as string[];
   const sizes = installations.map((i) => i.size_label).filter(Boolean) as string[];
+  const partsPos = installations.map((i) => i.parts_po).filter(Boolean) as string[];
 
   const itemsBlocks = installations.map((i) => {
     const parens = [i.model_name, i.color].filter(Boolean).join(", ");
@@ -107,6 +110,7 @@ export function renderInstallVariables(installations: JobInstallation[]) {
     const headerFull = meta.length ? `${header} — ${meta.join(" — ")}` : header;
     const checked = i.sub_items.filter((s) => s.checked);
     const lines = checked.map((s) => `- ${s.name}`);
+    if (i.parts_po) lines.push(`- Parts PO: ${i.parts_po}`);
     return [headerFull + ":", ...lines].join("\n");
   });
 
@@ -116,6 +120,7 @@ export function renderInstallVariables(installations: JobInstallation[]) {
     install_colors: colors.join(", "),
     install_systems: systems.join(", "),
     install_sizes: sizes.join(", "),
+    install_parts_pos: partsPos.join(", "),
     install_items: itemsBlocks.join("\n\n"),
     install_count: String(installations.length),
   };
