@@ -1,37 +1,25 @@
+## Why the form still shows 2 columns on the user's phone
 
-## Goal
-Make the Add/Edit Job dialog comfortable to use on phones (≤640px). No logic changes, no new features — just layout/visibility fixes.
+The form root and inner grids use `sm:grid-cols-2`. The `sm` breakpoint kicks in at **640px**, which on the user's device (Chrome Android, likely in "Desktop site" mode or a wide-CSS-pixel phone like the screenshot they sent) is below the viewport width. Result: Job Date + Marketer, Technician + PO, Phone + Address, Status + Price etc. all squeeze into two tiny columns and labels/values overlap.
 
-## Issues found in `src/components/AddJobDialog.tsx`
+## Fix (single file: `src/components/AddJobDialog.tsx`)
 
-1. **Dialog padding & width** — `p-4 sm:p-6` + `w-[calc(100vw-1rem)]` leaves only ~340px of content; long Select values get clipped and labels feel cramped.
-2. **Time row** — uses fixed `grid-cols-2 gap-2` (not responsive). The right cell holds the "Time range" label + Switch and gets squeezed next to the time input.
-3. **Tech / Marketer override panels** — `flex flex-wrap` with the % toggle + input on one line wraps awkwardly; the "Using tech default %" hint sits on the same row as the checkbox and overflows.
-4. **Linked Client row (edit mode)** — Select + "+ New" + "View" use `flex-wrap` with a `min-w-[10rem]` select; on a 360px viewport the button drops to its own line with weird gaps.
-5. **Pickup location + Installations header** — fine, but the inner Installation editor cards use `grid-cols-1 sm:grid-cols-3` which is OK; just the Select triggers need `truncate` so long door-center names don't break the row.
-6. **Deposit panel** — already `grid-cols-1 sm:grid-cols-2`, fine, but the "Paid deposit" checkbox + heading spacing is tight.
-7. **Footer buttons** — already stack correctly; no change.
+Push the 2-column layout up to the `md` breakpoint (**768px**), so phones — including desktop-site mode — always get one field per row. Tablets and desktops are unaffected.
 
-## Changes (single file: `src/components/AddJobDialog.tsx`)
+1. **Form root grid (line 454)** — `grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4` → `grid-cols-1 md:grid-cols-2 gap-3 md:gap-4`.
+2. **All `col-span-2` children** (lines 521, 557, 810, 816, 827, 887, 944, 1005, 1019, 1046) → `md:col-span-2`. In a 1-col grid `col-span-2` is harmless but `md:col-span-2` makes intent explicit and avoids edge cases.
+3. **Inner deposit grid (line 838)** — `sm:grid-cols-2` → `md:grid-cols-2`.
+4. **Inner installation-systems grid (line 1007)** — `sm:grid-cols-2` → `md:grid-cols-2`.
+5. **Override-panel inner rows** (tech + marketer, lines ~530 and ~566): change `sm:flex-row sm:items-center` → `md:flex-row md:items-center` so the mode toggle + amount input stack vertically on phones too.
+6. **Footer (line 1046)** — `sm:flex-row sm:justify-end` → `md:flex-row md:justify-end` so Cancel/Save stack on phones.
+7. **DatePickerField & Inputs** — verify each renders `w-full` inside its grid cell; add `w-full` to the time inputs if missing so they fill the column.
 
-1. **DialogContent**: change to `w-[calc(100vw-0.5rem)] sm:w-[calc(100%-2rem)] p-3 sm:p-6 max-h-[92vh]` and add `gap-3` cleanup. Gives ~8px extra usable width on mobile.
-2. **Time row (line 472)**: replace `grid grid-cols-2 gap-2` with a stacked layout on mobile:
-   - Row 1: Time input (full width) with the "Time range" Switch absolutely aligned to the label, e.g. `flex items-center justify-between` for the label row, then full-width input below.
-   - End time stays full width below when toggled on.
-3. **Override panels (tech & marketer)**:
-   - Move the "Using … default %" hint to a new line under the checkbox (`block text-xs` instead of inline `sm:ml-auto`).
-   - When override is on, stack the mode toggle and input vertically on mobile: wrap them in `flex flex-col sm:flex-row sm:items-center gap-2`.
-4. **Linked Client row (edit mode)**: change to `flex flex-col sm:flex-row gap-2` so the Select takes full width on mobile and the "+ New" / "View" actions sit in their own row beneath.
-5. **Select triggers with long values**: add `truncate` and `min-w-0` to the SelectTrigger/SelectValue for company, technician, installer, pickup location, payment, client selects, so options don't push width past the column.
-6. **Deposit panel header**: tighten to `p-3 space-y-2` and put the section title on the same line as the "Paid deposit" checkbox row spacing-wise; keep current grid.
-7. **Optional micro-fix**: form root `gap-3 sm:gap-4` is fine — leave alone.
-
-## Out of scope
-- No changes to validation, state, server functions, schema, or any other component.
-- No redesign of `JobInstallationsEditor` beyond `truncate` on its Select triggers (separate file, 1-line patches).
+No logic, state, schema, or other components change. Only Tailwind class names in `AddJobDialog.tsx`.
 
 ## Validation
-- Open Add Job dialog at 360–414px width: every field full-width, no horizontal scroll, no clipped labels, time + range toggle readable, override panels stack cleanly, footer buttons stacked.
-- At ≥640px the layout is unchanged from today.
 
-Files touched: `src/components/AddJobDialog.tsx` (+ optionally 1-line `truncate` adds in `JobInstallationsEditor.tsx`).
+Open Add Job on the user's phone (or desktop-site-mode browser at ~700–1000px CSS width): every field full-width, labels above inputs not overlapping, time/range toggle readable, override panels and deposit grid stack cleanly, footer buttons stack. At ≥768px the dialog looks unchanged from current desktop view.
+
+## Out of scope
+
+`JobInstallationsEditor` internal grids, validation rules, server functions, schema.

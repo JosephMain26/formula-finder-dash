@@ -451,7 +451,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Job" : "Add New Job"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mt-4">
           {(() => {
             const resolved = getCoreFieldsResolved(coreOverrides);
             const isSchedInstall = form.status === SCHEDULED_INSTALL_STATUS;
@@ -518,7 +518,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 </div>
               ),
               tech_percentage_panel: () => canEditPercentage ? (
-                <div key="tech_percentage_panel" className="col-span-2 rounded-lg border p-3 bg-muted/30 space-y-2">
+                <div key="tech_percentage_panel" className="md:col-span-2 rounded-lg border p-3 bg-muted/30 space-y-2">
                   <div className="flex items-center gap-3">
                     <Checkbox id="manual-pct" checked={useManualPercentage} onCheckedChange={(v) => setUseManualPercentage(!!v)} />
                     <label htmlFor="manual-pct" className="text-sm cursor-pointer flex-1 min-w-0">Override tech pay for this job</label>
@@ -527,7 +527,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                     <span className="block text-xs text-muted-foreground">Using tech default %</span>
                   )}
                   {useManualPercentage && (
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <div className="flex flex-col md:flex-row md:items-center gap-2">
                       <div className="inline-flex rounded-md border bg-background p-0.5 text-xs shrink-0 self-start">
                         <button
                           type="button"
@@ -554,7 +554,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 </div>
               ) : null,
               marketer_percentage_panel: () => (canSeeMarketerPct && canEditPercentage) ? (
-                <div key="marketer_percentage_panel" className="col-span-2 rounded-lg border p-3 bg-muted/30 space-y-2">
+                <div key="marketer_percentage_panel" className="md:col-span-2 rounded-lg border p-3 bg-muted/30 space-y-2">
                   <div className="flex items-center gap-3">
                     <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
                     <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer flex-1 min-w-0">Override marketer percentage for this job</label>
@@ -565,7 +565,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                     </span>
                   )}
                   {useManualMarketerPercentage && (
-                    <Input type="number" step="0.01" min="0" max="100" className="w-full sm:w-32" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
+                    <Input type="number" step="0.01" min="0" max="100" className="w-full md:w-32" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
                   )}
 
                 </div>
@@ -807,13 +807,13 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 </div>
               ),
               notes: () => (
-                <div key="notes" className="col-span-2">
+                <div key="notes" className="md:col-span-2">
                   <label className="text-xs font-medium text-muted-foreground">{labelOf("notes")}{reqOf("notes") ? " *" : ""}</label>
                   <Input value={form.notes} required={reqOf("notes")} onChange={(e) => update("notes", e.target.value)} />
                 </div>
               ),
               paid: () => (
-                <div key="paid" className="col-span-2 flex items-center gap-3">
+                <div key="paid" className="md:col-span-2 flex items-center gap-3">
                   <Checkbox id="paid-check" checked={form.paid} onCheckedChange={(v) => update("paid", !!v)} />
                   <label htmlFor="paid-check" className="text-sm cursor-pointer">{labelOf("paid")}</label>
                 </div>
@@ -824,7 +824,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           })()}
 
           {form.status === SCHEDULED_INSTALL_STATUS && (
-            <div className="col-span-2 mt-2 pt-3 border-t rounded-lg border bg-muted/30 p-3 space-y-3">
+            <div className="md:col-span-2 mt-2 pt-3 border-t rounded-lg border bg-muted/30 p-3 space-y-3">
               <div className="text-xs uppercase tracking-wide text-muted-foreground">Deposit</div>
               <div className="flex items-center gap-3">
                 <Checkbox
@@ -835,7 +835,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 <label htmlFor="deposit-received" className="text-sm cursor-pointer">Paid deposit</label>
               </div>
               {form.deposit_received && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground">Amount</label>
                     <Input
@@ -884,7 +884,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
 
           {canManageClients && !isEdit && (
-            <div className="col-span-2 mt-2 pt-3 border-t">
+            <div className="md:col-span-2 mt-2 pt-3 border-t">
               <label className="text-xs font-medium text-muted-foreground mb-2 block">Client</label>
               <RadioGroup
                 value={clientMode}
@@ -941,7 +941,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             </div>
           )}
           {canManageClients && isEdit && (
-            <div className="col-span-2 mt-2 pt-3 border-t">
+            <div className="md:col-span-2 mt-2 pt-3 border-t">
               <label className="text-xs font-medium text-muted-foreground">Linked Client</label>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
                 <Select
@@ -1002,9 +1002,9 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           )}
 
           {customFields.filter(f => f.visibleInForm).length > 0 && (
-            <div className="col-span-2 mt-2 pt-3 border-t">
+            <div className="md:col-span-2 mt-2 pt-3 border-t">
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Custom fields</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 {customFields.filter(f => f.visibleInForm).map((f) => (
                   <DynamicField
                     key={f.id}
@@ -1016,7 +1016,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               </div>
             </div>
           )}
-          <div className="col-span-2 mt-2 pt-3 border-t">
+          <div className="md:col-span-2 mt-2 pt-3 border-t">
             <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Installations</div>
             <div className="mb-3">
               <Label className="text-xs">Pickup location (Door Center)</Label>
@@ -1043,14 +1043,14 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           </div>
 
 
-          <div className="col-span-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-2">
+          <div className="md:col-span-2 flex flex-col-reverse md:flex-row md:justify-end gap-2 mt-2">
             {isEdit && (
-              <Button type="button" variant="outline" onClick={() => setSendOpen(true)} className="w-full sm:w-auto sm:mr-auto">
+              <Button type="button" variant="outline" onClick={() => setSendOpen(true)} className="w-full md:w-auto md:mr-auto">
                 <Send className="h-4 w-4 mr-2" /> Send message
               </Button>
             )}
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto">Cancel</Button>
-            <Button type="submit" disabled={loading} className="w-full sm:w-auto">{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Job"}</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="w-full md:w-auto">Cancel</Button>
+            <Button type="submit" disabled={loading} className="w-full md:w-auto">{loading ? "Saving..." : isEdit ? "Save Changes" : "Add Job"}</Button>
           </div>
         </form>
       </DialogContent>
