@@ -943,7 +943,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           {canManageClients && isEdit && (
             <div className="col-span-2 mt-2 pt-3 border-t">
               <label className="text-xs font-medium text-muted-foreground">Linked Client</label>
-              <div className="flex flex-wrap gap-2 items-center mt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
                 <Select
                   value={form.client_id || "__none__"}
                   onValueChange={(id) => {
@@ -953,7 +953,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                     setForm((prev) => ({ ...prev, client_id: id }));
                   }}
                 >
-                  <SelectTrigger className="flex-1 min-w-[10rem]">
+                  <SelectTrigger className="w-full sm:flex-1 min-w-0">
+
                     <SelectValue placeholder="No client linked" />
                   </SelectTrigger>
                   <SelectContent>
