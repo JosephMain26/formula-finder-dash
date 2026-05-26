@@ -440,6 +440,7 @@ export type Database = {
           model_id: string | null
           model_name: string | null
           notes: string | null
+          parts_po: string | null
           size_id: string | null
           size_label: string | null
           sort_order: number
@@ -457,6 +458,7 @@ export type Database = {
           model_id?: string | null
           model_name?: string | null
           notes?: string | null
+          parts_po?: string | null
           size_id?: string | null
           size_label?: string | null
           sort_order?: number
@@ -474,6 +476,7 @@ export type Database = {
           model_id?: string | null
           model_name?: string | null
           notes?: string | null
+          parts_po?: string | null
           size_id?: string | null
           size_label?: string | null
           sort_order?: number
