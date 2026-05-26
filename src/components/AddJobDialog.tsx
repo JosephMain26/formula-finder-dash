@@ -447,7 +447,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       <DialogTrigger asChild>
         {trigger || <Button><Plus className="h-4 w-4 mr-2" /> Add Job</Button>}
       </DialogTrigger>
-      <DialogContent aria-describedby={undefined} className="max-w-2xl w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+      <DialogContent aria-describedby={undefined} className="max-w-2xl w-[calc(100vw-0.5rem)] sm:w-[calc(100%-2rem)] max-h-[92vh] sm:max-h-[85vh] overflow-y-auto p-3 sm:p-6">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Job" : "Add New Job"}</DialogTitle>
         </DialogHeader>
@@ -469,29 +469,29 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                     <label className="text-xs font-medium text-muted-foreground">{labelOf("job_date")}{reqOf("job_date") ? " *" : ""}</label>
                     <DatePickerField value={form.job_date} onChange={(v) => update("job_date", v)} />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
                       <label className="text-xs font-medium text-muted-foreground">{form.job_time_end ? "Start time" : "Time"}</label>
-                      <Input type="time" value={form.job_time} onChange={(e) => update("job_time", e.target.value)} />
-                    </div>
-                    <div className="flex items-end justify-between gap-2 pb-1">
-                      <label className="text-xs font-medium text-muted-foreground">Time range</label>
-                      <Switch
-                        checked={!!form.job_time_end}
-                        onCheckedChange={(v) => {
-                          if (v) {
-                            let end = form.job_time_end;
-                            if (!end && form.job_time) {
-                              const [h, m] = form.job_time.split(":").map(Number);
-                              if (!Number.isNaN(h)) end = `${String((h + 2) % 24).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
+                      <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                        Time range
+                        <Switch
+                          checked={!!form.job_time_end}
+                          onCheckedChange={(v) => {
+                            if (v) {
+                              let end = form.job_time_end;
+                              if (!end && form.job_time) {
+                                const [h, m] = form.job_time.split(":").map(Number);
+                                if (!Number.isNaN(h)) end = `${String((h + 2) % 24).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}`;
+                              }
+                              update("job_time_end", end || "");
+                            } else {
+                              update("job_time_end", "");
                             }
-                            update("job_time_end", end || "");
-                          } else {
-                            update("job_time_end", "");
-                          }
-                        }}
-                      />
+                          }}
+                        />
+                      </label>
                     </div>
+                    <Input type="time" value={form.job_time} onChange={(e) => update("job_time", e.target.value)} />
                   </div>
                   {form.job_time_end && (
                     <div>
@@ -499,6 +499,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                       <Input type="time" value={form.job_time_end} onChange={(e) => update("job_time_end", e.target.value)} />
                     </div>
                   )}
+
                 </div>
               ),
               company_id: () => (
@@ -518,16 +519,16 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               ),
               tech_percentage_panel: () => canEditPercentage ? (
                 <div key="tech_percentage_panel" className="col-span-2 rounded-lg border p-3 bg-muted/30 space-y-2">
-                  <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-3">
                     <Checkbox id="manual-pct" checked={useManualPercentage} onCheckedChange={(v) => setUseManualPercentage(!!v)} />
                     <label htmlFor="manual-pct" className="text-sm cursor-pointer flex-1 min-w-0">Override tech pay for this job</label>
-                    {!useManualPercentage && (
-                      <span className="text-sm text-muted-foreground sm:ml-auto">Using tech default %</span>
-                    )}
                   </div>
+                  {!useManualPercentage && (
+                    <span className="block text-xs text-muted-foreground">Using tech default %</span>
+                  )}
                   {useManualPercentage && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className="inline-flex rounded-md border bg-background p-0.5 text-xs shrink-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <div className="inline-flex rounded-md border bg-background p-0.5 text-xs shrink-0 self-start">
                         <button
                           type="button"
                           className={`px-2.5 py-1 rounded ${form.tech_pay_mode === "percent" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
@@ -540,31 +541,33 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                         >$ Fixed</button>
                       </div>
                       {form.tech_pay_mode === "fixed" ? (
-                        <div className="relative flex-1 min-w-[8rem]">
+                        <div className="relative flex-1 min-w-0">
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
                           <Input type="number" step="0.01" min="0" className="w-full pl-5" placeholder="Amount" value={form.tech_fixed_amount} onChange={(e) => update("tech_fixed_amount", e.target.value)} />
                         </div>
                       ) : (
-                        <Input type="number" step="0.001" min="0" max="100" className="flex-1 min-w-[6rem]" placeholder="Tech %" value={form.manual_percentage} onChange={(e) => update("manual_percentage", e.target.value)} />
+                        <Input type="number" step="0.001" min="0" max="100" className="flex-1 min-w-0" placeholder="Tech %" value={form.manual_percentage} onChange={(e) => update("manual_percentage", e.target.value)} />
                       )}
                     </div>
                   )}
+
                 </div>
               ) : null,
               marketer_percentage_panel: () => (canSeeMarketerPct && canEditPercentage) ? (
                 <div key="marketer_percentage_panel" className="col-span-2 rounded-lg border p-3 bg-muted/30 space-y-2">
-                  <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-3">
                     <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
                     <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer flex-1 min-w-0">Override marketer percentage for this job</label>
-                    {!useManualMarketerPercentage && (
-                      <span className="text-sm text-muted-foreground sm:ml-auto">
-                        Using marketer default {selectedCompany?.percentage != null ? `(${selectedCompany.percentage}%)` : "%"}
-                      </span>
-                    )}
                   </div>
+                  {!useManualMarketerPercentage && (
+                    <span className="block text-xs text-muted-foreground">
+                      Using marketer default {selectedCompany?.percentage != null ? `(${selectedCompany.percentage}%)` : "%"}
+                    </span>
+                  )}
                   {useManualMarketerPercentage && (
                     <Input type="number" step="0.01" min="0" max="100" className="w-full sm:w-32" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
                   )}
+
                 </div>
               ) : null,
               technician_id: () => (
@@ -940,7 +943,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           {canManageClients && isEdit && (
             <div className="col-span-2 mt-2 pt-3 border-t">
               <label className="text-xs font-medium text-muted-foreground">Linked Client</label>
-              <div className="flex flex-wrap gap-2 items-center mt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1">
                 <Select
                   value={form.client_id || "__none__"}
                   onValueChange={(id) => {
@@ -950,7 +953,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                     setForm((prev) => ({ ...prev, client_id: id }));
                   }}
                 >
-                  <SelectTrigger className="flex-1 min-w-[10rem]">
+                  <SelectTrigger className="w-full sm:flex-1 min-w-0">
+
                     <SelectValue placeholder="No client linked" />
                   </SelectTrigger>
                   <SelectContent>
@@ -962,34 +966,37 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                     ))}
                   </SelectContent>
                 </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSavedJobId((job as any)?.id || null);
-                    setNewClientForm({
-                      name: "",
-                      phone: form.phone_no || "",
-                      email: "",
-                      address: form.address || "",
-                      notes: "",
-                    });
-                    setShowNewClientPopup(true);
-                  }}
-                >
-                  + New
-                </Button>
-                {form.client_id && (
-                  <a
-                    href={`/clients?highlight=${form.client_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-primary hover:underline whitespace-nowrap"
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSavedJobId((job as any)?.id || null);
+                      setNewClientForm({
+                        name: "",
+                        phone: form.phone_no || "",
+                        email: "",
+                        address: form.address || "",
+                        notes: "",
+                      });
+                      setShowNewClientPopup(true);
+                    }}
                   >
-                    View
-                  </a>
-                )}
+                    + New
+                  </Button>
+                  {form.client_id && (
+                    <a
+                      href={`/clients?highlight=${form.client_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline whitespace-nowrap"
+                    >
+                      View
+                    </a>
+                  )}
+                </div>
+
               </div>
             </div>
           )}
