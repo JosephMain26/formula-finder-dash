@@ -295,7 +295,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     const isCard = form.payment?.toLowerCase() === "card" || form.payment?.toLowerCase() === "credit card";
 
     // Revenue = Price - all parts - Tip (- CC Fee if card)
-    const revenue = price - coParts - officeParts - parts - tip - (isCard ? ccFee : 0);
+    const revenue = (price ?? 0) - coParts - officeParts - parts - tip - (isCard ? ccFee : 0);
     const marketerPct = marketerPctRaw / 100;
     const techPct = techPctRaw / 100;
 
