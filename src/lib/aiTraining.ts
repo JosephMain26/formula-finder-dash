@@ -11,17 +11,29 @@ export type MarketerRule = {
 export type Correction = {
   id: string;
   at: string; // ISO timestamp
-  field: "company" | "tech_name" | "job_type" | "payment";
+  field: "company" | "tech_name" | "job_type" | "payment" | string;
   parsed: string;
   corrected: string;
   // Source snippet (first ~120 chars of original message) for context
   snippet?: string;
 };
 
+export type MatchOverride = {
+  id: string;
+  at: string;
+  phone?: string;
+  customerNameParsed?: string;
+  addressParsed?: string;
+  pickedJobId: string | null; // null = user chose "create new"
+  suggestedJobId: string | null;
+  snippet?: string;
+};
+
 export type AITrainingSetting = {
   marketerRules: MarketerRule[];
-  generalRules: string; // freeform notes the AI should always follow
-  corrections: Correction[]; // capped recent corrections (last 100)
+  generalRules: string;
+  corrections: Correction[]; // capped 100
+  matchOverrides: MatchOverride[]; // capped 50
 };
 
 const KEY = "ai_training";
@@ -30,7 +42,9 @@ export const emptyTraining: AITrainingSetting = {
   marketerRules: [],
   generalRules: "",
   corrections: [],
+  matchOverrides: [],
 };
+
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -47,8 +61,17 @@ export async function loadAITraining(): Promise<AITrainingSetting> {
     marketerRules: Array.isArray(v.marketerRules) ? v.marketerRules : [],
     generalRules: typeof v.generalRules === "string" ? v.generalRules : "",
     corrections: Array.isArray(v.corrections) ? v.corrections : [],
+    matchOverrides: Array.isArray(v.matchOverrides) ? v.matchOverrides : [],
   };
 }
+
+export async function recordMatchOverride(o: Omit<MatchOverride, "id" | "at">) {
+  const t = await loadAITraining();
+  const next: MatchOverride = { id: uid(), at: new Date().toISOString(), ...o };
+  const matchOverrides = [next, ...t.matchOverrides].slice(0, 50);
+  await saveAITraining({ ...t, matchOverrides });
+}
+
 
 export async function saveAITraining(t: AITrainingSetting) {
   await (supabase as any).from("app_settings").upsert({
