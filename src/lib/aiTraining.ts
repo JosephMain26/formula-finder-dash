@@ -72,7 +72,6 @@ export async function recordMatchOverride(o: Omit<MatchOverride, "id" | "at">) {
   await saveAITraining({ ...t, matchOverrides });
 }
 
-}
 
 export async function saveAITraining(t: AITrainingSetting) {
   await (supabase as any).from("app_settings").upsert({
