@@ -4,6 +4,7 @@
 
 export type CoreFieldKey =
   | "job_date" | "company_id" | "tech_percentage_panel" | "marketer_percentage_panel"
+  | "office_percentage_panel"
   | "technician_id" | "po_number" | "phone_no" | "address" | "comp_type"
   | "job_type" | "status" | "price" | "co_parts" | "office_parts" | "parts"
   | "payment" | "check_no" | "tip" | "cost" | "cc_fee" | "created_by"
