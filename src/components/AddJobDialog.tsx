@@ -565,7 +565,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 <div key="marketer_percentage_panel" className="md:col-span-2 rounded-lg border p-3 bg-muted/30 space-y-2">
                   <div className="flex items-center gap-3">
                     <Checkbox id="manual-marketer-pct" checked={useManualMarketerPercentage} onCheckedChange={(v) => setUseManualMarketerPercentage(!!v)} />
-                    <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer flex-1 min-w-0">Override marketer percentage for this job</label>
+                    <label htmlFor="manual-marketer-pct" className="text-sm cursor-pointer flex-1 min-w-0">Override marketer pay for this job</label>
                   </div>
                   {!useManualMarketerPercentage && (
                     <span className="block text-xs text-muted-foreground">
@@ -573,9 +573,50 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                     </span>
                   )}
                   {useManualMarketerPercentage && (
-                    <Input type="number" step="0.01" min="0" max="100" className="w-full md:w-32" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
+                    <div className="flex flex-col md:flex-row md:items-center gap-2">
+                      <div className="inline-flex rounded-md border bg-background p-0.5 text-xs shrink-0 self-start">
+                        <button type="button"
+                          className={`px-2.5 py-1 rounded ${form.marketer_pay_mode === "percent" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                          onClick={() => update("marketer_pay_mode", "percent" as any)}>% Percent</button>
+                        <button type="button"
+                          className={`px-2.5 py-1 rounded ${form.marketer_pay_mode === "fixed" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                          onClick={() => update("marketer_pay_mode", "fixed" as any)}>$ Fixed</button>
+                      </div>
+                      {form.marketer_pay_mode === "fixed" ? (
+                        <div className="relative flex-1 min-w-0">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                          <Input type="number" step="0.01" min="0" className="w-full pl-5" placeholder="Amount" value={form.marketer_fixed_amount} onChange={(e) => update("marketer_fixed_amount", e.target.value)} />
+                        </div>
+                      ) : (
+                        <Input type="number" step="0.01" min="0" max="100" className="flex-1 min-w-0" placeholder="Marketer %" value={form.marketer_percentage} onChange={(e) => update("marketer_percentage", e.target.value)} />
+                      )}
+                    </div>
                   )}
-
+                </div>
+              ) : null,
+              office_percentage_panel: () => canEditPercentage ? (
+                <div key="office_percentage_panel" className="md:col-span-2 rounded-lg border p-3 bg-muted/30 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm flex-1 min-w-0">Office pay</span>
+                  </div>
+                  <div className="flex flex-col md:flex-row md:items-center gap-2">
+                    <div className="inline-flex rounded-md border bg-background p-0.5 text-xs shrink-0 self-start">
+                      <button type="button"
+                        className={`px-2.5 py-1 rounded ${form.office_pay_mode === "percent" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                        onClick={() => update("office_pay_mode", "percent" as any)}>% Remainder</button>
+                      <button type="button"
+                        className={`px-2.5 py-1 rounded ${form.office_pay_mode === "fixed" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                        onClick={() => update("office_pay_mode", "fixed" as any)}>$ Fixed</button>
+                    </div>
+                    {form.office_pay_mode === "fixed" ? (
+                      <div className="relative flex-1 min-w-0">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                        <Input type="number" step="0.01" min="0" className="w-full pl-5" placeholder="Amount" value={form.office_fixed_amount} onChange={(e) => update("office_fixed_amount", e.target.value)} />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground flex-1 min-w-0">Office gets the remainder of revenue after marketer and tech.</span>
+                    )}
+                  </div>
                 </div>
               ) : null,
               technician_id: () => (
