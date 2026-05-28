@@ -301,19 +301,20 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
     const isFixedTech = form.tech_pay_mode === "fixed";
     const techFixed = isFixedTech && form.tech_fixed_amount ? parseFloat(form.tech_fixed_amount) : 0;
+    const isFixedMarketer = form.marketer_pay_mode === "fixed";
+    const marketerFixed = isFixedMarketer && form.marketer_fixed_amount ? parseFloat(form.marketer_fixed_amount) : 0;
+    const isFixedOffice = form.office_pay_mode === "fixed";
+    const officeFixed = isFixedOffice && form.office_fixed_amount ? parseFloat(form.office_fixed_amount) : 0;
 
-    const totalMarketer = Math.round((revenue * marketerPct + coParts) * 100) / 100;
+    const marketerBase = isFixedMarketer ? marketerFixed : revenue * marketerPct;
+    const techBase = isFixedTech ? techFixed : revenue * techPct;
+    const officeBase = isFixedOffice
+      ? officeFixed
+      : revenue * Math.max(0, 1 - marketerPct - techPct);
 
-    let totalTech: number;
-    let totalOffice: number;
-    if (isFixedTech) {
-      totalTech = Math.round((techFixed + parts + tip) * 100) / 100;
-      totalOffice = Math.round((revenue - revenue * marketerPct - techFixed + officeParts) * 100) / 100;
-    } else {
-      const officePct = Math.max(0, 1 - marketerPct - techPct);
-      totalTech = Math.round((revenue * techPct + parts + tip) * 100) / 100;
-      totalOffice = Math.round((revenue * officePct + officeParts) * 100) / 100;
-    }
+    const totalMarketer = Math.round((marketerBase + coParts) * 100) / 100;
+    const totalTech = Math.round((techBase + parts + tip) * 100) / 100;
+    const totalOffice = Math.round((officeBase + officeParts) * 100) / 100;
 
     const payload: any = {
       job_date: form.job_date || null,
