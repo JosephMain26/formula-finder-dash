@@ -549,6 +549,8 @@ export type Database = {
           job_type: string | null
           manual_percentage: number | null
           maps: string | null
+          marketer_fixed_amount: number
+          marketer_pay_mode: string
           notes: string | null
           notified_at: string | null
           notified_lead_minutes: number[]
@@ -556,7 +558,9 @@ export type Database = {
           notify_enabled: boolean
           notify_lead_minutes: number
           notify_lead_minutes_list: number[]
+          office_fixed_amount: number
           office_parts: number | null
+          office_pay_mode: string
           paid: boolean | null
           parts: number | null
           payment: string | null
@@ -604,6 +608,8 @@ export type Database = {
           job_type?: string | null
           manual_percentage?: number | null
           maps?: string | null
+          marketer_fixed_amount?: number
+          marketer_pay_mode?: string
           notes?: string | null
           notified_at?: string | null
           notified_lead_minutes?: number[]
@@ -611,7 +617,9 @@ export type Database = {
           notify_enabled?: boolean
           notify_lead_minutes?: number
           notify_lead_minutes_list?: number[]
+          office_fixed_amount?: number
           office_parts?: number | null
+          office_pay_mode?: string
           paid?: boolean | null
           parts?: number | null
           payment?: string | null
@@ -659,6 +667,8 @@ export type Database = {
           job_type?: string | null
           manual_percentage?: number | null
           maps?: string | null
+          marketer_fixed_amount?: number
+          marketer_pay_mode?: string
           notes?: string | null
           notified_at?: string | null
           notified_lead_minutes?: number[]
@@ -666,7 +676,9 @@ export type Database = {
           notify_enabled?: boolean
           notify_lead_minutes?: number
           notify_lead_minutes_list?: number[]
+          office_fixed_amount?: number
           office_parts?: number | null
+          office_pay_mode?: string
           paid?: boolean | null
           parts?: number | null
           payment?: string | null
