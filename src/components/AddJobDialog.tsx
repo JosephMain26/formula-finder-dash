@@ -285,7 +285,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       : (selectedCompany?.percentage ?? 50);
     const techPctRaw = form.manual_percentage ? parseFloat(form.manual_percentage) : 50;
 
-    const price = form.price ? parseFloat(form.price) : 0;
+    const price = form.price ? parseFloat(form.price) : null;
     const coParts = form.co_parts ? parseFloat(form.co_parts) : 0;
     const officeParts = form.office_parts ? parseFloat(form.office_parts) : 0;
     const parts = form.parts ? parseFloat(form.parts) : 0;
