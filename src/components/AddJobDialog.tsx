@@ -742,8 +742,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               ),
               price: () => (
                 <div key="price">
-                  <label className="text-xs font-medium text-muted-foreground">{labelOf("price")} *</label>
-                  <Input type="number" step="0.01" required value={form.price} onChange={(e) => {
+                  <label className="text-xs font-medium text-muted-foreground">{labelOf("price")}{reqOf("price") ? " *" : ""}</label>
+                  <Input type="number" step="0.01" required={reqOf("price")} value={form.price} onChange={(e) => {
                     const newPrice = e.target.value;
                     const pct = feePercentFor(form.payment);
                     setForm((prev) => ({
