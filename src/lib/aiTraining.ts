@@ -61,7 +61,17 @@ export async function loadAITraining(): Promise<AITrainingSetting> {
     marketerRules: Array.isArray(v.marketerRules) ? v.marketerRules : [],
     generalRules: typeof v.generalRules === "string" ? v.generalRules : "",
     corrections: Array.isArray(v.corrections) ? v.corrections : [],
+    matchOverrides: Array.isArray(v.matchOverrides) ? v.matchOverrides : [],
   };
+}
+
+export async function recordMatchOverride(o: Omit<MatchOverride, "id" | "at">) {
+  const t = await loadAITraining();
+  const next: MatchOverride = { id: uid(), at: new Date().toISOString(), ...o };
+  const matchOverrides = [next, ...t.matchOverrides].slice(0, 50);
+  await saveAITraining({ ...t, matchOverrides });
+}
+
 }
 
 export async function saveAITraining(t: AITrainingSetting) {
