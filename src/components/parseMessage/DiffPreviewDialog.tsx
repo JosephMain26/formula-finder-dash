@@ -187,7 +187,7 @@ export function DiffPreviewDialog({
         payload.completed_at_date = new Date().toISOString().slice(0, 10);
       }
 
-      const { error } = await supabase.from("jobs").update(payload).eq("id", job.id);
+      const { error } = await (supabase.from("jobs") as any).update(payload).eq("id", job.id);
       if (error) {
         toast.error("Failed to update job: " + error.message);
         return;
