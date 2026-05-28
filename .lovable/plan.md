@@ -1,24 +1,29 @@
 ## Goal
-Add a "Parts PO / Order PO" field to each installation entry inside the job form, save it on the job, and make it available as a message template variable when texting installers.
+Allow setting a fixed $ amount (instead of %) for marketer, technician, and office on the job form. Fixed amounts apply to revenue net of parts (price − all parts − tip − cc fee if card). Tech keeps its existing add-on of parts + tip on top of the fixed amount.
 
 ## Changes
 
 ### 1. Database migration
-- Add `parts_po text` (nullable) column to the `job_installations` table.
+Add to `jobs`:
+- `marketer_pay_mode text not null default 'percent'` (`percent` | `fixed`)
+- `marketer_fixed_amount numeric not null default 0`
+- `office_pay_mode text not null default 'percent'` (`percent` | `fixed`)
+- `office_fixed_amount numeric not null default 0`
 
-### 2. `src/lib/installCatalog.ts`
-- Add `parts_po: string | null` to the `JobInstallation` type.
-- Include `parts_po` in the `saveJobInstallations` upsert row mapping.
-- Update `renderInstallVariables` to:
-  - Return `install_parts_pos` (comma-separated POs across all installations).
-  - Append the PO value into each installation block under `install_items` so installers see it in the checklist output.
+(Tech already has `tech_pay_mode` / `tech_fixed_amount`.)
 
-### 3. `src/components/JobInstallationsEditor.tsx`
-- Add a free-text input labeled "Parts PO / Order PO" inside each installation card, placed near the existing Notes field.
-- Wire it to `update(idx, { parts_po: value })`.
+### 2. `src/components/AddJobDialog.tsx`
+- Extend form state with `marketer_pay_mode`, `marketer_fixed_amount`, `office_pay_mode`, `office_fixed_amount` and hydrate them when editing.
+- Add a percent/fixed toggle next to the existing marketer % input and add a new office row with the same toggle (mirroring the current tech UI in the Pay section).
+- Update `completeSubmit` calculation so each of the three roles is independent:
+  - `revenue = price − co_parts − office_parts − parts − tip − (card ? cc_fee : 0)`
+  - `totalMarketer = (marketer fixed ? marketerFixed : revenue * marketerPct) + coParts`
+  - `totalTech = (tech fixed ? techFixed : revenue * techPct) + parts + tip`  *(unchanged add-on)*
+  - `totalOffice = (office fixed ? officeFixed : revenue * officePct) + officeParts`, where `officePct = max(0, 1 − marketerPct − techPct)` is only used when office is on percent.
+- Persist the four new fields in the insert/update payload.
 
-### 4. `src/lib/messageTemplates.ts`
-- Add `{ key: "install_parts_pos", label: "Installation Parts POs" }` to `TEMPLATE_VARIABLES` so it appears in the template builder.
+### 3. `src/components/BulkEditBar.tsx` (optional, small)
+No change — bulk edit keeps current % field; fixed amounts are per-job only.
 
 ## Result
-When creating/editing a job, each installation gets its own Parts PO field. When composing a message to an installer via Send Message, `{{install_parts_pos}}` renders the PO numbers, and `{{install_items}}` includes them in the per-installation checklist.
+Each job lets you independently choose % or a fixed $ amount for marketer, tech, and office. Fixed amounts are applied to net revenue (parts already excluded), matching the request. Existing jobs continue to behave exactly as before because all new columns default to `percent` / `0`.
