@@ -162,6 +162,7 @@ function pdfFromSpec(jobs: Job[], spec: ReportSpec) {
 function ReportsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [companies, setCompanies] = useState<string[]>([]);
+  const [statuses, setStatuses] = useState<StatusDef[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Builder spec
