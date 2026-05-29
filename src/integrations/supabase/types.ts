@@ -950,6 +950,45 @@ export type Database = {
         }
         Relationships: []
       }
+      report_automations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          name: string
+          recipients: Json
+          schedule: Json
+          template: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          name: string
+          recipients?: Json
+          schedule?: Json
+          template?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          recipients?: Json
+          schedule?: Json
+          template?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       role_permissions: {
         Row: {
           created_at: string

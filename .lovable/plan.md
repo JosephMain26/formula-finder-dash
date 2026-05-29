@@ -1,54 +1,65 @@
-# Marketer-Collected Payments & Weekly Balance Reports
-
 ## Goal
-Let you mark on each job whether the **marketer** received the customer's payment instead of the office/tech. When they did, the balance flips: the marketer is holding the full job price, so they owe us everything except their own earned share. Then produce a clear weekly balance report per marketer — viewable on-screen and downloadable as a PDF to send them.
 
-## The balance math
-For each **completed** job (matching how money is already counted across the app):
+Add a dedicated **Reports** page (the quick "Export PDF" dialog stays as-is) that gives you:
+1. A drag-and-drop report builder with finer control than the dialog.
+2. Individual on/off switches for each total (Revenue, Tech, Office, Marketer) — so you can hide "Total Office" alone.
+3. An optional **Balance summary** section (per-marketer net balance, reusing the existing balances math).
+4. An **Automation Center** to schedule reports: set the cycle (when), pick recipients (manager/marketer/other roles, specific marketers, and/or custom emails), and choose what the report shows. Scheduled reports are emailed automatically using the existing email system.
 
-```text
-marketer earned share   = total_marketer   (already stored per job)
-full price collected     = price
-
-If office/tech collected (default):
-    we owe marketer = + total_marketer
-If marketer collected:
-    marketer owes us = total_marketer - price   (a negative number)
-```
-
-Weekly net for a marketer = sum of the per-job values above over the selected date range.
-- **Positive total** → office owes the marketer.
-- **Negative total** → marketer owes the office.
-
-Deposits are intentionally excluded (per your choice). Only completed jobs contribute, so scheduled/pending jobs show $0 — same rule the dashboard already uses.
+Keep it lean to minimize credits: reuse existing template storage, the existing email queue, and one shared report-building module for both the PDF (client) and the emailed HTML (server).
 
 ## What gets built
 
-### 1. Database (one small migration)
-- Add `marketer_collected boolean NOT NULL DEFAULT false` to `jobs`.
-- No new RLS needed (existing job policies/grants cover it).
+### 1. Shared report spec + builder (`src/lib/reportSpec.ts`)
+- A single `ReportSpec` type: ordered sections, enabled flags, selected columns, **per-total toggles** (`revenue/tech/office/marketer`), `includeBalance`, marketer filter, and a date-range mode (custom or relative like "last week"/"this month").
+- Pure helpers `computeReportData(jobs, spec)` → `{ totals, balanceSummaries, tableRows, rangeText }`, reusing `summarizeByMarketer` from `marketerBalance.ts` and the existing `fmt`/column logic. Used by both the page (PDF) and the server route (HTML email), so the math lives in one place.
 
-### 2. Mark the job (Add/Edit dialog only)
-- Add a checkbox **"Marketer received the payment"** in `AddJobDialog.tsx`, placed near the Payment Method field.
-- Wire it into `emptyForm`, the edit prefill, and the insert/update payload.
-- Register it in `coreFields.ts` so it can be relabeled/hidden via the Job Form Builder (kept consistent with other fields).
+### 2. Reports page (`src/routes/reports.tsx`)
+- Drag-and-drop section ordering (same `@dnd-kit` setup the dialog already uses). Sections: Title, Date Range, **Totals** (expands to 4 individual total checkboxes), **Balance summary**, Jobs Table.
+- Field/column picker, marketer filter, date-range presets — mirroring the dialog but on a full page.
+- "Generate PDF" using `jsPDF`/`autoTable` (no new deps).
+- Save/load named templates via the existing `templates` setting (the `ExportTemplate` type gets new optional fields: `totals`, `includeBalance`, `dateMode` — backward compatible, the dialog ignores them).
+- Add nav links to `/reports` in `src/routes/index.tsx` header and `src/components/MobileNav.tsx` (next to the existing Balances link).
 
-### 3. Balance logic (new shared helper)
-- New `src/lib/marketerBalance.ts` with a `jobMarketerBalance(job)` function implementing the math above and a `summarizeByMarketer(jobs, fromDate, toDate)` helper that groups completed jobs by marketer and returns net balance + supporting rows.
+### 3. Automation Center (on the same Reports page, second tab)
+- List + create/edit/delete report automations, each with:
+  - **Name** and enabled toggle.
+  - **What to show**: pick a saved report template.
+  - **When (cycle)**: Daily / Weekly (weekday) / Monthly (day-of-month) + time-of-day.
+  - **To who**: any combination of roles (admin/manager/marketer/etc.), specific marketers (from companies), and custom email addresses. Optional "send each marketer their own filtered report" toggle.
+- Stored in a new `report_automations` table.
 
-### 4. Weekly balance report (on-screen + PDF)
-- New route `src/routes/balances.tsx` — "Marketer Balances" page:
-  - Week range selector (reusing the existing date-range presets, defaulting to last Mon–Sun).
-  - A table of marketers with: jobs count, total earned, amount marketer collected, and **net balance due** (color-coded "we owe" vs "they owe").
-  - A **Download PDF** button per marketer that generates a clean statement (using the same `jsPDF`/`autoTable` approach as `ExportReportDialog.tsx`): header, week range, per-job line items (date, job type, price, marketer share, who collected), and the net balance line.
-- Add a nav link to this page (alongside Settings/DataBoard in the dashboard header + `MobileNav`).
+### 4. Backend — schedule + delivery
+- New table `report_automations` (migration). Admins/managers manage; cron reads it server-side.
+- New server route `src/routes/api/public/hooks/dispatch-report-automations.ts` (same `apikey`-header auth pattern as `dispatch-job-reminders`). It:
+  1. Loads enabled automations, determines which are **due** (based on cycle + `last_run_at`).
+  2. Pulls jobs, runs `computeReportData`, renders an inline **HTML** report (totals + optional balance + table) — no PDF attachment, to keep it light.
+  3. Resolves recipients: roles → `user_roles` joined to `profiles.email`; marketers → `companies.email`; plus custom emails.
+  4. Sends via the existing `enqueue_email` RPC (`transactional_emails` queue), logs to `notification_log`, and stamps `last_run_at`.
+- A `pg_cron` job (inserted via the insert tool, not a migration, since it carries the project URL + anon key) calls this route every 15 minutes.
 
-## Technical notes
-- PDF generation stays client-side with the already-installed `jspdf` + `jspdf-autotable` (no new dependencies, no server calls — minimal cost).
-- `marketerBalance.ts` reuses the existing `isCompleted` convention so totals match the rest of the app.
-- No changes to how `total_marketer`/`total_office`/`total_tech` are computed — only a new flag and a new read-only report consume them.
+## Data model
+
+```text
+report_automations
+  id            uuid pk
+  name          text
+  enabled       boolean default true
+  template      jsonb     -- a ReportSpec snapshot (what to show)
+  schedule      jsonb     -- { freq: 'daily'|'weekly'|'monthly', weekday, monthDay, time }
+  recipients    jsonb     -- { roles: [], marketers: [], emails: [], perMarketer: bool }
+  last_run_at   timestamptz
+  created_by    uuid
+  created_at / updated_at timestamptz
+```
+RLS: select/insert/update/delete for admins & managers; full access to service_role (cron). GRANTs for authenticated + service_role.
 
 ## Out of scope
-- Deposits in the balance (excluded per your choice).
-- Bulk-marking from the table (per-job toggle only).
-- Emailing the PDF automatically (you download and send it yourself).
+- PDF attachments in automated emails (inline HTML only — cheaper and Worker-safe). The on-page builder still produces downloadable PDFs.
+- Editing the existing Export PDF dialog (left untouched).
+- New totals beyond the four you selected.
+
+## Technical notes
+- No new npm packages: reuses `jspdf`, `jspdf-autotable`, `@dnd-kit`, and the existing email queue.
+- Cron auth uses the existing `apikey` header + `SUPABASE_ANON_KEY` check (same as the reminders hook) — no new secret.
+- One migration (create table) + one data insert (cron schedule). The migration runs first and needs your approval before I write code.
