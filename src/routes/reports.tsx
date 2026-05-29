@@ -427,12 +427,22 @@ function ReportsPage() {
 }
 
 // ============ Automation Center ============
+const DATE_MODE_LABELS: Record<string, string> = Object.fromEntries(
+  DATE_MODES.map((m) => [m.key, m.label])
+);
+
 function freqLabel(a: ReportAutomation): string {
   const s = a.schedule || ({} as any);
-  if (s.freq === "daily") return `Daily at ${s.time || "08:00"}`;
-  if (s.freq === "monthly") return `Monthly on day ${s.monthDay ?? 1} at ${s.time || "08:00"}`;
-  return `Weekly on ${WEEKDAYS[s.weekday ?? 1]} at ${s.time || "08:00"}`;
+  const tz = s.tz ? ` ${s.tz}` : " UTC";
+  const t = `${s.time || "08:00"}${tz}`;
+  const range = DATE_MODE_LABELS[a.template?.dateMode] || "All dates";
+  let when: string;
+  if (s.freq === "daily") when = `Daily at ${t}`;
+  else if (s.freq === "monthly") when = `Monthly on day ${s.monthDay ?? 1} at ${t}`;
+  else when = `Weekly on ${WEEKDAYS[s.weekday ?? 1]} at ${t}`;
+  return `${when} · ${range}${a.recipients?.perMarketer ? " · per marketer" : ""}`;
 }
+
 
 function AutomationCenter({
   automations, setAutomations, reportTemplates, companies,
