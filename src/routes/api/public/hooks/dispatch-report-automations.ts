@@ -17,6 +17,7 @@ type Schedule = {
   weekday?: number; // 0=Sun..6=Sat
   monthDay?: number; // 1..31
   time?: string; // "HH:MM"
+  tz?: string; // IANA timezone; falls back to UTC
 };
 
 type Recipients = {
