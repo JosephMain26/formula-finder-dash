@@ -611,6 +611,10 @@ function AutomationForm({
   function toggleMarketer(name: string) {
     setRec({ marketers: rec.marketers.includes(name) ? rec.marketers.filter((m) => m !== name) : [...rec.marketers, name] });
   }
+  function toggleStatus(name: string) {
+    const cur = tpl.statuses || [];
+    setTpl({ statuses: cur.includes(name) ? cur.filter((x) => x !== name) : [...cur, name] });
+  }
   function applyTemplate(id: string) {
     const t = reportTemplates.find((x) => x.id === id);
     if (t?.spec) setEditing({ ...editing, template: { ...DEFAULT_REPORT_SPEC, ...(t.spec as ReportSpec) } });
