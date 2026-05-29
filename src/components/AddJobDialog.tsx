@@ -41,6 +41,7 @@ const emptyForm = {
   job_date: "", job_time: "", job_time_end: "", company_id: "", technician_id: "", tech_name: "",
   po_number: "", phone_no: "", address: "", comp_type: "", job_type: "",
   status: "Pending", price: "", co_parts: "", office_parts: "", parts: "", payment: "",
+  marketer_collected: false,
   check_no: "", tip: "", cost: "", notes: "", cc_fee: "",
   manual_percentage: "", marketer_percentage: "", created_by: "", maps: "", paid: false,
   installer_id: "", installer_name: "",
@@ -150,6 +151,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           office_parts: (job as any).office_parts?.toString() || "",
           parts: job.parts?.toString() || "",
           payment: job.payment || "",
+          marketer_collected: !!(job as any).marketer_collected,
           check_no: job.check_no || "",
           tip: job.tip?.toString() || "",
           cost: job.cost?.toString() || "",
@@ -334,6 +336,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       office_parts: officeParts,
       parts,
       payment: form.payment || null,
+      marketer_collected: !!form.marketer_collected,
       check_no: form.check_no || null,
       tip,
       cost,
@@ -802,6 +805,12 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              ),
+              marketer_collected: () => (
+                <div key="marketer_collected" className="md:col-span-2 flex items-center gap-3">
+                  <Checkbox id="marketer-collected-check" checked={form.marketer_collected} onCheckedChange={(v) => update("marketer_collected", !!v)} />
+                  <label htmlFor="marketer-collected-check" className="text-sm cursor-pointer">{labelOf("marketer_collected")}</label>
                 </div>
               ),
               check_no: () => form.payment.toLowerCase().includes("check") ? (

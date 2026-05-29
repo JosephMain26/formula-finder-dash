@@ -7,7 +7,7 @@ export type CoreFieldKey =
   | "office_percentage_panel"
   | "technician_id" | "po_number" | "phone_no" | "address" | "comp_type"
   | "job_type" | "status" | "price" | "co_parts" | "office_parts" | "parts"
-  | "payment" | "check_no" | "tip" | "cost" | "cc_fee" | "created_by"
+  | "payment" | "marketer_collected" | "check_no" | "tip" | "cost" | "cc_fee" | "created_by"
   | "installer" | "notes" | "paid";
 
 export type CoreFieldDef = {
@@ -41,6 +41,7 @@ export const CORE_FIELDS_DEFAULT: CoreFieldDef[] = [
   { key: "office_parts",              label: "Office Parts ($) — to Office",      defaultVisibleInForm: true,  defaultVisibleInRemote: true,  defaultVisibleInParseReview: true,  defaultOrder: 13, remoteSupported: true,  parseReviewSupported: true },
   { key: "parts",                     label: "Parts ($) — to Tech",               defaultVisibleInForm: true,  defaultVisibleInRemote: true,  defaultVisibleInParseReview: true,  defaultOrder: 14, remoteSupported: true,  parseReviewSupported: true },
   { key: "payment",                   label: "Payment Method",                    defaultVisibleInForm: true,  defaultVisibleInRemote: true,  defaultVisibleInParseReview: true,  defaultOrder: 15, remoteSupported: true,  parseReviewSupported: true },
+  { key: "marketer_collected",        label: "Marketer received the payment",     defaultVisibleInForm: true,  defaultVisibleInRemote: false, defaultVisibleInParseReview: false, defaultOrder: 15.5, remoteSupported: false, parseReviewSupported: false },
   { key: "check_no",                  label: "Check #",                           defaultVisibleInForm: true,  defaultVisibleInRemote: false, defaultVisibleInParseReview: false, defaultOrder: 16, remoteSupported: true,  parseReviewSupported: true },
   { key: "tip",                       label: "Tip ($)",                           defaultVisibleInForm: true,  defaultVisibleInRemote: false, defaultVisibleInParseReview: false, defaultOrder: 17, remoteSupported: true,  parseReviewSupported: true },
   { key: "cost",                      label: "Cost ($)",                          defaultVisibleInForm: true,  defaultVisibleInRemote: false, defaultVisibleInParseReview: false, defaultOrder: 18, remoteSupported: true,  parseReviewSupported: true },
