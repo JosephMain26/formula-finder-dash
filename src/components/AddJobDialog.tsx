@@ -807,6 +807,12 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                   </Select>
                 </div>
               ),
+              marketer_collected: () => (
+                <div key="marketer_collected" className="md:col-span-2 flex items-center gap-3">
+                  <Checkbox id="marketer-collected-check" checked={form.marketer_collected} onCheckedChange={(v) => update("marketer_collected", !!v)} />
+                  <label htmlFor="marketer-collected-check" className="text-sm cursor-pointer">{labelOf("marketer_collected")}</label>
+                </div>
+              ),
               check_no: () => form.payment.toLowerCase().includes("check") ? (
                 <div key="check_no">
                   <label className="text-xs font-medium text-muted-foreground">{labelOf("check_no")}</label>
