@@ -475,8 +475,13 @@ function AutomationCenter({
   async function save() {
     if (!editing) return;
     if (!editing.name.trim()) { toast.error("Name is required"); return; }
+    const tz = editing.schedule.tz || (() => {
+      try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }
+      catch { return "UTC"; }
+    })();
+    const toSave = { ...editing, schedule: { ...editing.schedule, tz } };
     try {
-      const saved = await upsertAutomation(editing);
+      const saved = await upsertAutomation(toSave);
       const exists = automations.some((x) => x.id === saved.id);
       setAutomations(exists ? automations.map((x) => (x.id === saved.id ? saved : x)) : [saved, ...automations]);
       setOpen(false);
