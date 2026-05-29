@@ -16,6 +16,8 @@ export type AutomationRecipients = {
   marketers: string[];
   emails: string[];
   perMarketer: boolean;
+  /** When perMarketer is on, also email each marketer their own report at their contact email. */
+  sendToMarketer?: boolean;
 };
 
 export type ReportAutomation = {

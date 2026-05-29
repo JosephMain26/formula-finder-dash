@@ -1,34 +1,53 @@
 ## Goal
 
-Make the **Automation Center** on the Reports page do three things you asked for:
+On the **Reports → Automation Center**, today the toggle **"Send each marketer their own individual report"** does two things at once:
 
-1. **Set the report's time range inside the automation itself** — e.g. "the past week" — without having to bake it into a saved template.
-2. **Schedule in your local timezone** — when you pick "Sunday 11:00 PM", that means 11 PM where you are, not UTC.
-3. **One automation, every marketer individually** — this already exists (the "Send each marketer their own individual report" toggle); we'll make it clearer and make sure it respects the chosen time range.
+1. Splits the report into one-per-marketer, **and**
+2. Forces it to be emailed to each marketer's own contact, hiding every other recipient option.
 
-No database migration is needed (schedule data is stored as flexible JSON), so this stays cheap on credits.
+You want to separate these. Specifically: you want to **build a report per marketer** but then decide whether to actually send it to the marketer's contact — or instead just export those per-marketer reports and send them to people **you** pick (a manager, yourself, custom emails, etc.).
 
 ## What changes
 
-### 1. Automation form — add a Date range selector (`src/routes/reports.tsx`)
-In `AutomationForm`, add a "Report time range" dropdown bound to `editing.template.dateMode` (All dates, Today, This week, **Last week**, This month, Last month, This year, Custom). For "Custom" show the two date pickers writing to `template.dateFrom`/`dateTo`. This reuses the existing `DATE_MODES` list and `ReportSpec` fields, so the relative range (e.g. "last-week") is recomputed each time the report runs.
+### 1. Split the one toggle into two clear controls (`src/routes/reports.tsx`)
 
-Example: pick **Weekly → Sunday → 11:00 PM** + range **Last week** + toggle **Send each marketer their own report** → every Sunday night each marketer gets their own report for the previous week.
+Rename the existing toggle to describe only the splitting behavior:
 
-### 2. Local timezone scheduling
-- **Schedule type** (`src/lib/reportAutomations.ts`): add `tz?: string` to `AutomationSchedule`.
-- **Form default**: new automations capture the browser timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone`. The time field label changes from "Time (UTC)" to "Time" with a small note showing the detected timezone (e.g. "Times are in America/New_York").
-- **Dispatch hook** (`src/routes/api/public/hooks/dispatch-report-automations.ts`): rewrite `isDue` so the current hour / weekday / day-of-month are evaluated in the automation's `tz` (using `Intl.DateTimeFormat(..., { timeZone })`), falling back to UTC if absent. The relative date range ("last week", etc.) is also resolved against the automation's local calendar date so "past week" is correct for the recipient's timezone.
+```text
+[x] Create a separate report for each marketer
+```
 
-### 3. Per-marketer (already works — minor polish)
-The `perMarketer` toggle and the dispatch logic that sends each marketer their own filtered report already exist. We'll keep it and confirm it combines with the new time-range setting (the per-marketer path already preserves `dateMode`). No structural change.
+When that is ON, show a second sub-option:
+
+```text
+    [ ] Also send each marketer their own report (to their contact email)
+```
+
+And — this is the key fix — keep the existing recipient choices (**By role**, **Specific marketers**, **Custom emails**) visible **even when per-marketer is on**. So you can build per-marketer reports and route them to whoever you choose, with the "send to the marketer" switch fully optional.
+
+Behavior summary:
+- Per-marketer OFF → unchanged (one combined report to chosen recipients).
+- Per-marketer ON + "send to marketer" OFF → a report is generated for each marketer and sent only to the recipients you picked (roles / emails / specific marketers). The marketers themselves get nothing.
+- Per-marketer ON + "send to marketer" ON → each marketer also gets their own report at their contact email (today's behavior), in addition to your chosen recipients.
+
+### 2. New recipients field (`src/lib/reportAutomations.ts`)
+
+Add `sendToMarketer?: boolean` to `AutomationRecipients` (defaults to `false`). No database migration needed — recipients are stored as flexible JSON, so this stays cheap on credits.
+
+### 3. Dispatch logic (`src/routes/api/public/hooks/dispatch-report-automations.ts`)
+
+Rework the per-marketer branch so it honors the two new settings:
+- For each marketer, build that marketer's filtered report (as today).
+- If `sendToMarketer` is true → send it to that marketer's own contact email (current behavior).
+- Always also send each per-marketer report to your chosen recipients (role emails + custom emails + any specifically selected marketer emails). The chosen recipient gets one email per marketer, with the marketer's name in the subject so they're easy to tell apart.
+- Dedupe so a recipient never receives the same marketer's report twice.
 
 ## Out of scope
-- No new table / migration (reuses the existing `report_automations.schedule` JSON).
-- The cron job already runs every 15 minutes; no scheduling infra change.
-- The on-page PDF builder and saved templates are untouched.
+- No new table / migration.
+- No change to the cron schedule, the on-page PDF builder, or saved templates.
+- The report **content** per marketer is unchanged — only who receives it.
 
 ## Technical notes
-- The dispatch runs in a Worker; `Intl.DateTimeFormat` with `timeZone` is supported there, so timezone math needs no extra dependency.
-- `isDue` keeps its "don't re-run the same occurrence" guard via `last_run_at`, now compared against the tz-local occurrence time.
 - Files touched: `src/routes/reports.tsx`, `src/lib/reportAutomations.ts`, `src/routes/api/public/hooks/dispatch-report-automations.ts`.
+- `blank()` and `save()` in `reports.tsx` will default `sendToMarketer` to `false`.
+- Existing automations keep working: missing `sendToMarketer` is treated as `false`, so today's per-marketer automations would start routing to chosen recipients; to preserve their old "send to marketer" behavior you'd flip the new sub-toggle on (or we can default it to mirror the old behavior for existing rows — say the word if you'd prefer that).
