@@ -186,7 +186,6 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
             } else {
               const data = computeReportData(jobs, spec, localToday);
               const html = renderReportHtml(data, spec);
-              const html = renderReportHtml(data, spec);
               const recipients = new Set<string>();
               for (const e of rec.emails || []) if (e) recipients.add(e);
               for (const e of await resolveRoleEmails(admin, rec.roles || [])) recipients.add(e);
