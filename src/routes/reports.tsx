@@ -446,12 +446,16 @@ function AutomationCenter({
   const [open, setOpen] = useState(false);
 
   function blank(): ReportAutomation {
+    const tz = (() => {
+      try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }
+      catch { return "UTC"; }
+    })();
     return {
       id: "",
       name: "",
       enabled: true,
       template: { ...DEFAULT_REPORT_SPEC },
-      schedule: { freq: "weekly", weekday: 1, monthDay: 1, time: "08:00" },
+      schedule: { freq: "weekly", weekday: 1, monthDay: 1, time: "08:00", tz },
       recipients: { roles: [], marketers: [], emails: [], perMarketer: false },
       last_run_at: null,
     };
