@@ -170,19 +170,36 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
           try {
             const localToday = tzToday(now, a.schedule?.tz || "UTC");
             if (rec.perMarketer) {
-              // Each marketer gets a report filtered to just their jobs.
+              // Build one report per marketer. Whether the marketer themselves
+              // receives it is controlled by `sendToMarketer`; the chosen
+              // recipients (roles + custom emails + specifically selected
+              // marketers) always receive a copy of every marketer's report.
               const names = (spec.marketers && spec.marketers.length
                 ? spec.marketers
                 : [...new Set(jobs.map((j) => (j.company_1 || j.company || "").trim()).filter(Boolean))]) as string[];
-              const emailMap = await resolveMarketerEmails(admin, names);
+              const marketerEmailMap = await resolveMarketerEmails(admin, names);
+
+              // Recipients that get a copy of each per-marketer report.
+              const chosen = new Set<string>();
+              for (const e of rec.emails || []) if (e) chosen.add(e);
+              for (const e of await resolveRoleEmails(admin, rec.roles || [])) chosen.add(e);
+              const selectedMarketerEmails = await resolveMarketerEmails(admin, rec.marketers || []);
+              for (const e of selectedMarketerEmails.values()) chosen.add(e);
+
               for (const name of names) {
-                const to = emailMap.get(name);
-                if (!to) continue;
                 const perSpec: ReportSpec = { ...spec, marketers: [name] };
                 const data = computeReportData(jobs, perSpec, localToday);
                 const html = renderReportHtml(data, perSpec);
-                await sendEmail(admin, to, `${spec.title || "Report"} — ${name}`, html, a.id);
-                sent++;
+
+                const recipients = new Set<string>(chosen);
+                if (rec.sendToMarketer) {
+                  const own = marketerEmailMap.get(name);
+                  if (own) recipients.add(own);
+                }
+                for (const to of recipients) {
+                  await sendEmail(admin, to, `${spec.title || "Report"} — ${name}`, html, a.id);
+                  sent++;
+                }
               }
             } else {
               const data = computeReportData(jobs, spec, localToday);
