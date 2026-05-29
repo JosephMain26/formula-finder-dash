@@ -466,7 +466,7 @@ function AutomationCenter({
       enabled: true,
       template: { ...DEFAULT_REPORT_SPEC },
       schedule: { freq: "weekly", weekday: 1, monthDay: 1, time: "08:00", tz },
-      recipients: { roles: [], marketers: [], emails: [], perMarketer: false },
+      recipients: { roles: [], marketers: [], emails: [], perMarketer: false, sendToMarketer: false },
       last_run_at: null,
     };
   }
