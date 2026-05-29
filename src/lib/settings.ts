@@ -105,8 +105,9 @@ export type ReportTemplate = {
 export type TemplatesSetting = {
   dashboardViews: DashboardViewTemplate[];
   exportTemplates: ExportTemplate[];
-  reportTemplates: ReportTemplate[];
+  reportTemplates?: ReportTemplate[];
 };
+
 
 const TEMPLATES_KEY = "templates";
 
