@@ -31,6 +31,7 @@ import {
   type ReportSpec, type ReportSectionId, type ReportColumnKey, type TotalKey, type ReportDateMode,
 } from "@/lib/reportSpec";
 import { loadTemplates, saveTemplates, makeId, type TemplatesSetting, type ReportTemplate } from "@/lib/settings";
+import { loadStatuses, type StatusDef } from "@/lib/jobSchema";
 import {
   loadAutomations, upsertAutomation, deleteAutomation,
   type ReportAutomation, type AutomationFreq,
@@ -161,6 +162,7 @@ function pdfFromSpec(jobs: Job[], spec: ReportSpec) {
 function ReportsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [companies, setCompanies] = useState<string[]>([]);
+  const [statuses, setStatuses] = useState<StatusDef[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Builder spec
@@ -187,6 +189,7 @@ function ReportsPage() {
       setLoading(false);
     })();
     loadTemplates().then(setTemplates);
+    loadStatuses().then(setStatuses).catch(() => {});
     loadAutomations().then(setAutomations).catch(() => {});
   }, []);
 
@@ -219,6 +222,13 @@ function ReportsPage() {
     setSpec((s) => {
       const has = s.marketers.includes(name);
       return { ...s, marketers: has ? s.marketers.filter((m) => m !== name) : [...s.marketers, name] };
+    });
+  }
+  function toggleStatus(name: string) {
+    setSpec((s) => {
+      const cur = s.statuses || [];
+      const has = cur.includes(name);
+      return { ...s, statuses: has ? cur.filter((x) => x !== name) : [...cur, name] };
     });
   }
 
@@ -404,6 +414,30 @@ function ReportsPage() {
               </CardContent>
             </Card>
 
+            <Card>
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Job statuses ({(spec.statuses?.length ?? 0) === 0 ? "All" : spec.statuses!.length})</CardTitle>
+                <div className="flex gap-2 text-xs">
+                  <button className="text-primary hover:underline" onClick={() => patch({ statuses: statuses.map((s) => s.name) })}>All</button>
+                  <button className="text-primary hover:underline" onClick={() => patch({ statuses: [] })}>None (= all)</button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {statuses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No statuses found.</p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {statuses.map((s) => (
+                      <label key={s.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox checked={(spec.statuses || []).includes(s.name)} onCheckedChange={() => toggleStatus(s.name)} />
+                        <span className="truncate">{s.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <div className="flex justify-end">
               <Button onClick={() => pdfFromSpec(jobs, spec)} disabled={loading}>
                 <FileDown className="h-4 w-4 mr-2" /> Generate PDF
@@ -418,6 +452,7 @@ function ReportsPage() {
               setAutomations={setAutomations}
               reportTemplates={reportTemplates}
               companies={companies}
+              statuses={statuses}
             />
           </TabsContent>
         </Tabs>
@@ -445,12 +480,13 @@ function freqLabel(a: ReportAutomation): string {
 
 
 function AutomationCenter({
-  automations, setAutomations, reportTemplates, companies,
+  automations, setAutomations, reportTemplates, companies, statuses,
 }: {
   automations: ReportAutomation[];
   setAutomations: (a: ReportAutomation[]) => void;
   reportTemplates: ReportTemplate[];
   companies: string[];
+  statuses: StatusDef[];
 }) {
   const [editing, setEditing] = useState<ReportAutomation | null>(null);
   const [open, setOpen] = useState(false);
@@ -535,7 +571,7 @@ function AutomationCenter({
         <DialogContent className="max-w-lg max-h-[88vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing?.id ? "Edit automation" : "New automation"}</DialogTitle></DialogHeader>
           {editing && (
-            <AutomationForm editing={editing} setEditing={setEditing} reportTemplates={reportTemplates} companies={companies} />
+            <AutomationForm editing={editing} setEditing={setEditing} reportTemplates={reportTemplates} companies={companies} statuses={statuses} />
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -548,12 +584,13 @@ function AutomationCenter({
 }
 
 function AutomationForm({
-  editing, setEditing, reportTemplates, companies,
+  editing, setEditing, reportTemplates, companies, statuses,
 }: {
   editing: ReportAutomation;
   setEditing: (a: ReportAutomation) => void;
   reportTemplates: ReportTemplate[];
   companies: string[];
+  statuses: StatusDef[];
 }) {
   const sched = editing.schedule;
   const rec = editing.recipients;
@@ -573,6 +610,10 @@ function AutomationForm({
   }
   function toggleMarketer(name: string) {
     setRec({ marketers: rec.marketers.includes(name) ? rec.marketers.filter((m) => m !== name) : [...rec.marketers, name] });
+  }
+  function toggleStatus(name: string) {
+    const cur = tpl.statuses || [];
+    setTpl({ statuses: cur.includes(name) ? cur.filter((x) => x !== name) : [...cur, name] });
   }
   function applyTemplate(id: string) {
     const t = reportTemplates.find((x) => x.id === id);
@@ -624,6 +665,26 @@ function AutomationForm({
             The window is recalculated each run (e.g. "Last week" always covers the previous Mon–Sun).
           </p>
         )}
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Job statuses ({(tpl.statuses?.length ?? 0) === 0 ? "All" : tpl.statuses!.length})</Label>
+          <div className="flex gap-2 text-xs">
+            <button type="button" className="text-primary hover:underline" onClick={() => setTpl({ statuses: statuses.map((s) => s.name) })}>All</button>
+            <button type="button" className="text-primary hover:underline" onClick={() => setTpl({ statuses: [] })}>None</button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5 mt-1 max-h-32 overflow-y-auto border rounded p-2">
+          {statuses.length === 0 && <span className="text-xs text-muted-foreground col-span-2">No statuses.</span>}
+          {statuses.map((s) => (
+            <label key={s.id} className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={(tpl.statuses || []).includes(s.name)} onCheckedChange={() => toggleStatus(s.name)} />
+              <span className="truncate">{s.name}</span>
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">No selection = include all statuses.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
