@@ -414,6 +414,30 @@ function ReportsPage() {
               </CardContent>
             </Card>
 
+            <Card>
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Job statuses ({(spec.statuses?.length ?? 0) === 0 ? "All" : spec.statuses!.length})</CardTitle>
+                <div className="flex gap-2 text-xs">
+                  <button className="text-primary hover:underline" onClick={() => patch({ statuses: statuses.map((s) => s.name) })}>All</button>
+                  <button className="text-primary hover:underline" onClick={() => patch({ statuses: [] })}>None (= all)</button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {statuses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No statuses found.</p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {statuses.map((s) => (
+                      <label key={s.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox checked={(spec.statuses || []).includes(s.name)} onCheckedChange={() => toggleStatus(s.name)} />
+                        <span className="truncate">{s.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <div className="flex justify-end">
               <Button onClick={() => pdfFromSpec(jobs, spec)} disabled={loading}>
                 <FileDown className="h-4 w-4 mr-2" /> Generate PDF
@@ -428,6 +452,7 @@ function ReportsPage() {
               setAutomations={setAutomations}
               reportTemplates={reportTemplates}
               companies={companies}
+              statuses={statuses}
             />
           </TabsContent>
         </Tabs>
