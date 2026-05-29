@@ -37,18 +37,63 @@ type Automation = {
   last_run_at: string | null;
 };
 
-// Returns true when the automation's scheduled occurrence has passed and it has
-// not already run for that occurrence. Times are evaluated in the server (UTC).
+const WEEKDAY_MAP: Record<string, number> = {
+  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+};
+
+// Wall-clock parts of `now` as seen in the given IANA timezone.
+function tzParts(now: Date, tz: string) {
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz, hour12: false,
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", weekday: "short",
+    }).formatToParts(now);
+  } catch {
+    parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC", hour12: false,
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", weekday: "short",
+    }).formatToParts(now);
+  }
+  const p: Record<string, string> = {};
+  for (const part of parts) p[part.type] = part.value;
+  const hour = p.hour === "24" ? 0 : parseInt(p.hour, 10);
+  return {
+    year: parseInt(p.year, 10),
+    month: parseInt(p.month, 10),
+    day: parseInt(p.day, 10),
+    hour,
+    minute: parseInt(p.minute, 10),
+    weekday: WEEKDAY_MAP[p.weekday] ?? 0,
+    dateKey: `${p.year}-${p.month}-${p.day}`,
+  };
+}
+
+// A Date whose UTC calendar equals the timezone's local calendar date (noon),
+// so resolveSpecRange (which runs in the UTC Worker) computes the right window.
+function tzToday(now: Date, tz: string): Date {
+  const p = tzParts(now, tz);
+  return new Date(Date.UTC(p.year, p.month - 1, p.day, 12, 0, 0));
+}
+
+// Returns true when the automation's scheduled occurrence has passed for the
+// current local day and it has not already run that local day. Evaluated in the
+// automation's own timezone (falls back to UTC).
 function isDue(a: Automation, now: Date): boolean {
   const sched = a.schedule || {};
   const freq = sched.freq || "weekly";
+  const tz = sched.tz || "UTC";
   const [hh, mm] = (sched.time || "08:00").split(":").map((n) => parseInt(n, 10));
-  const occ = new Date(now);
-  occ.setHours(hh || 0, mm || 0, 0, 0);
-  if (now < occ) return false;
-  if (freq === "weekly" && now.getDay() !== (sched.weekday ?? 1)) return false;
-  if (freq === "monthly" && now.getDate() !== (sched.monthDay ?? 1)) return false;
-  if (a.last_run_at && new Date(a.last_run_at) >= occ) return false;
+  const p = tzParts(now, tz);
+  if (p.hour * 60 + p.minute < (hh || 0) * 60 + (mm || 0)) return false;
+  if (freq === "weekly" && p.weekday !== (sched.weekday ?? 1)) return false;
+  if (freq === "monthly" && p.day !== (sched.monthDay ?? 1)) return false;
+  if (a.last_run_at) {
+    const lp = tzParts(new Date(a.last_run_at), tz);
+    if (lp.dateKey === p.dateKey) return false; // already ran today (local)
+  }
   return true;
 }
 
