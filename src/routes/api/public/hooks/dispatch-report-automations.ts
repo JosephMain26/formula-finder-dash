@@ -167,6 +167,7 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
           const rec = a.recipients || {};
 
           try {
+            const localToday = tzToday(now, a.schedule?.tz || "UTC");
             if (rec.perMarketer) {
               // Each marketer gets a report filtered to just their jobs.
               const names = (spec.marketers && spec.marketers.length
@@ -177,13 +178,14 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
                 const to = emailMap.get(name);
                 if (!to) continue;
                 const perSpec: ReportSpec = { ...spec, marketers: [name] };
-                const data = computeReportData(jobs, perSpec, now);
+                const data = computeReportData(jobs, perSpec, localToday);
                 const html = renderReportHtml(data, perSpec);
                 await sendEmail(admin, to, `${spec.title || "Report"} — ${name}`, html, a.id);
                 sent++;
               }
             } else {
-              const data = computeReportData(jobs, spec, now);
+              const data = computeReportData(jobs, spec, localToday);
+              const html = renderReportHtml(data, spec);
               const html = renderReportHtml(data, spec);
               const recipients = new Set<string>();
               for (const e of rec.emails || []) if (e) recipients.add(e);
