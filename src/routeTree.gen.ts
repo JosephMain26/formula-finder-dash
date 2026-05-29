@@ -13,6 +13,7 @@ import { Route as UploadRouteImport } from './routes/upload'
 import { Route as TechniciansRouteImport } from './routes/technicians'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScheduleRouteImport } from './routes/schedule'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as InstallersRouteImport } from './routes/installers'
 import { Route as DataboardRouteImport } from './routes/databoard'
 import { Route as CompaniesRouteImport } from './routes/companies'
@@ -42,6 +43,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const ScheduleRoute = ScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InstallersRoute = InstallersRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
+  '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
+  '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
+  '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/databoard'
     | '/installers'
+    | '/reports'
     | '/schedule'
     | '/settings'
     | '/technicians'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/databoard'
     | '/installers'
+    | '/reports'
     | '/schedule'
     | '/settings'
     | '/technicians'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/databoard'
     | '/installers'
+    | '/reports'
     | '/schedule'
     | '/settings'
     | '/technicians'
@@ -206,6 +218,7 @@ export interface RootRouteChildren {
   CompaniesRoute: typeof CompaniesRoute
   DataboardRoute: typeof DataboardRoute
   InstallersRoute: typeof InstallersRoute
+  ReportsRoute: typeof ReportsRoute
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
   TechniciansRoute: typeof TechniciansRoute
@@ -243,6 +256,13 @@ declare module '@tanstack/react-router' {
       path: '/schedule'
       fullPath: '/schedule'
       preLoaderRoute: typeof ScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/installers': {
@@ -326,6 +346,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompaniesRoute: CompaniesRoute,
   DataboardRoute: DataboardRoute,
   InstallersRoute: InstallersRoute,
+  ReportsRoute: ReportsRoute,
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
   TechniciansRoute: TechniciansRoute,
