@@ -13,7 +13,7 @@ import { ParseMessageDialog } from "@/components/ParseMessageDialog";
 import { DateRangePresets, type DateRange } from "@/components/DateRangePresets";
 import { AnalyticsPanel } from "@/components/AnalyticsPanel";
 import { Button } from "@/components/ui/button";
-import { Settings, LogOut, BarChart3, CalendarClock, Scale } from "lucide-react";
+import { Settings, LogOut, BarChart3, CalendarClock, Scale, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Tables } from "@/integrations/supabase/types";
