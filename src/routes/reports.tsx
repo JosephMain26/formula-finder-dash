@@ -542,9 +542,17 @@ function AutomationForm({
 }) {
   const sched = editing.schedule;
   const rec = editing.recipients;
+  const tpl = editing.template;
+
+  const localTz = (() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }
+    catch { return "UTC"; }
+  })();
+  const tz = sched.tz || localTz;
 
   function setSched(p: Partial<typeof sched>) { setEditing({ ...editing, schedule: { ...sched, ...p } }); }
   function setRec(p: Partial<typeof rec>) { setEditing({ ...editing, recipients: { ...rec, ...p } }); }
+  function setTpl(p: Partial<ReportSpec>) { setEditing({ ...editing, template: { ...tpl, ...p } }); }
   function toggleRole(k: string) {
     setRec({ roles: rec.roles.includes(k) ? rec.roles.filter((r) => r !== k) : [...rec.roles, k] });
   }
