@@ -205,6 +205,7 @@ export function computeReportData(jobs: Job[], spec: ReportSpec, today = new Dat
   const from = range?.from || "";
   const to = range?.to || "";
   const marketerSet = new Set(spec.marketers);
+  const statusSet = new Set((spec.statuses || []).map((s) => s.toLowerCase()));
 
   const filtered = jobs.filter((j) => {
     if (from && (!j.job_date || j.job_date < from)) return false;
@@ -212,6 +213,9 @@ export function computeReportData(jobs: Job[], spec: ReportSpec, today = new Dat
     if (marketerSet.size > 0) {
       const co = j.company_1 || j.company || "";
       if (!marketerSet.has(co)) return false;
+    }
+    if (statusSet.size > 0) {
+      if (!statusSet.has((j.status || "").toLowerCase())) return false;
     }
     return true;
   });
