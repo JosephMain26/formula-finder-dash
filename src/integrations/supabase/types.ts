@@ -549,6 +549,7 @@ export type Database = {
           job_type: string | null
           manual_percentage: number | null
           maps: string | null
+          marketer_collected: boolean
           marketer_fixed_amount: number
           marketer_pay_mode: string
           notes: string | null
@@ -608,6 +609,7 @@ export type Database = {
           job_type?: string | null
           manual_percentage?: number | null
           maps?: string | null
+          marketer_collected?: boolean
           marketer_fixed_amount?: number
           marketer_pay_mode?: string
           notes?: string | null
@@ -667,6 +669,7 @@ export type Database = {
           job_type?: string | null
           manual_percentage?: number | null
           maps?: string | null
+          marketer_collected?: boolean
           marketer_fixed_amount?: number
           marketer_pay_mode?: string
           notes?: string | null

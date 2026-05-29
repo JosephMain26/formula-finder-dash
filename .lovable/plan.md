@@ -1,78 +1,54 @@
+# Marketer-Collected Payments & Weekly Balance Reports
+
 ## Goal
+Let you mark on each job whether the **marketer** received the customer's payment instead of the office/tech. When they did, the balance flips: the marketer is holding the full job price, so they owe us everything except their own earned share. Then produce a clear weekly balance report per marketer — viewable on-screen and downloadable as a PDF to send them.
 
-When pasting a "closing" text in **Parse Message**, instead of always opening a blank new-job form, detect whether the message belongs to an existing job from the last 30 days and let you update it (with a confirmation/diff preview). Learn from your match overrides and field edits.
+## The balance math
+For each **completed** job (matching how money is already counted across the app):
 
-Designed to use the **least credits**: only **one AI call** (the existing `parse-job-message` edge function). All matching is done locally against rows already in the app.
+```text
+marketer earned share   = total_marketer   (already stored per job)
+full price collected     = price
 
-## Flow
-
+If office/tech collected (default):
+    we owe marketer = + total_marketer
+If marketer collected:
+    marketer owes us = total_marketer - price   (a negative number)
 ```
-Paste text → [1 AI parse call] → local match search
-        ├─ matches found → Match Picker (best match + alternates)
-        │       ├─ Confirm match → Diff Preview (per-field old → new, editable, checkboxes)
-        │       │       └─ Apply → UPDATE job + log corrections + (if overridden) log match override
-        │       └─ "None of these / create new" → existing new-job dialog
-        └─ no matches → "No match found. Create new job?" confirmation → new-job dialog
-```
 
-## Match logic (local, no AI)
+Weekly net for a marketer = sum of the per-job values above over the selected date range.
+- **Positive total** → office owes the marketer.
+- **Negative total** → marketer owes the office.
 
-Candidates: jobs from **last 30 days, any status**.
+Deposits are intentionally excluded (per your choice). Only completed jobs contribute, so scheduled/pending jobs show $0 — same rule the dashboard already uses.
 
-Score each candidate; pick the highest score ≥ threshold:
-- **Phone match** (normalized digits, last 10): +100
-- **Customer name** (notes/extra_fields contains parsed name, case-insensitive): +40
-- **Address** (fuzzy: normalize, token overlap ≥ 60% OR street number + first street token match): +60
+## What gets built
 
-Threshold: score ≥ 60 → show as match. Show top 3 candidates so you can pick the right one.
+### 1. Database (one small migration)
+- Add `marketer_collected boolean NOT NULL DEFAULT false` to `jobs`.
+- No new RLS needed (existing job policies/grants cover it).
 
-## UI changes (`src/components/ParseMessageDialog.tsx`)
+### 2. Mark the job (Add/Edit dialog only)
+- Add a checkbox **"Marketer received the payment"** in `AddJobDialog.tsx`, placed near the Payment Method field.
+- Wire it into `emptyForm`, the edit prefill, and the insert/update payload.
+- Register it in `coreFields.ts` so it can be relabeled/hidden via the Job Form Builder (kept consistent with other fields).
 
-After parse succeeds:
-1. Fetch candidate jobs once (single query: `jobs.select(...).gte(created_at, now-30d)` limited to fields needed for matching + display).
-2. Score locally.
-3. New **MatchReviewDialog** (added to same file or new file):
-   - Top section: parsed summary (customer, phone, address, price, parts, payment, tech).
-   - Match list: up to 3 candidates with score badge, job date, customer, address, tech, current status. Radio-select.
-   - "Create new job instead" option.
-   - On "Continue":
-     - If match selected → **DiffPreviewDialog**.
-     - Else → existing `JobDialog` prefill flow (unchanged).
-4. **DiffPreviewDialog**:
-   - Table: Field | Current value | New value | ✅ apply checkbox (default on for changed fields with non-empty new value) | inline editable "New value" input.
-   - Fields shown: `phone_no`, `address`, `job_type`, `price`, `parts`, `co_parts`, `office_parts`, `tech_name`, `payment`, `notes` (append, not overwrite), `company`, `status` (auto-suggest "Completed" if price present), and parsed installation parts → just appended to notes for now (no install rows touched).
-   - Buttons: **Apply Updates**, **Edit in full form** (opens `JobDialog` for that job with merged values), **Cancel**.
+### 3. Balance logic (new shared helper)
+- New `src/lib/marketerBalance.ts` with a `jobMarketerBalance(job)` function implementing the math above and a `summarizeByMarketer(jobs, fromDate, toDate)` helper that groups completed jobs by marketer and returns net balance + supporting rows.
 
-## Update mechanics
+### 4. Weekly balance report (on-screen + PDF)
+- New route `src/routes/balances.tsx` — "Marketer Balances" page:
+  - Week range selector (reusing the existing date-range presets, defaulting to last Mon–Sun).
+  - A table of marketers with: jobs count, total earned, amount marketer collected, and **net balance due** (color-coded "we owe" vs "they owe").
+  - A **Download PDF** button per marketer that generates a clean statement (using the same `jsPDF`/`autoTable` approach as `ExportReportDialog.tsx`): header, week range, per-job line items (date, job type, price, marketer share, who collected), and the net balance line.
+- Add a nav link to this page (alongside Settings/DataBoard in the dashboard header + `MobileNav`).
 
-- On Apply: `supabase.from("jobs").update({ ...checkedFields }).eq("id", jobId)`.
-- Notes: append `\n--- Closing ${todayISO} ---\n${parsed.notes}` rather than overwrite.
-- Recompute `total_marketer`, `total_tech`, `total_office`, `cc_fee` using the same formula as `AddJobDialog.completeSubmit` (re-fetch the job, merge, compute). Extract that math into a small helper `src/lib/jobCalc.ts` so both dialogs use it.
-
-## Learning (extends `src/lib/aiTraining.ts`)
-
-Add two new arrays in `app_settings` under key `ai_training`:
-
-1. **Field corrections** (already exists): when user edits a "New value" before Apply, record `{ field, parsed, corrected, snippet }` into `corrections` (capped 100). The next parse passes top 25 to the LLM (already wired).
-2. **Match overrides** (new): when the user picks a different candidate than the top-scored one, or picks "Create new" despite a suggested match, append to a new `matchOverrides: Array<{ at, phone, customerNameParsed, addressParsed, pickedJobId|null, suggestedJobId, snippet }>`. Capped at 50.
-   - Used **client-side only** to bump scores on future candidates whose phone/address/customer matches a prior override pattern (no extra AI cost).
-
-Add helpers: `loadMatchOverrides()`, `recordMatchOverride()`, `applyMatchOverridesToScores()`.
-
-## Files
-
-- **edit** `src/components/ParseMessageDialog.tsx` — orchestrate parse → match → diff.
-- **new** `src/components/parseMessage/MatchReviewDialog.tsx` — candidate picker.
-- **new** `src/components/parseMessage/DiffPreviewDialog.tsx` — per-field diff/edit/apply.
-- **new** `src/lib/jobMatching.ts` — normalize phone/address, scoring, candidate fetch.
-- **new** `src/lib/jobCalc.ts` — extracted totals/cc_fee calculation (shared with `AddJobDialog`).
-- **edit** `src/components/AddJobDialog.tsx` — use `jobCalc.ts` (no behavior change).
-- **edit** `src/lib/aiTraining.ts` — add `matchOverrides` + helpers; bump shape; keep backward compat.
-
-No DB migration needed. No new AI/edge-function calls beyond the existing one.
+## Technical notes
+- PDF generation stays client-side with the already-installed `jspdf` + `jspdf-autotable` (no new dependencies, no server calls — minimal cost).
+- `marketerBalance.ts` reuses the existing `isCompleted` convention so totals match the rest of the app.
+- No changes to how `total_marketer`/`total_office`/`total_tech` are computed — only a new flag and a new read-only report consume them.
 
 ## Out of scope
-
-- Updating `job_installations` rows from parsed text (kept in notes for now; can be a follow-up).
-- Bulk apply across multiple jobs.
-- Server-side fuzzy matching (kept client-side for simplicity + zero credits).
+- Deposits in the balance (excluded per your choice).
+- Bulk-marking from the table (per-job toggle only).
+- Emailing the PDF automatically (you download and send it yourself).
