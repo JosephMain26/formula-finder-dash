@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Home, Settings, Building2, Wrench, LogOut, BarChart3, Users, CalendarClock, Scale } from "lucide-react";
+import { Menu, Home, Settings, Building2, Wrench, LogOut, BarChart3, Users, CalendarClock, Scale, FileText } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 interface MobileNavProps {
@@ -48,6 +48,9 @@ export function MobileNav({ className }: MobileNavProps) {
             <>
               <Link to="/balances" onClick={close} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm">
                 <Scale className="h-4 w-4" /> Balances
+              </Link>
+              <Link to="/reports" onClick={close} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm">
+                <FileText className="h-4 w-4" /> Reports
               </Link>
               <Link to="/settings" onClick={close} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm">
                 <Settings className="h-4 w-4" /> Settings
