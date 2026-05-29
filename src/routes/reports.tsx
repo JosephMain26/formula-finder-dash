@@ -480,12 +480,13 @@ function freqLabel(a: ReportAutomation): string {
 
 
 function AutomationCenter({
-  automations, setAutomations, reportTemplates, companies,
+  automations, setAutomations, reportTemplates, companies, statuses,
 }: {
   automations: ReportAutomation[];
   setAutomations: (a: ReportAutomation[]) => void;
   reportTemplates: ReportTemplate[];
   companies: string[];
+  statuses: StatusDef[];
 }) {
   const [editing, setEditing] = useState<ReportAutomation | null>(null);
   const [open, setOpen] = useState(false);
