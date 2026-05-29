@@ -667,6 +667,26 @@ function AutomationForm({
         )}
       </div>
 
+      <div>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Job statuses ({(tpl.statuses?.length ?? 0) === 0 ? "All" : tpl.statuses!.length})</Label>
+          <div className="flex gap-2 text-xs">
+            <button type="button" className="text-primary hover:underline" onClick={() => setTpl({ statuses: statuses.map((s) => s.name) })}>All</button>
+            <button type="button" className="text-primary hover:underline" onClick={() => setTpl({ statuses: [] })}>None</button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-1.5 mt-1 max-h-32 overflow-y-auto border rounded p-2">
+          {statuses.length === 0 && <span className="text-xs text-muted-foreground col-span-2">No statuses.</span>}
+          {statuses.map((s) => (
+            <label key={s.id} className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={(tpl.statuses || []).includes(s.name)} onCheckedChange={() => toggleStatus(s.name)} />
+              <span className="truncate">{s.name}</span>
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">No selection = include all statuses.</p>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Frequency</Label>
