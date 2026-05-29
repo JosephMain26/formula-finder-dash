@@ -13,6 +13,7 @@ import { Route as UploadRouteImport } from './routes/upload'
 import { Route as TechniciansRouteImport } from './routes/technicians'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScheduleRouteImport } from './routes/schedule'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as InstallersRouteImport } from './routes/installers'
 import { Route as DataboardRouteImport } from './routes/databoard'
 import { Route as CompaniesRouteImport } from './routes/companies'
@@ -21,6 +22,7 @@ import { Route as BalancesRouteImport } from './routes/balances'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as ApiPublicHooksDispatchReportAutomationsRouteImport } from './routes/api/public/hooks/dispatch-report-automations'
 import { Route as ApiPublicHooksDispatchJobRemindersRouteImport } from './routes/api/public/hooks/dispatch-job-reminders'
 
 const UploadRoute = UploadRouteImport.update({
@@ -41,6 +43,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const ScheduleRoute = ScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InstallersRoute = InstallersRouteImport.update({
@@ -84,6 +91,12 @@ const LovableEmailQueueProcessRoute =
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksDispatchReportAutomationsRoute =
+  ApiPublicHooksDispatchReportAutomationsRouteImport.update({
+    id: '/api/public/hooks/dispatch-report-automations',
+    path: '/api/public/hooks/dispatch-report-automations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksDispatchJobRemindersRoute =
   ApiPublicHooksDispatchJobRemindersRouteImport.update({
     id: '/api/public/hooks/dispatch-job-reminders',
@@ -99,11 +112,13 @@ export interface FileRoutesByFullPath {
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
+  '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/upload': typeof UploadRoute
   '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
+  '/api/public/hooks/dispatch-report-automations': typeof ApiPublicHooksDispatchReportAutomationsRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
@@ -114,11 +129,13 @@ export interface FileRoutesByTo {
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
+  '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/upload': typeof UploadRoute
   '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
+  '/api/public/hooks/dispatch-report-automations': typeof ApiPublicHooksDispatchReportAutomationsRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
@@ -130,11 +147,13 @@ export interface FileRoutesById {
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
   '/installers': typeof InstallersRoute
+  '/reports': typeof ReportsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/upload': typeof UploadRoute
   '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
+  '/api/public/hooks/dispatch-report-automations': typeof ApiPublicHooksDispatchReportAutomationsRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
@@ -147,11 +166,13 @@ export interface FileRouteTypes {
     | '/companies'
     | '/databoard'
     | '/installers'
+    | '/reports'
     | '/schedule'
     | '/settings'
     | '/technicians'
     | '/upload'
     | '/api/public/hooks/dispatch-job-reminders'
+    | '/api/public/hooks/dispatch-report-automations'
     | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -162,11 +183,13 @@ export interface FileRouteTypes {
     | '/companies'
     | '/databoard'
     | '/installers'
+    | '/reports'
     | '/schedule'
     | '/settings'
     | '/technicians'
     | '/upload'
     | '/api/public/hooks/dispatch-job-reminders'
+    | '/api/public/hooks/dispatch-report-automations'
     | '/lovable/email/queue/process'
   id:
     | '__root__'
@@ -177,11 +200,13 @@ export interface FileRouteTypes {
     | '/companies'
     | '/databoard'
     | '/installers'
+    | '/reports'
     | '/schedule'
     | '/settings'
     | '/technicians'
     | '/upload'
     | '/api/public/hooks/dispatch-job-reminders'
+    | '/api/public/hooks/dispatch-report-automations'
     | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
@@ -193,11 +218,13 @@ export interface RootRouteChildren {
   CompaniesRoute: typeof CompaniesRoute
   DataboardRoute: typeof DataboardRoute
   InstallersRoute: typeof InstallersRoute
+  ReportsRoute: typeof ReportsRoute
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
   TechniciansRoute: typeof TechniciansRoute
   UploadRoute: typeof UploadRoute
   ApiPublicHooksDispatchJobRemindersRoute: typeof ApiPublicHooksDispatchJobRemindersRoute
+  ApiPublicHooksDispatchReportAutomationsRoute: typeof ApiPublicHooksDispatchReportAutomationsRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
@@ -229,6 +256,13 @@ declare module '@tanstack/react-router' {
       path: '/schedule'
       fullPath: '/schedule'
       preLoaderRoute: typeof ScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/installers': {
@@ -287,6 +321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/dispatch-report-automations': {
+      id: '/api/public/hooks/dispatch-report-automations'
+      path: '/api/public/hooks/dispatch-report-automations'
+      fullPath: '/api/public/hooks/dispatch-report-automations'
+      preLoaderRoute: typeof ApiPublicHooksDispatchReportAutomationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/dispatch-job-reminders': {
       id: '/api/public/hooks/dispatch-job-reminders'
       path: '/api/public/hooks/dispatch-job-reminders'
@@ -305,12 +346,15 @@ const rootRouteChildren: RootRouteChildren = {
   CompaniesRoute: CompaniesRoute,
   DataboardRoute: DataboardRoute,
   InstallersRoute: InstallersRoute,
+  ReportsRoute: ReportsRoute,
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
   TechniciansRoute: TechniciansRoute,
   UploadRoute: UploadRoute,
   ApiPublicHooksDispatchJobRemindersRoute:
     ApiPublicHooksDispatchJobRemindersRoute,
+  ApiPublicHooksDispatchReportAutomationsRoute:
+    ApiPublicHooksDispatchReportAutomationsRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
