@@ -189,6 +189,7 @@ function ReportsPage() {
       setLoading(false);
     })();
     loadTemplates().then(setTemplates);
+    loadStatuses().then(setStatuses).catch(() => {});
     loadAutomations().then(setAutomations).catch(() => {});
   }, []);
 
