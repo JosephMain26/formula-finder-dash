@@ -31,6 +31,7 @@ import {
   type ReportSpec, type ReportSectionId, type ReportColumnKey, type TotalKey, type ReportDateMode,
 } from "@/lib/reportSpec";
 import { loadTemplates, saveTemplates, makeId, type TemplatesSetting, type ReportTemplate } from "@/lib/settings";
+import { loadStatuses, type StatusDef } from "@/lib/jobSchema";
 import {
   loadAutomations, upsertAutomation, deleteAutomation,
   type ReportAutomation, type AutomationFreq,
