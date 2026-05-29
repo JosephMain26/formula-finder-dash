@@ -585,6 +585,32 @@ function AutomationForm({
         </p>
       </div>
 
+      <div>
+        <Label className="text-xs">Report time range</Label>
+        <Select value={tpl.dateMode} onValueChange={(v) => setTpl({ dateMode: v as ReportDateMode })}>
+          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {DATE_MODES.map((m) => <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {tpl.dateMode === "custom" ? (
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            <div>
+              <Label className="text-xs">From</Label>
+              <DatePickerField value={tpl.dateFrom || ""} onChange={(v) => setTpl({ dateFrom: v })} />
+            </div>
+            <div>
+              <Label className="text-xs">To</Label>
+              <DatePickerField value={tpl.dateTo || ""} onChange={(v) => setTpl({ dateTo: v })} />
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground mt-1">
+            The window is recalculated each run (e.g. "Last week" always covers the previous Mon–Sun).
+          </p>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Frequency</Label>
@@ -598,8 +624,8 @@ function AutomationForm({
           </Select>
         </div>
         <div>
-          <Label className="text-xs">Time (UTC)</Label>
-          <Input type="time" value={sched.time} onChange={(e) => setSched({ time: e.target.value })} className="h-9" />
+          <Label className="text-xs">Time</Label>
+          <Input type="time" value={sched.time} onChange={(e) => setSched({ time: e.target.value, tz })} className="h-9" />
         </div>
         {sched.freq === "weekly" && (
           <div className="col-span-2">
@@ -616,7 +642,9 @@ function AutomationForm({
             <Input type="number" min={1} max={31} value={sched.monthDay ?? 1} onChange={(e) => setSched({ monthDay: Math.min(31, Math.max(1, Number(e.target.value))) })} className="h-9" />
           </div>
         )}
+        <p className="col-span-2 text-xs text-muted-foreground">Times are in your timezone ({tz}).</p>
       </div>
+
 
       <div className="space-y-2 border-t pt-3">
         <Label className="text-sm font-medium">Recipients</Label>
