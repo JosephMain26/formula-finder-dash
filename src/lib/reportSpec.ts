@@ -93,6 +93,7 @@ export const DEFAULT_REPORT_SPEC: ReportSpec = {
   columns: ["job_date", "company", "tech_name", "job_type", "status", "price", "total_tech", "paid"],
   totals: { revenue: true, tech: true, office: true, marketer: true },
   marketers: [],
+  statuses: [],
   dateMode: "all",
 };
 
