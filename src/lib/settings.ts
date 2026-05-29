@@ -95,9 +95,17 @@ export type ExportTemplate = {
   sections: { id: string; enabled: boolean }[]; // ordered
 };
 
+// Report Builder page templates store a full ReportSpec snapshot.
+export type ReportTemplate = {
+  id: string;
+  name: string;
+  spec: unknown; // ReportSpec from "@/lib/reportSpec"
+};
+
 export type TemplatesSetting = {
   dashboardViews: DashboardViewTemplate[];
   exportTemplates: ExportTemplate[];
+  reportTemplates: ReportTemplate[];
 };
 
 const TEMPLATES_KEY = "templates";
@@ -112,8 +120,10 @@ export async function loadTemplates(): Promise<TemplatesSetting> {
   return {
     dashboardViews: Array.isArray(v.dashboardViews) ? v.dashboardViews : [],
     exportTemplates: Array.isArray(v.exportTemplates) ? v.exportTemplates : [],
+    reportTemplates: Array.isArray(v.reportTemplates) ? v.reportTemplates : [],
   };
 }
+
 
 export async function saveTemplates(t: TemplatesSetting) {
   await (supabase as any).from("app_settings").upsert({
