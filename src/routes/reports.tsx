@@ -427,12 +427,22 @@ function ReportsPage() {
 }
 
 // ============ Automation Center ============
+const DATE_MODE_LABELS: Record<string, string> = Object.fromEntries(
+  DATE_MODES.map((m) => [m.key, m.label])
+);
+
 function freqLabel(a: ReportAutomation): string {
   const s = a.schedule || ({} as any);
-  if (s.freq === "daily") return `Daily at ${s.time || "08:00"}`;
-  if (s.freq === "monthly") return `Monthly on day ${s.monthDay ?? 1} at ${s.time || "08:00"}`;
-  return `Weekly on ${WEEKDAYS[s.weekday ?? 1]} at ${s.time || "08:00"}`;
+  const tz = s.tz ? ` ${s.tz}` : " UTC";
+  const t = `${s.time || "08:00"}${tz}`;
+  const range = DATE_MODE_LABELS[a.template?.dateMode] || "All dates";
+  let when: string;
+  if (s.freq === "daily") when = `Daily at ${t}`;
+  else if (s.freq === "monthly") when = `Monthly on day ${s.monthDay ?? 1} at ${t}`;
+  else when = `Weekly on ${WEEKDAYS[s.weekday ?? 1]} at ${t}`;
+  return `${when} · ${range}${a.recipients?.perMarketer ? " · per marketer" : ""}`;
 }
+
 
 function AutomationCenter({
   automations, setAutomations, reportTemplates, companies,
@@ -446,12 +456,16 @@ function AutomationCenter({
   const [open, setOpen] = useState(false);
 
   function blank(): ReportAutomation {
+    const tz = (() => {
+      try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }
+      catch { return "UTC"; }
+    })();
     return {
       id: "",
       name: "",
       enabled: true,
       template: { ...DEFAULT_REPORT_SPEC },
-      schedule: { freq: "weekly", weekday: 1, monthDay: 1, time: "08:00" },
+      schedule: { freq: "weekly", weekday: 1, monthDay: 1, time: "08:00", tz },
       recipients: { roles: [], marketers: [], emails: [], perMarketer: false },
       last_run_at: null,
     };
@@ -471,8 +485,13 @@ function AutomationCenter({
   async function save() {
     if (!editing) return;
     if (!editing.name.trim()) { toast.error("Name is required"); return; }
+    const tz = editing.schedule.tz || (() => {
+      try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }
+      catch { return "UTC"; }
+    })();
+    const toSave = { ...editing, schedule: { ...editing.schedule, tz } };
     try {
-      const saved = await upsertAutomation(editing);
+      const saved = await upsertAutomation(toSave);
       const exists = automations.some((x) => x.id === saved.id);
       setAutomations(exists ? automations.map((x) => (x.id === saved.id ? saved : x)) : [saved, ...automations]);
       setOpen(false);
@@ -538,9 +557,17 @@ function AutomationForm({
 }) {
   const sched = editing.schedule;
   const rec = editing.recipients;
+  const tpl = editing.template;
+
+  const localTz = (() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }
+    catch { return "UTC"; }
+  })();
+  const tz = sched.tz || localTz;
 
   function setSched(p: Partial<typeof sched>) { setEditing({ ...editing, schedule: { ...sched, ...p } }); }
   function setRec(p: Partial<typeof rec>) { setEditing({ ...editing, recipients: { ...rec, ...p } }); }
+  function setTpl(p: Partial<ReportSpec>) { setEditing({ ...editing, template: { ...tpl, ...p } }); }
   function toggleRole(k: string) {
     setRec({ roles: rec.roles.includes(k) ? rec.roles.filter((r) => r !== k) : [...rec.roles, k] });
   }
@@ -573,6 +600,32 @@ function AutomationForm({
         </p>
       </div>
 
+      <div>
+        <Label className="text-xs">Report time range</Label>
+        <Select value={tpl.dateMode} onValueChange={(v) => setTpl({ dateMode: v as ReportDateMode })}>
+          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {DATE_MODES.map((m) => <SelectItem key={m.key} value={m.key}>{m.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {tpl.dateMode === "custom" ? (
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            <div>
+              <Label className="text-xs">From</Label>
+              <DatePickerField value={tpl.dateFrom || ""} onChange={(v) => setTpl({ dateFrom: v })} />
+            </div>
+            <div>
+              <Label className="text-xs">To</Label>
+              <DatePickerField value={tpl.dateTo || ""} onChange={(v) => setTpl({ dateTo: v })} />
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground mt-1">
+            The window is recalculated each run (e.g. "Last week" always covers the previous Mon–Sun).
+          </p>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Frequency</Label>
@@ -586,8 +639,8 @@ function AutomationForm({
           </Select>
         </div>
         <div>
-          <Label className="text-xs">Time (UTC)</Label>
-          <Input type="time" value={sched.time} onChange={(e) => setSched({ time: e.target.value })} className="h-9" />
+          <Label className="text-xs">Time</Label>
+          <Input type="time" value={sched.time} onChange={(e) => setSched({ time: e.target.value, tz })} className="h-9" />
         </div>
         {sched.freq === "weekly" && (
           <div className="col-span-2">
@@ -604,7 +657,9 @@ function AutomationForm({
             <Input type="number" min={1} max={31} value={sched.monthDay ?? 1} onChange={(e) => setSched({ monthDay: Math.min(31, Math.max(1, Number(e.target.value))) })} className="h-9" />
           </div>
         )}
+        <p className="col-span-2 text-xs text-muted-foreground">Times are in your timezone ({tz}).</p>
       </div>
+
 
       <div className="space-y-2 border-t pt-3">
         <Label className="text-sm font-medium">Recipients</Label>

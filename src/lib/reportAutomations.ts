@@ -8,6 +8,7 @@ export type AutomationSchedule = {
   weekday?: number; // 0=Sun..6=Sat (weekly)
   monthDay?: number; // 1..31 (monthly)
   time: string; // "HH:MM"
+  tz?: string; // IANA timezone, e.g. "America/New_York"; falls back to UTC
 };
 
 export type AutomationRecipients = {
