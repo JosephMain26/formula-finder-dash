@@ -677,36 +677,52 @@ function AutomationForm({
 
         <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
           <Switch checked={rec.perMarketer} onCheckedChange={(v) => setRec({ perMarketer: v })} />
-          Send each marketer their own individual report
+          Create a separate report for each marketer
         </label>
 
-        {!rec.perMarketer && (
-          <div>
-            <span className="text-xs text-muted-foreground">Specific marketers (uses company email)</span>
-            <div className="grid grid-cols-2 gap-1.5 mt-1 max-h-32 overflow-y-auto border rounded p-2">
-              {companies.length === 0 && <span className="text-xs text-muted-foreground col-span-2">No marketers.</span>}
-              {companies.map((name) => (
-                <label key={name} className="flex items-center gap-2 text-sm cursor-pointer">
-                  <Checkbox checked={rec.marketers.includes(name)} onCheckedChange={() => toggleMarketer(name)} />
-                  <span className="truncate">{name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+        {rec.perMarketer && (
+          <label className="flex items-center gap-2 text-sm cursor-pointer pl-1 pt-1">
+            <Switch checked={!!rec.sendToMarketer} onCheckedChange={(v) => setRec({ sendToMarketer: v })} />
+            <span>
+              Also send each marketer their own report
+              <span className="block text-xs text-muted-foreground">to their contact email</span>
+            </span>
+          </label>
         )}
 
-        {!rec.perMarketer && (
-          <div>
-            <span className="text-xs text-muted-foreground">Custom emails (one per line)</span>
-            <Textarea
-              value={rec.emails.join("\n")}
-              onChange={(e) => setRec({ emails: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
-              rows={3}
-              placeholder="boss@example.com"
-              className="mt-1"
-            />
-          </div>
+        {rec.perMarketer && (
+          <p className="text-xs text-muted-foreground">
+            {rec.sendToMarketer
+              ? "Each marketer gets their own report, plus the recipients below receive a copy of every marketer's report."
+              : "A report is built per marketer and sent only to the recipients you choose below (marketers get nothing)."}
+          </p>
         )}
+
+        <div>
+          <span className="text-xs text-muted-foreground">
+            {rec.perMarketer ? "Specific marketers to also receive their report (uses company email)" : "Specific marketers (uses company email)"}
+          </span>
+          <div className="grid grid-cols-2 gap-1.5 mt-1 max-h-32 overflow-y-auto border rounded p-2">
+            {companies.length === 0 && <span className="text-xs text-muted-foreground col-span-2">No marketers.</span>}
+            {companies.map((name) => (
+              <label key={name} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={rec.marketers.includes(name)} onCheckedChange={() => toggleMarketer(name)} />
+                <span className="truncate">{name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <span className="text-xs text-muted-foreground">Custom emails (one per line)</span>
+          <Textarea
+            value={rec.emails.join("\n")}
+            onChange={(e) => setRec({ emails: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+            rows={3}
+            placeholder="boss@example.com"
+            className="mt-1"
+          />
+        </div>
       </div>
 
       <label className="flex items-center gap-2 text-sm cursor-pointer border-t pt-3">
