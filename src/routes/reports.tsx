@@ -224,6 +224,13 @@ function ReportsPage() {
       return { ...s, marketers: has ? s.marketers.filter((m) => m !== name) : [...s.marketers, name] };
     });
   }
+  function toggleStatus(name: string) {
+    setSpec((s) => {
+      const cur = s.statuses || [];
+      const has = cur.includes(name);
+      return { ...s, statuses: has ? cur.filter((x) => x !== name) : [...cur, name] };
+    });
+  }
 
   // ---- Templates ----
   function applyTemplate(id: string) {
