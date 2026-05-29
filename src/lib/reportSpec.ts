@@ -75,6 +75,7 @@ export interface ReportSpec {
   columns: ReportColumnKey[];
   totals: Record<TotalKey, boolean>;
   marketers: string[]; // empty = all
+  statuses?: string[]; // empty/undefined = all statuses
   dateMode: ReportDateMode;
   dateFrom?: string; // used when dateMode === "custom"
   dateTo?: string;
