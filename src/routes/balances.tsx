@@ -65,6 +65,11 @@ function BalancesPage() {
   const [dateFrom, setDateFrom] = useState(lastWeek.from);
   const [dateTo, setDateTo] = useState(lastWeek.to);
 
+  const [paidFilter, setPaidFilter] = useState("all"); // all | paid | unpaid
+  const [collectedFilter, setCollectedFilter] = useState("all"); // all | marketer | office
+  const [marketerFilter, setMarketerFilter] = useState("all");
+  const [jobTypeFilter, setJobTypeFilter] = useState("all");
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -77,9 +82,24 @@ function BalancesPage() {
     })();
   }, []);
 
+  const uniques = useMemo(() => ({
+    marketers: [...new Set(jobs.map((j) => (j.company_1 || j.company || "").trim()).filter(Boolean))].sort(),
+    jobTypes: [...new Set(jobs.map((j) => (j.job_type || "").trim()).filter(Boolean))].sort(),
+  }), [jobs]);
+
+  const filteredJobs = useMemo(() => jobs.filter((j) => {
+    if (paidFilter === "paid" && !j.paid) return false;
+    if (paidFilter === "unpaid" && j.paid) return false;
+    if (collectedFilter === "marketer" && !(j as any).marketer_collected) return false;
+    if (collectedFilter === "office" && (j as any).marketer_collected) return false;
+    if (marketerFilter !== "all" && (j.company_1 || j.company || "").trim() !== marketerFilter) return false;
+    if (jobTypeFilter !== "all" && (j.job_type || "").trim() !== jobTypeFilter) return false;
+    return true;
+  }), [jobs, paidFilter, collectedFilter, marketerFilter, jobTypeFilter]);
+
   const summaries = useMemo(
-    () => summarizeByMarketer(jobs, dateFrom, dateTo),
-    [jobs, dateFrom, dateTo]
+    () => summarizeByMarketer(filteredJobs, dateFrom, dateTo),
+    [filteredJobs, dateFrom, dateTo]
   );
 
   function applyPreset(p: DatePreset) {
