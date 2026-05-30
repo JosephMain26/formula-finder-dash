@@ -197,6 +197,47 @@ function BalancesPage() {
         </Card>
 
         <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Filters</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Select value={paidFilter} onValueChange={setPaidFilter}>
+                <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Payment" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All payments</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={collectedFilter} onValueChange={setCollectedFilter}>
+                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Collected by" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Collected by anyone</SelectItem>
+                  <SelectItem value="marketer">Collected by marketer</SelectItem>
+                  <SelectItem value="office">Collected by office/tech</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={marketerFilter} onValueChange={setMarketerFilter}>
+                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Marketer" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All marketers</SelectItem>
+                  {uniques.marketers.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
+                <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Job type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All job types</SelectItem>
+                  {uniques.jobTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+
+        <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-base">Balances ({summaries.length} marketers)</CardTitle>
             {summaries.length > 0 && (
