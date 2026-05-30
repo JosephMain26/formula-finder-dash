@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, FileDown } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 import { DatePickerField } from "@/components/DatePickerField";
@@ -64,6 +65,11 @@ function BalancesPage() {
   const [dateFrom, setDateFrom] = useState(lastWeek.from);
   const [dateTo, setDateTo] = useState(lastWeek.to);
 
+  const [paidFilter, setPaidFilter] = useState("all"); // all | paid | unpaid
+  const [collectedFilter, setCollectedFilter] = useState("all"); // all | marketer | office
+  const [marketerFilter, setMarketerFilter] = useState("all");
+  const [jobTypeFilter, setJobTypeFilter] = useState("all");
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -76,9 +82,24 @@ function BalancesPage() {
     })();
   }, []);
 
+  const uniques = useMemo(() => ({
+    marketers: [...new Set(jobs.map((j) => (j.company_1 || j.company || "").trim()).filter(Boolean))].sort(),
+    jobTypes: [...new Set(jobs.map((j) => (j.job_type || "").trim()).filter(Boolean))].sort(),
+  }), [jobs]);
+
+  const filteredJobs = useMemo(() => jobs.filter((j) => {
+    if (paidFilter === "paid" && !j.paid) return false;
+    if (paidFilter === "unpaid" && j.paid) return false;
+    if (collectedFilter === "marketer" && !(j as any).marketer_collected) return false;
+    if (collectedFilter === "office" && (j as any).marketer_collected) return false;
+    if (marketerFilter !== "all" && (j.company_1 || j.company || "").trim() !== marketerFilter) return false;
+    if (jobTypeFilter !== "all" && (j.job_type || "").trim() !== jobTypeFilter) return false;
+    return true;
+  }), [jobs, paidFilter, collectedFilter, marketerFilter, jobTypeFilter]);
+
   const summaries = useMemo(
-    () => summarizeByMarketer(jobs, dateFrom, dateTo),
-    [jobs, dateFrom, dateTo]
+    () => summarizeByMarketer(filteredJobs, dateFrom, dateTo),
+    [filteredJobs, dateFrom, dateTo]
   );
 
   function applyPreset(p: DatePreset) {
@@ -174,6 +195,47 @@ function BalancesPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Filters</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Select value={paidFilter} onValueChange={setPaidFilter}>
+                <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Payment" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All payments</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={collectedFilter} onValueChange={setCollectedFilter}>
+                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Collected by" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Collected by anyone</SelectItem>
+                  <SelectItem value="marketer">Collected by marketer</SelectItem>
+                  <SelectItem value="office">Collected by office/tech</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={marketerFilter} onValueChange={setMarketerFilter}>
+                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Marketer" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All marketers</SelectItem>
+                  {uniques.marketers.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
+                <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Job type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All job types</SelectItem>
+                  {uniques.jobTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
 
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
