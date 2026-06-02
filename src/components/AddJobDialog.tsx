@@ -658,8 +658,16 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               ),
               po_number: () => (
                 <div key="po_number">
-                  <label className="text-xs font-medium text-muted-foreground">{labelOf("po_number")}{reqOf("po_number") ? " *" : ""}</label>
-                  <Input value={form.po_number} required={reqOf("po_number")} onChange={(e) => update("po_number", e.target.value)} />
+                  <div className="flex items-center gap-3">
+                    <Checkbox id="show-po" checked={form.show_po_number} onCheckedChange={(v) => update("show_po_number", !!v)} />
+                    <label htmlFor="show-po" className="text-sm cursor-pointer">Has PO Number</label>
+                  </div>
+                  {form.show_po_number && (
+                    <div className="mt-2">
+                      <label className="text-xs font-medium text-muted-foreground">{labelOf("po_number")}{reqOf("po_number") ? " *" : ""}</label>
+                      <Input value={form.po_number} required={reqOf("po_number")} onChange={(e) => update("po_number", e.target.value)} />
+                    </div>
+                  )}
                 </div>
               ),
               phone_no: () => (
