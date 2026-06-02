@@ -855,30 +855,34 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                   <Input value={form.created_by} onChange={(e) => update("created_by", e.target.value)} />
                 </div>
               ),
-              installer: () => (
-                <div key="installer">
-                  <label className="text-xs font-medium text-muted-foreground">{labelOf("installer")}</label>
-                  <Select
-                    value={form.installer_id || "__none__"}
-                    onValueChange={(id) => {
-                      if (id === "__none__") {
-                        setForm((prev) => ({ ...prev, installer_id: "", installer_name: "" }));
-                        return;
-                      }
-                      const inst = installers.find((i) => i.id === id);
-                      setForm((prev) => ({ ...prev, installer_id: id, installer_name: inst?.name || "" }));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={installers.length ? "Select installer" : "No installers yet"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">— None —</SelectItem>
-                      {installers.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ),
+              installer: () => {
+                const jt = (form.job_type || "").toLowerCase();
+                if (!jt.includes("panel") && !jt.includes("door") && !jt.includes("opener")) return null;
+                return (
+                  <div key="installer">
+                    <label className="text-xs font-medium text-muted-foreground">{labelOf("installer")}</label>
+                    <Select
+                      value={form.installer_id || "__none__"}
+                      onValueChange={(id) => {
+                        if (id === "__none__") {
+                          setForm((prev) => ({ ...prev, installer_id: "", installer_name: "" }));
+                          return;
+                        }
+                        const inst = installers.find((i) => i.id === id);
+                        setForm((prev) => ({ ...prev, installer_id: id, installer_name: inst?.name || "" }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={installers.length ? "Select installer" : "No installers yet"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— None —</SelectItem>
+                        {installers.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              },
               notes: () => (
                 <div key="notes" className="md:col-span-2">
                   <label className="text-xs font-medium text-muted-foreground">{labelOf("notes")}{reqOf("notes") ? " *" : ""}</label>
