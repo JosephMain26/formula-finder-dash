@@ -56,6 +56,7 @@ const emptyForm = {
   deposit_payment_method: "", deposit_check_no: "",
   scheduled_completion_date: "", completed_at_date: "",
   pickup_door_center_id: "",
+  show_po_number: false,
 };
 
 const SCHEDULED_INSTALL_STATUS = "Scheduled installation";
