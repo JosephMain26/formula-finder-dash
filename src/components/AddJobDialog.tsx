@@ -180,6 +180,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           scheduled_completion_date: (job as any).scheduled_completion_date || "",
           completed_at_date: (job as any).completed_at_date || "",
           pickup_door_center_id: (job as any).pickup_door_center_id || "",
+          show_po_number: !!(job as any).po_number,
         });
         setUseManualPercentage(!!job.manual_percentage);
         loadJobInstallations(job.id).then(setInstallations);
