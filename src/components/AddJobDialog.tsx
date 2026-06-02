@@ -56,6 +56,7 @@ const emptyForm = {
   deposit_payment_method: "", deposit_check_no: "",
   scheduled_completion_date: "", completed_at_date: "",
   pickup_door_center_id: "",
+  show_po_number: false,
 };
 
 const SCHEDULED_INSTALL_STATUS = "Scheduled installation";
@@ -179,6 +180,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           scheduled_completion_date: (job as any).scheduled_completion_date || "",
           completed_at_date: (job as any).completed_at_date || "",
           pickup_door_center_id: (job as any).pickup_door_center_id || "",
+          show_po_number: !!(job as any).po_number,
         });
         setUseManualPercentage(!!job.manual_percentage);
         loadJobInstallations(job.id).then(setInstallations);
@@ -656,8 +658,16 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               ),
               po_number: () => (
                 <div key="po_number">
-                  <label className="text-xs font-medium text-muted-foreground">{labelOf("po_number")}{reqOf("po_number") ? " *" : ""}</label>
-                  <Input value={form.po_number} required={reqOf("po_number")} onChange={(e) => update("po_number", e.target.value)} />
+                  <div className="flex items-center gap-3">
+                    <Checkbox id="show-po" checked={form.show_po_number} onCheckedChange={(v) => update("show_po_number", !!v)} />
+                    <label htmlFor="show-po" className="text-sm cursor-pointer">Has PO Number</label>
+                  </div>
+                  {form.show_po_number && (
+                    <div className="mt-2">
+                      <label className="text-xs font-medium text-muted-foreground">{labelOf("po_number")}{reqOf("po_number") ? " *" : ""}</label>
+                      <Input value={form.po_number} required={reqOf("po_number")} onChange={(e) => update("po_number", e.target.value)} />
+                    </div>
+                  )}
                 </div>
               ),
               phone_no: () => (
@@ -845,30 +855,34 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                   <Input value={form.created_by} onChange={(e) => update("created_by", e.target.value)} />
                 </div>
               ),
-              installer: () => (
-                <div key="installer">
-                  <label className="text-xs font-medium text-muted-foreground">{labelOf("installer")}</label>
-                  <Select
-                    value={form.installer_id || "__none__"}
-                    onValueChange={(id) => {
-                      if (id === "__none__") {
-                        setForm((prev) => ({ ...prev, installer_id: "", installer_name: "" }));
-                        return;
-                      }
-                      const inst = installers.find((i) => i.id === id);
-                      setForm((prev) => ({ ...prev, installer_id: id, installer_name: inst?.name || "" }));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={installers.length ? "Select installer" : "No installers yet"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">— None —</SelectItem>
-                      {installers.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ),
+              installer: () => {
+                const jt = (form.job_type || "").toLowerCase();
+                if (!jt.includes("panel") && !jt.includes("door") && !jt.includes("opener")) return null;
+                return (
+                  <div key="installer">
+                    <label className="text-xs font-medium text-muted-foreground">{labelOf("installer")}</label>
+                    <Select
+                      value={form.installer_id || "__none__"}
+                      onValueChange={(id) => {
+                        if (id === "__none__") {
+                          setForm((prev) => ({ ...prev, installer_id: "", installer_name: "" }));
+                          return;
+                        }
+                        const inst = installers.find((i) => i.id === id);
+                        setForm((prev) => ({ ...prev, installer_id: id, installer_name: inst?.name || "" }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={installers.length ? "Select installer" : "No installers yet"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— None —</SelectItem>
+                        {installers.map((i) => <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              },
               notes: () => (
                 <div key="notes" className="md:col-span-2">
                   <label className="text-xs font-medium text-muted-foreground">{labelOf("notes")}{reqOf("notes") ? " *" : ""}</label>
@@ -1079,31 +1093,36 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               </div>
             </div>
           )}
-          <div className="md:col-span-2 mt-2 pt-3 border-t">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Installations</div>
-            <div className="mb-3">
-              <Label className="text-xs">Pickup location (Door Center)</Label>
-              <Select
-                value={form.pickup_door_center_id || "__none__"}
-                onValueChange={(v) =>
-                  setForm((prev) => ({ ...prev, pickup_door_center_id: v === "__none__" ? "" : v }))
-                }
-              >
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder={doorCenters.length ? "Select pickup location" : "No locations — add in Settings"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">— None —</SelectItem>
-                  {doorCenters.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}{d.address ? ` · ${d.address}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {(() => {
+            const jt = (form.job_type || "").toLowerCase();
+            return jt.includes("panel") || jt.includes("door") || jt.includes("opener");
+          })() && (
+            <div className="md:col-span-2 mt-2 pt-3 border-t">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Installations</div>
+              <div className="mb-3">
+                <Label className="text-xs">Pickup location (Door Center)</Label>
+                <Select
+                  value={form.pickup_door_center_id || "__none__"}
+                  onValueChange={(v) =>
+                    setForm((prev) => ({ ...prev, pickup_door_center_id: v === "__none__" ? "" : v }))
+                  }
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder={doorCenters.length ? "Select pickup location" : "No locations — add in Settings"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— None —</SelectItem>
+                    {doorCenters.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}{d.address ? ` · ${d.address}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <JobInstallationsEditor value={installations} onChange={setInstallations} />
             </div>
-            <JobInstallationsEditor value={installations} onChange={setInstallations} />
-          </div>
+          )}
 
 
           <div className="md:col-span-2 flex flex-col-reverse md:flex-row md:justify-end gap-2 mt-2">
