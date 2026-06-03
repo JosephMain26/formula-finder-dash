@@ -251,15 +251,11 @@ function Dashboard() {
               </Link>
             )}
             {isAdmin && (
-              <Link to="/balances" className="hidden lg:inline-flex">
-                <Button variant="outline"><Scale className="h-4 w-4 mr-2" /> Balances</Button>
-              </Link>
-            )}
-            {isAdmin && (
               <Link to="/reports" className="hidden lg:inline-flex">
                 <Button variant="outline"><FileText className="h-4 w-4 mr-2" /> Reports</Button>
               </Link>
             )}
+
 
             {isAdmin && (
               <Link to="/settings" className="hidden lg:inline-flex">
