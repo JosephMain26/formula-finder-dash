@@ -36,6 +36,9 @@ import {
   loadAutomations, upsertAutomation, deleteAutomation,
   type ReportAutomation, type AutomationFreq,
 } from "@/lib/reportAutomations";
+import { BalancesPanel } from "@/components/BalancesPanel";
+
+
 
 type Job = Tables<"jobs">;
 
@@ -61,10 +64,13 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const Route = createFileRoute("/reports")({
   component: ReportsPage,
+  validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
   head: () => ({
     meta: [
-      { title: "Reports & Automations - Jobs Dashboard" },
-      { name: "description", content: "Build custom job reports and schedule automated report delivery." },
+      { title: "Reports & Balances - Jobs Dashboard" },
+      { name: "description", content: "Build custom job reports, review marketer balances, and schedule automated report delivery." },
     ],
   }),
 });
@@ -160,6 +166,7 @@ function pdfFromSpec(jobs: Job[], spec: ReportSpec) {
 }
 
 function ReportsPage() {
+  const { tab } = Route.useSearch();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [companies, setCompanies] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<StatusDef[]>([]);
@@ -269,18 +276,25 @@ function ReportsPage() {
             <Link to="/"><ArrowLeft className="h-5 w-5" /></Link>
           </Button>
           <div>
-            <h1 className="text-xl font-semibold">Reports & Automations</h1>
-            <p className="text-sm text-muted-foreground">Build custom reports and schedule automatic delivery</p>
+            <h1 className="text-xl font-semibold">Reports & Balances</h1>
+            <p className="text-sm text-muted-foreground">Build custom reports, review marketer balances, and schedule automatic delivery</p>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="builder">
+        <Tabs defaultValue={tab === "balances" ? "balances" : tab === "automations" ? "automations" : "builder"}>
           <TabsList>
             <TabsTrigger value="builder">Report Builder</TabsTrigger>
+            <TabsTrigger value="balances">Marketer Balances</TabsTrigger>
             <TabsTrigger value="automations">Automation Center</TabsTrigger>
           </TabsList>
+
+          {/* ---------------- BALANCES ---------------- */}
+          <TabsContent value="balances">
+            <BalancesPanel />
+          </TabsContent>
+
 
           {/* ---------------- BUILDER ---------------- */}
           <TabsContent value="builder" className="space-y-5">

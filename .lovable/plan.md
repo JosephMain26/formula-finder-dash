@@ -1,53 +1,38 @@
+# Merge Balances into Reports — one "Reports" screen
+
 ## Goal
+Reduce the number of screens. Both `/reports` and `/balances` are admin-only and overlap (Reports already computes a marketer balance summary). Combine them into a single page with tabs so the user has one place for everything reporting-related.
 
-On the **Reports → Automation Center**, today the toggle **"Send each marketer their own individual report"** does two things at once:
+## Result for the user
+The "Reports" page becomes the single hub with three tabs:
+- **Report Builder** — existing custom PDF report builder (unchanged).
+- **Marketer Balances** — the full weekly balance view (date presets, filters, per-marketer balance table, per-marketer PDF) moved here as-is.
+- **Automation Center** — existing scheduled report delivery (unchanged).
 
-1. Splits the report into one-per-marketer, **and**
-2. Forces it to be emailed to each marketer's own contact, hiding every other recipient option.
-
-You want to separate these. Specifically: you want to **build a report per marketer** but then decide whether to actually send it to the marketer's contact — or instead just export those per-marketer reports and send them to people **you** pick (a manager, yourself, custom emails, etc.).
+The separate "Balances" button/link is removed from the top bar and mobile menu. Visiting `/balances` directly still works — it redirects to the Balances tab so old bookmarks don't break.
 
 ## What changes
 
-### 1. Split the one toggle into two clear controls (`src/routes/reports.tsx`)
+### 1. Extract the Balances UI into a reusable panel
+- Move the body of `src/routes/balances.tsx` (the whole `BalancesPage` content: period card, filters card, balances table, PDF download) into a new component `src/components/BalancesPanel.tsx`.
+- It keeps its own data fetch and state — no logic changes, just relocated so it can render inside a tab without its own page header.
 
-Rename the existing toggle to describe only the splitting behavior:
+### 2. Add the tab to the Reports page
+- In `src/routes/reports.tsx`, add a third `TabsTrigger`/`TabsContent` labeled **Marketer Balances** that renders `<BalancesPanel />`.
+- Rename the page heading to something neutral like "Reports & Balances" so the title reflects the combined scope.
 
-```text
-[x] Create a separate report for each marketer
-```
+### 3. Turn `/balances` into a redirect
+- Replace `src/routes/balances.tsx` content with a small route that redirects to `/reports` (defaulting to the Balances tab via a query param or hash). This preserves the existing URL and any bookmarks.
 
-When that is ON, show a second sub-option:
-
-```text
-    [ ] Also send each marketer their own report (to their contact email)
-```
-
-And — this is the key fix — keep the existing recipient choices (**By role**, **Specific marketers**, **Custom emails**) visible **even when per-marketer is on**. So you can build per-marketer reports and route them to whoever you choose, with the "send to the marketer" switch fully optional.
-
-Behavior summary:
-- Per-marketer OFF → unchanged (one combined report to chosen recipients).
-- Per-marketer ON + "send to marketer" OFF → a report is generated for each marketer and sent only to the recipients you picked (roles / emails / specific marketers). The marketers themselves get nothing.
-- Per-marketer ON + "send to marketer" ON → each marketer also gets their own report at their contact email (today's behavior), in addition to your chosen recipients.
-
-### 2. New recipients field (`src/lib/reportAutomations.ts`)
-
-Add `sendToMarketer?: boolean` to `AutomationRecipients` (defaults to `false`). No database migration needed — recipients are stored as flexible JSON, so this stays cheap on credits.
-
-### 3. Dispatch logic (`src/routes/api/public/hooks/dispatch-report-automations.ts`)
-
-Rework the per-marketer branch so it honors the two new settings:
-- For each marketer, build that marketer's filtered report (as today).
-- If `sendToMarketer` is true → send it to that marketer's own contact email (current behavior).
-- Always also send each per-marketer report to your chosen recipients (role emails + custom emails + any specifically selected marketer emails). The chosen recipient gets one email per marketer, with the marketer's name in the subject so they're easy to tell apart.
-- Dedupe so a recipient never receives the same marketer's report twice.
-
-## Out of scope
-- No new table / migration.
-- No change to the cron schedule, the on-page PDF builder, or saved templates.
-- The report **content** per marketer is unchanged — only who receives it.
+### 4. Clean up navigation
+- Remove the standalone **Balances** link from `src/components/MobileNav.tsx` and the **Balances** button from `src/routes/index.tsx` top bar (the Reports entry now covers both).
 
 ## Technical notes
-- Files touched: `src/routes/reports.tsx`, `src/lib/reportAutomations.ts`, `src/routes/api/public/hooks/dispatch-report-automations.ts`.
-- `blank()` and `save()` in `reports.tsx` will default `sendToMarketer` to `false`.
-- Existing automations keep working: missing `sendToMarketer` is treated as `false`, so today's per-marketer automations would start routing to chosen recipients; to preserve their old "send to marketer" behavior you'd flip the new sub-toggle on (or we can default it to mirror the old behavior for existing rows — say the word if you'd prefer that).
+- The Reports `Tabs` component already supports multiple tabs; we just add one more `TabsContent`.
+- `BalancesPanel` reuses the existing `summarizeByMarketer`, `jsPDF`/`autoTable`, and filter logic verbatim — nothing in `src/lib/marketerBalance.ts` changes.
+- Tab selection from the redirect can be driven by reading a `?tab=balances` search param in `reports.tsx` and passing it as the `Tabs` `defaultValue`.
+- No database, RLS, or server-function changes. This is purely a frontend/navigation reorganization, which keeps credit usage minimal.
+
+## Out of scope
+- No change to how balances or reports are calculated.
+- No change to automation scheduling or the report PDF format.
