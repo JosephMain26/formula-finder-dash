@@ -839,9 +839,23 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 </div>
               ),
               check_no: () => form.payment.toLowerCase().includes("check") ? (
-                <div key="check_no">
-                  <label className="text-xs font-medium text-muted-foreground">{labelOf("check_no")}</label>
-                  <Input value={form.check_no} onChange={(e) => update("check_no", e.target.value)} />
+                <div key="check_no" className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="md:col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">{labelOf("check_no")}</label>
+                    <Input value={form.check_no} onChange={(e) => update("check_no", e.target.value)} />
+                  </div>
+                  <CheckPhotoField
+                    label="Check photo — front"
+                    value={form.check_front_url}
+                    onChange={(p) => update("check_front_url", p)}
+                    required={!isAdmin}
+                  />
+                  <CheckPhotoField
+                    label="Check photo — back"
+                    value={form.check_back_url}
+                    onChange={(p) => update("check_back_url", p)}
+                    required={!isAdmin}
+                  />
                 </div>
               ) : null,
               tip: () => (
