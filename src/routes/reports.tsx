@@ -276,18 +276,25 @@ function ReportsPage() {
             <Link to="/"><ArrowLeft className="h-5 w-5" /></Link>
           </Button>
           <div>
-            <h1 className="text-xl font-semibold">Reports & Automations</h1>
-            <p className="text-sm text-muted-foreground">Build custom reports and schedule automatic delivery</p>
+            <h1 className="text-xl font-semibold">Reports & Balances</h1>
+            <p className="text-sm text-muted-foreground">Build custom reports, review marketer balances, and schedule automatic delivery</p>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="builder">
+        <Tabs defaultValue={tab === "balances" ? "balances" : tab === "automations" ? "automations" : "builder"}>
           <TabsList>
             <TabsTrigger value="builder">Report Builder</TabsTrigger>
+            <TabsTrigger value="balances">Marketer Balances</TabsTrigger>
             <TabsTrigger value="automations">Automation Center</TabsTrigger>
           </TabsList>
+
+          {/* ---------------- BALANCES ---------------- */}
+          <TabsContent value="balances">
+            <BalancesPanel />
+          </TabsContent>
+
 
           {/* ---------------- BUILDER ---------------- */}
           <TabsContent value="builder" className="space-y-5">
