@@ -364,7 +364,12 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       installer_id: form.installer_id || null,
       installer_name: form.installer_name || null,
       pickup_door_center_id: form.pickup_door_center_id || null,
-      extra_fields: extra || {},
+      extra_fields: {
+        ...(extra || {}),
+        ...(form.payment?.toLowerCase().includes("check")
+          ? { check_front_url: form.check_front_url || null, check_back_url: form.check_back_url || null }
+          : { check_front_url: null, check_back_url: null }),
+      },
       deposit_received: !!form.deposit_received,
       deposit_amount: form.deposit_amount ? parseFloat(form.deposit_amount) : 0,
       deposit_date: form.deposit_date || null,
