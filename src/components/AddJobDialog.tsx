@@ -446,6 +446,12 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         return;
       }
     }
+    if (form.payment?.toLowerCase().includes("check") && !isAdmin) {
+      if (!form.check_front_url || !form.check_back_url) {
+        toast.error("Please upload both the front and back photos of the check.");
+        return;
+      }
+    }
     const review = await validateAddressForSave(form.address || "");
     if (review.status === "suggestion") {
       submitIntentRef.current = { event: e, overrideAddress: review.finalAddress };
