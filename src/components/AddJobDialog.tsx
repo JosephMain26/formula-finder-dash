@@ -23,6 +23,7 @@ import { AddressReviewDialog } from "@/components/AddressReviewDialog";
 import { JobInstallationsEditor } from "@/components/JobInstallationsEditor";
 import { loadJobInstallations, saveJobInstallations, loadDoorCenters, type JobInstallation, type DoorCenter } from "@/lib/installCatalog";
 import { SendMessageDialog } from "@/components/SendMessageDialog";
+import { CheckPhotoField } from "@/components/CheckPhotoField";
 import { Send } from "lucide-react";
 
 type Company = Tables<"companies">;
@@ -57,6 +58,7 @@ const emptyForm = {
   scheduled_completion_date: "", completed_at_date: "",
   pickup_door_center_id: "",
   show_po_number: false,
+  check_front_url: "", check_back_url: "",
 };
 
 const SCHEDULED_INSTALL_STATUS = "Scheduled installation";
@@ -181,6 +183,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           completed_at_date: (job as any).completed_at_date || "",
           pickup_door_center_id: (job as any).pickup_door_center_id || "",
           show_po_number: !!(job as any).po_number,
+          check_front_url: ((job as any).extra_fields?.check_front_url) || "",
+          check_back_url: ((job as any).extra_fields?.check_back_url) || "",
         });
         setUseManualPercentage(!!job.manual_percentage);
         loadJobInstallations(job.id).then(setInstallations);
@@ -360,7 +364,12 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       installer_id: form.installer_id || null,
       installer_name: form.installer_name || null,
       pickup_door_center_id: form.pickup_door_center_id || null,
-      extra_fields: extra || {},
+      extra_fields: {
+        ...(extra || {}),
+        ...(form.payment?.toLowerCase().includes("check")
+          ? { check_front_url: form.check_front_url || null, check_back_url: form.check_back_url || null }
+          : { check_front_url: null, check_back_url: null }),
+      },
       deposit_received: !!form.deposit_received,
       deposit_amount: form.deposit_amount ? parseFloat(form.deposit_amount) : 0,
       deposit_date: form.deposit_date || null,
@@ -434,6 +443,12 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       const existingClientName = clients.find((c) => c.id === form.client_id)?.name?.trim();
       if (!hasLinkedClient && !willCreateClient && !existingClientName) {
         toast.error("Client name is required for door installation jobs.");
+        return;
+      }
+    }
+    if (form.payment?.toLowerCase().includes("check") && !isAdmin) {
+      if (!form.check_front_url || !form.check_back_url) {
+        toast.error("Please upload both the front and back photos of the check.");
         return;
       }
     }
@@ -824,9 +839,23 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 </div>
               ),
               check_no: () => form.payment.toLowerCase().includes("check") ? (
-                <div key="check_no">
-                  <label className="text-xs font-medium text-muted-foreground">{labelOf("check_no")}</label>
-                  <Input value={form.check_no} onChange={(e) => update("check_no", e.target.value)} />
+                <div key="check_no" className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="md:col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">{labelOf("check_no")}</label>
+                    <Input value={form.check_no} onChange={(e) => update("check_no", e.target.value)} />
+                  </div>
+                  <CheckPhotoField
+                    label="Check photo — front"
+                    value={form.check_front_url}
+                    onChange={(p) => update("check_front_url", p)}
+                    required={!isAdmin}
+                  />
+                  <CheckPhotoField
+                    label="Check photo — back"
+                    value={form.check_back_url}
+                    onChange={(p) => update("check_back_url", p)}
+                    required={!isAdmin}
+                  />
                 </div>
               ) : null,
               tip: () => (
