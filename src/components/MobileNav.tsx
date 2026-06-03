@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Home, Settings, Building2, Wrench, LogOut, BarChart3, Users, CalendarClock, Scale, FileText } from "lucide-react";
+import { Menu, Home, Settings, Building2, Wrench, LogOut, BarChart3, Users, CalendarClock, FileText } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 interface MobileNavProps {
