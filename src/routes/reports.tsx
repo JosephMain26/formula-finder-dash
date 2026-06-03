@@ -61,10 +61,13 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const Route = createFileRoute("/reports")({
   component: ReportsPage,
+  validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
   head: () => ({
     meta: [
-      { title: "Reports & Automations - Jobs Dashboard" },
-      { name: "description", content: "Build custom job reports and schedule automated report delivery." },
+      { title: "Reports & Balances - Jobs Dashboard" },
+      { name: "description", content: "Build custom job reports, review marketer balances, and schedule automated report delivery." },
     ],
   }),
 });
