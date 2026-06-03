@@ -58,6 +58,7 @@ const emptyForm = {
   scheduled_completion_date: "", completed_at_date: "",
   pickup_door_center_id: "",
   show_po_number: false,
+  check_front_url: "", check_back_url: "",
 };
 
 const SCHEDULED_INSTALL_STATUS = "Scheduled installation";
