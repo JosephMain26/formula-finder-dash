@@ -23,6 +23,7 @@ import { AddressReviewDialog } from "@/components/AddressReviewDialog";
 import { JobInstallationsEditor } from "@/components/JobInstallationsEditor";
 import { loadJobInstallations, saveJobInstallations, loadDoorCenters, type JobInstallation, type DoorCenter } from "@/lib/installCatalog";
 import { SendMessageDialog } from "@/components/SendMessageDialog";
+import { CheckPhotoField } from "@/components/CheckPhotoField";
 import { Send } from "lucide-react";
 
 type Company = Tables<"companies">;
