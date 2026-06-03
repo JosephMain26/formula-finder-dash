@@ -183,6 +183,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           completed_at_date: (job as any).completed_at_date || "",
           pickup_door_center_id: (job as any).pickup_door_center_id || "",
           show_po_number: !!(job as any).po_number,
+          check_front_url: ((job as any).extra_fields?.check_front_url) || "",
+          check_back_url: ((job as any).extra_fields?.check_back_url) || "",
         });
         setUseManualPercentage(!!job.manual_percentage);
         loadJobInstallations(job.id).then(setInstallations);
