@@ -46,11 +46,8 @@ export function MobileNav({ className }: MobileNavProps) {
           )}
           {isAdmin && (
             <>
-              <Link to="/balances" onClick={close} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm">
-                <Scale className="h-4 w-4" /> Balances
-              </Link>
               <Link to="/reports" onClick={close} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm">
-                <FileText className="h-4 w-4" /> Reports
+                <FileText className="h-4 w-4" /> Reports & Balances
               </Link>
               <Link to="/settings" onClick={close} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm">
                 <Settings className="h-4 w-4" /> Settings
