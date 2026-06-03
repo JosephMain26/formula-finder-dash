@@ -36,6 +36,9 @@ import {
   loadAutomations, upsertAutomation, deleteAutomation,
   type ReportAutomation, type AutomationFreq,
 } from "@/lib/reportAutomations";
+import { BalancesPanel } from "@/components/BalancesPanel";
+
+
 
 type Job = Tables<"jobs">;
 
