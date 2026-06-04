@@ -139,7 +139,8 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
     handlers: {
       POST: async ({ request }) => {
         const apikey = request.headers.get("apikey") || request.headers.get("x-apikey");
-        if (!apikey || apikey !== process.env.SUPABASE_ANON_KEY) {
+        const expectedKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
+        if (!apikey || !expectedKey || apikey !== expectedKey) {
           return new Response("Unauthorized", { status: 401 });
         }
 
