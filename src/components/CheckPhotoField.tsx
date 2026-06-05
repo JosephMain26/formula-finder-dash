@@ -61,8 +61,15 @@ export function CheckPhotoField({ label, value, onChange, required }: CheckPhoto
         onChange={(e) => handleFile(e.target.files?.[0])}
       />
       {preview ? (
-        <div className="relative mt-1 w-full overflow-hidden rounded-md border">
-          <img src={preview} alt={label} className="h-32 w-full object-cover" />
+        <Dialog>
+          <DialogTrigger asChild>
+            <div className="relative mt-1 w-full overflow-hidden rounded-md border cursor-zoom-in">
+              <img src={preview} alt={label} className="h-32 w-full object-cover" />
+            </div>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl p-2">
+            <img src={preview} alt={label} className="w-full rounded-md" />
+          </DialogContent>
           <button
             type="button"
             onClick={() => { onChange(""); if (inputRef.current) inputRef.current.value = ""; }}
@@ -71,7 +78,7 @@ export function CheckPhotoField({ label, value, onChange, required }: CheckPhoto
           >
             <X className="h-4 w-4" />
           </button>
-        </div>
+        </Dialog>
       ) : (
         <Button
           type="button"
