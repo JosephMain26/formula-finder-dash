@@ -108,6 +108,8 @@ export function DateRangePresets({ range, onChange }: Props) {
   const [custom, setCustom] = useState<DatePreset[]>([]);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
 
   useEffect(() => { loadCustomPresets().then(setCustom); }, []);
 
