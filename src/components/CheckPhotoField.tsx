@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { compressImage } from "@/lib/compressImage";
@@ -57,7 +62,14 @@ export function CheckPhotoField({ label, value, onChange, required }: CheckPhoto
       />
       {preview ? (
         <div className="relative mt-1 w-full overflow-hidden rounded-md border">
-          <img src={preview} alt={label} className="h-32 w-full object-cover" />
+          <Dialog>
+            <DialogTrigger asChild>
+              <img src={preview} alt={label} className="h-32 w-full object-cover cursor-zoom-in" />
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl p-2">
+              <img src={preview} alt={label} className="w-full rounded-md" />
+            </DialogContent>
+          </Dialog>
           <button
             type="button"
             onClick={() => { onChange(""); if (inputRef.current) inputRef.current.value = ""; }}
