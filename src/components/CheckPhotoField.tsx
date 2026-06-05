@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { compressImage } from "@/lib/compressImage";
