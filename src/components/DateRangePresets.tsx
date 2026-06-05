@@ -108,6 +108,8 @@ export function DateRangePresets({ range, onChange }: Props) {
   const [custom, setCustom] = useState<DatePreset[]>([]);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
 
   useEffect(() => { loadCustomPresets().then(setCustom); }, []);
 
@@ -166,6 +168,26 @@ export function DateRangePresets({ range, onChange }: Props) {
                   </div>
                 );
               })}
+            </div>
+            <div className="border-t mt-2 pt-2 space-y-2">
+              <div className="text-xs font-medium text-muted-foreground px-2">Custom range</div>
+              <div className="grid grid-cols-2 gap-2 px-2">
+                <DatePickerField value={customFrom} onChange={setCustomFrom} placeholder="From" allowClear={false} />
+                <DatePickerField value={customTo} onChange={setCustomTo} placeholder="To" allowClear={false} />
+              </div>
+              <div className="px-2">
+                <Button
+                  size="sm"
+                  className="w-full"
+                  disabled={!customFrom || !customTo}
+                  onClick={() => {
+                    onChange({ from: customFrom, to: customTo });
+                    setPickerOpen(false);
+                  }}
+                >
+                  Apply custom range
+                </Button>
+              </div>
             </div>
             <div className="border-t mt-2 pt-2">
               <Button variant="outline" size="sm" className="w-full" onClick={() => { setCreatorOpen(true); setPickerOpen(false); }}>
