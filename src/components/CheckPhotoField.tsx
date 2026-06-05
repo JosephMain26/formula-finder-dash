@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/compressImage";
 
 interface CheckPhotoFieldProps {
   label: string;
@@ -31,9 +32,13 @@ export function CheckPhotoField({ label, value, onChange, required }: CheckPhoto
   async function handleFile(file: File | undefined) {
     if (!file) return;
     setBusy(true);
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const compressed = await compressImage(file, 150);
+    const ext = (compressed.name.split(".").pop() || "jpg").toLowerCase();
     const path = `${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
+    const { error } = await supabase.storage.from(BUCKET).upload(path, compressed, {
+      upsert: false,
+      contentType: compressed.type,
+    });
     setBusy(false);
     if (error) { toast.error("Upload failed: " + error.message); return; }
     onChange(path);
