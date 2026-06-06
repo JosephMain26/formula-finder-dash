@@ -107,7 +107,7 @@ export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, on
         y += sz.h;
         return item;
       });
-      out[bp] = merged;
+      out[bp] = merged.map((item) => ({ ...item, static: !editing }));
     }
     return out;
   }, [widgets, layouts]);
@@ -168,6 +168,7 @@ export function WidgetGrid({ widgets, layouts, jobs, editing, onLayoutChange, on
         margin={[8, 8]}
         isDraggable={editing}
         isResizable={editing}
+        allowMobileScroll
         draggableHandle=".drag-handle"
         resizeHandles={editing ? ["s", "w", "e", "n", "sw", "nw", "se", "ne"] : []}
         onLayoutChange={handleChange}
