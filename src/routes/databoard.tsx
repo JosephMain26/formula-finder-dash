@@ -222,7 +222,7 @@ function DataBoardPage() {
               range={range}
               boardElementId="databoard-grid"
             />
-            {canEditLayout && (
+            {canEditLayout && !isMobile && (
               <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
                 <Switch id="edit-layout" checked={editing} onCheckedChange={setEditing} />
                 <Label htmlFor="edit-layout" className="text-sm cursor-pointer select-none">
@@ -230,7 +230,10 @@ function DataBoardPage() {
                 </Label>
               </div>
             )}
-            {editing && (
+            {canEditLayout && isMobile && (
+              <span className="text-xs text-muted-foreground">View only on mobile</span>
+            )}
+            {dragEnabled && (
               <AddWidgetMenu canSeeMarketerPay={canSeeMarketerPay} onAdd={(w) => setWidgets((prev) => [...prev, w])} />
             )}
           </div>
