@@ -76,8 +76,12 @@ function DataBoardPage() {
   const canViewAll = can("databoard.view_all");
   const canSeeMarketerPay = can("marketer.view_percentage");
 
+  const isMobile = useIsMobile();
   const [hydrated, setHydrated] = useState(false);
   const [editing, setEditing] = useState(false);
+  // On touch/mobile devices, always keep the board locked so widgets never
+  // move while the user scrolls — regardless of the toggle state.
+  const dragEnabled = editing && !isMobile;
   const [widgets, setWidgets] = useState<WidgetConfig[]>(DEFAULT_WIDGETS);
   const [layouts, setLayouts] = useState<Record<string, any[]>>({});
   const [rangeKey, setRangeKey] = useState<RangeKey>("this_month");
