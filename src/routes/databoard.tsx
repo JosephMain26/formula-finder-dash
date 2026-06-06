@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
 import { TimeRangeBar, resolveRange, type RangeKey, type SavedRange } from "@/components/databoard/TimeRangeBar";
@@ -76,8 +77,12 @@ function DataBoardPage() {
   const canViewAll = can("databoard.view_all");
   const canSeeMarketerPay = can("marketer.view_percentage");
 
+  const isMobile = useIsMobile();
   const [hydrated, setHydrated] = useState(false);
   const [editing, setEditing] = useState(false);
+  // On touch/mobile devices, always keep the board locked so widgets never
+  // move while the user scrolls — regardless of the toggle state.
+  const dragEnabled = editing && !isMobile;
   const [widgets, setWidgets] = useState<WidgetConfig[]>(DEFAULT_WIDGETS);
   const [layouts, setLayouts] = useState<Record<string, any[]>>({});
   const [rangeKey, setRangeKey] = useState<RangeKey>("this_month");
@@ -217,7 +222,7 @@ function DataBoardPage() {
               range={range}
               boardElementId="databoard-grid"
             />
-            {canEditLayout && (
+            {canEditLayout && !isMobile && (
               <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
                 <Switch id="edit-layout" checked={editing} onCheckedChange={setEditing} />
                 <Label htmlFor="edit-layout" className="text-sm cursor-pointer select-none">
@@ -225,7 +230,10 @@ function DataBoardPage() {
                 </Label>
               </div>
             )}
-            {editing && (
+            {canEditLayout && isMobile && (
+              <span className="text-xs text-muted-foreground">View only on mobile</span>
+            )}
+            {dragEnabled && (
               <AddWidgetMenu canSeeMarketerPay={canSeeMarketerPay} onAdd={(w) => setWidgets((prev) => [...prev, w])} />
             )}
           </div>
@@ -271,7 +279,7 @@ function DataBoardPage() {
             widgets={widgets}
             layouts={layouts}
             jobs={filteredJobs}
-            editing={editing}
+            editing={dragEnabled}
             onLayoutChange={(l) => setLayouts(l)}
             onRemove={(id) => setWidgets((prev) => prev.filter((w) => w.i !== id))}
             onUpdate={(id, patch) => setWidgets((prev) => prev.map((w) => w.i === id ? { ...w, ...patch } : w))}
