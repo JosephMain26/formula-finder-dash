@@ -218,9 +218,12 @@ function DataBoardPage() {
               boardElementId="databoard-grid"
             />
             {canEditLayout && (
-              <Button size="sm" variant={editing ? "default" : "outline"} onClick={() => setEditing((e) => !e)}>
-                {editing ? <><Eye className="h-4 w-4 mr-1" /> View</> : <><Pencil className="h-4 w-4 mr-1" /> Edit layout</>}
-              </Button>
+              <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
+                <Switch id="edit-layout" checked={editing} onCheckedChange={setEditing} />
+                <Label htmlFor="edit-layout" className="text-sm cursor-pointer select-none">
+                  Edit & drag widgets
+                </Label>
+              </div>
             )}
             {editing && (
               <AddWidgetMenu canSeeMarketerPay={canSeeMarketerPay} onAdd={(w) => setWidgets((prev) => [...prev, w])} />
