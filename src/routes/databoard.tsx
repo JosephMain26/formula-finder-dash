@@ -2,7 +2,9 @@ import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Pencil, Eye } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
@@ -216,9 +218,12 @@ function DataBoardPage() {
               boardElementId="databoard-grid"
             />
             {canEditLayout && (
-              <Button size="sm" variant={editing ? "default" : "outline"} onClick={() => setEditing((e) => !e)}>
-                {editing ? <><Eye className="h-4 w-4 mr-1" /> View</> : <><Pencil className="h-4 w-4 mr-1" /> Edit layout</>}
-              </Button>
+              <div className="flex items-center gap-2 rounded-md border px-3 py-1.5">
+                <Switch id="edit-layout" checked={editing} onCheckedChange={setEditing} />
+                <Label htmlFor="edit-layout" className="text-sm cursor-pointer select-none">
+                  Edit & drag widgets
+                </Label>
+              </div>
             )}
             {editing && (
               <AddWidgetMenu canSeeMarketerPay={canSeeMarketerPay} onAdd={(w) => setWidgets((prev) => [...prev, w])} />
