@@ -279,7 +279,7 @@ function DataBoardPage() {
             widgets={widgets}
             layouts={layouts}
             jobs={filteredJobs}
-            editing={editing}
+            editing={dragEnabled}
             onLayoutChange={(l) => setLayouts(l)}
             onRemove={(id) => setWidgets((prev) => prev.filter((w) => w.i !== id))}
             onUpdate={(id, patch) => setWidgets((prev) => prev.map((w) => w.i === id ? { ...w, ...patch } : w))}
