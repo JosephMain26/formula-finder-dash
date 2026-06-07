@@ -163,6 +163,16 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
         const { data: jobsData } = await admin.from("jobs").select("*");
         const jobs = (jobsData as Job[]) || [];
 
+        // Fetch parts charges once (flat fees that fold into marketer balances).
+        const { data: chargesData } = await admin.from("parts_charges").select("*");
+        const partsCharges = ((chargesData as any[]) || []).map((c) => ({
+          id: c.id,
+          marketer: (c.marketer || "").trim(),
+          amount: Number(c.amount) || 0,
+          charge_date: c.charge_date,
+          description: c.description,
+        })) as PartsCharge[];
+
         let sent = 0;
         for (const raw of due) {
           const a = raw as Automation;
