@@ -5,6 +5,7 @@ import {
   renderReportHtml,
   type ReportSpec,
 } from "@/lib/reportSpec";
+import type { PartsCharge } from "@/lib/partsCharges";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Job = Tables<"jobs">;
