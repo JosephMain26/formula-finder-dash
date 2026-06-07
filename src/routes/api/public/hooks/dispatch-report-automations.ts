@@ -200,7 +200,7 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
 
               for (const name of names) {
                 const perSpec: ReportSpec = { ...spec, marketers: [name] };
-                const data = computeReportData(jobs, perSpec, localToday);
+                const data = computeReportData(jobs, perSpec, localToday, partsCharges);
                 const html = renderReportHtml(data, perSpec);
 
                 const recipients = new Set<string>(chosen);
