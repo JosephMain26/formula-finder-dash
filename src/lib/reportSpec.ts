@@ -38,13 +38,14 @@ export const REPORT_COLUMNS = [
 export type ReportColumnKey = (typeof REPORT_COLUMNS)[number]["key"];
 
 // ---------- Sections ----------
-export type ReportSectionId = "title" | "range" | "totals" | "balance" | "table";
+export type ReportSectionId = "title" | "range" | "totals" | "balance" | "partsCharges" | "table";
 
 export const REPORT_SECTION_LABELS: Record<ReportSectionId, string> = {
   title: "Title",
   range: "Date Range",
   totals: "Totals",
   balance: "Balance summary",
+  partsCharges: "Parts charges",
   table: "Jobs Table",
 };
 
