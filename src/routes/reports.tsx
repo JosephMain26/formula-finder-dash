@@ -477,7 +477,7 @@ function ReportsPage() {
             </Card>
 
             <div className="flex justify-end">
-              <Button onClick={() => pdfFromSpec(jobs, spec)} disabled={loading}>
+              <Button onClick={() => pdfFromSpec(jobs, spec, partsCharges)} disabled={loading}>
                 <FileDown className="h-4 w-4 mr-2" /> Generate PDF
               </Button>
             </div>
