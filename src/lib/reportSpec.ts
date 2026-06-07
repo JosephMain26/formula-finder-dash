@@ -1,5 +1,6 @@
 import type { Tables } from "@/integrations/supabase/types";
 import { summarizeByMarketer, type MarketerBalanceSummary } from "@/lib/marketerBalance";
+import { filterChargesByRange, type PartsCharge } from "@/lib/partsCharges";
 
 type Job = Tables<"jobs">;
 
