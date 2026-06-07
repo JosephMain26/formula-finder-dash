@@ -1,18 +1,28 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileDown } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { FileDown, Plus, Pencil, Trash2 } from "lucide-react";
 import { DatePickerField } from "@/components/DatePickerField";
 import { resolvePreset, type DatePreset } from "@/components/DateRangePresets";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import {
   summarizeByMarketer,
   type MarketerBalanceSummary,
 } from "@/lib/marketerBalance";
+import {
+  loadPartsCharges,
+  upsertPartsCharge,
+  deletePartsCharge,
+  type PartsCharge,
+} from "@/lib/partsCharges";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
