@@ -313,7 +313,7 @@ export function BalancesPanel() {
           {loading ? (
             <p className="text-sm text-muted-foreground py-6 text-center">Loading…</p>
           ) : summaries.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">No completed jobs in this period.</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">No completed jobs or parts charges in this period.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -322,6 +322,7 @@ export function BalancesPanel() {
                   <TableHead className="text-right">Jobs</TableHead>
                   <TableHead className="text-right">Earned</TableHead>
                   <TableHead className="text-right">Collected by marketer</TableHead>
+                  <TableHead className="text-right">Parts charged</TableHead>
                   <TableHead className="text-right">Net balance</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Report</TableHead>
@@ -334,6 +335,7 @@ export function BalancesPanel() {
                     <TableCell className="text-right">{s.jobsCount}</TableCell>
                     <TableCell className="text-right">{money(s.totalEarned)}</TableCell>
                     <TableCell className="text-right">{money(s.totalCollectedByMarketer)}</TableCell>
+                    <TableCell className="text-right">{s.totalPartsCharges ? money(s.totalPartsCharges) : "—"}</TableCell>
                     <TableCell className={cn("text-right font-semibold", s.net < 0 ? "text-destructive" : "text-foreground")}>
                       {money(s.net)}
                     </TableCell>
@@ -350,6 +352,119 @@ export function BalancesPanel() {
           )}
         </CardContent>
       </Card>
+
+      {/* ---------------- PARTS CHARGES ---------------- */}
+      <Card>
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base">Parts Charges</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Flat fees for parts you buy for a company — the company owes the office, so these reduce the net.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditing({ marketer: "", amount: 0, charge_date: dateTo || "", description: "" });
+              setEditorOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Add charge
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {filteredCharges.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">No parts charges yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Marketer / Company</TableHead>
+                  <TableHead>Note</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCharges.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell>{c.charge_date ? new Date(c.charge_date).toLocaleDateString() : "—"}</TableCell>
+                    <TableCell className="font-medium">{c.marketer || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">{c.description || "—"}</TableCell>
+                    <TableCell className="text-right">{money(Number(c.amount || 0))}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(c); setEditorOpen(true); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeCharge(c.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={editorOpen} onOpenChange={(o) => { setEditorOpen(o); if (!o) setEditing(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing?.id ? "Edit parts charge" : "Add parts charge"}</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Marketer / Company</Label>
+                <Input
+                  list="parts-charge-marketers"
+                  value={editing.marketer || ""}
+                  onChange={(e) => setEditing((s) => ({ ...s!, marketer: e.target.value }))}
+                  placeholder="Company name"
+                  className="h-9"
+                />
+                <datalist id="parts-charge-marketers">
+                  {uniques.marketers.map((m) => <option key={m} value={m} />)}
+                </datalist>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Amount</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editing.amount ?? 0}
+                    onChange={(e) => setEditing((s) => ({ ...s!, amount: Number(e.target.value) }))}
+                    className="h-9"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Date</Label>
+                  <DatePickerField
+                    value={editing.charge_date || ""}
+                    onChange={(v) => setEditing((s) => ({ ...s!, charge_date: v }))}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Note (optional)</Label>
+                <Input
+                  value={editing.description || ""}
+                  onChange={(e) => setEditing((s) => ({ ...s!, description: e.target.value }))}
+                  placeholder="e.g. door hardware, springs…"
+                  className="h-9"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditorOpen(false); setEditing(null); }}>Cancel</Button>
+            <Button onClick={saveCharge}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
