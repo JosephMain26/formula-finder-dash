@@ -196,6 +196,32 @@ export function BalancesPanel() {
 
     y = (doc as any).lastAutoTable.finalY + 10;
 
+    if (s.partsCharges.length) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Parts charges (company owes office)", 14, y);
+      doc.setFont("helvetica", "normal");
+      y += 2;
+      autoTable(doc, {
+        startY: y,
+        head: [["Date", "Note", "Amount"]],
+        body: s.partsCharges.map((c) => [
+          c.charge_date ? new Date(c.charge_date).toLocaleDateString() : "—",
+          c.description || "—",
+          money(Number(c.amount || 0)),
+        ]),
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [60, 60, 60] },
+        margin: { left: 8, right: 8 },
+      });
+      y = (doc as any).lastAutoTable.finalY + 6;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Total parts charges: ${money(s.totalPartsCharges)}`, 14, y);
+      doc.setFont("helvetica", "normal");
+      y += 8;
+    }
+
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text(`Net balance: ${money(s.net)}`, 14, y);
