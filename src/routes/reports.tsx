@@ -146,6 +146,27 @@ function pdfFromSpec(jobs: Job[], spec: ReportSpec, partsCharges: PartsCharge[] 
       doc.text(`Total net: ${money(data.balanceGrandNet)}`, 14, y);
       doc.setFont("helvetica", "normal"); y += 6;
     }
+    if (section.id === "partsCharges") {
+      doc.setFontSize(11); doc.setFont("helvetica", "bold");
+      doc.text("Parts charges (company owes office)", 14, y); doc.setFont("helvetica", "normal"); y += 4;
+      autoTable(doc, {
+        startY: y,
+        head: [["Date", "Marketer", "Note", "Amount"]],
+        body: data.partsCharges.map((c) => [
+          c.charge_date ? new Date(c.charge_date).toLocaleDateString() : "—",
+          (c.marketer || "—").trim() || "—",
+          c.description || "—",
+          money(Number(c.amount || 0)),
+        ]),
+        styles: { fontSize: 8, cellPadding: 1.5 },
+        headStyles: { fillColor: [60, 60, 60] },
+        margin: { left: 8, right: 8 },
+      });
+      y = (doc as any).lastAutoTable.finalY + 4;
+      doc.setFontSize(9); doc.setFont("helvetica", "bold");
+      doc.text(`Total parts charges: ${money(data.partsChargesTotal)}`, 14, y);
+      doc.setFont("helvetica", "normal"); y += 6;
+    }
     if (section.id === "table") {
       autoTable(doc, {
         startY: y,
