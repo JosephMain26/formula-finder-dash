@@ -90,6 +90,7 @@ export const DEFAULT_REPORT_SPEC: ReportSpec = {
     { id: "range", enabled: true },
     { id: "totals", enabled: true },
     { id: "balance", enabled: false },
+    { id: "partsCharges", enabled: false },
     { id: "table", enabled: true },
   ],
   columns: ["job_date", "company", "tech_name", "job_type", "status", "price", "total_tech", "paid"],
