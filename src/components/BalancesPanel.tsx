@@ -57,6 +57,7 @@ function balanceLabel(net: number): string {
 
 export function BalancesPanel() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [charges, setCharges] = useState<PartsCharge[]>([]);
   const [loading, setLoading] = useState(true);
 
   const lastWeek = resolvePreset(LAST_WEEK)!;
@@ -68,6 +69,18 @@ export function BalancesPanel() {
   const [marketerFilter, setMarketerFilter] = useState("all");
   const [jobTypeFilter, setJobTypeFilter] = useState("all");
 
+  // Parts charge editor
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<Partial<PartsCharge> | null>(null);
+
+  async function refreshCharges() {
+    try {
+      setCharges(await loadPartsCharges());
+    } catch {
+      /* table may be unavailable; ignore */
+    }
+  }
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -76,14 +89,50 @@ export function BalancesPanel() {
         .select("*")
         .order("job_date", { ascending: false });
       setJobs((data as Job[]) || []);
+      await refreshCharges();
       setLoading(false);
     })();
   }, []);
 
   const uniques = useMemo(() => ({
-    marketers: [...new Set(jobs.map((j) => (j.company_1 || j.company || "").trim()).filter(Boolean))].sort(),
+    marketers: [...new Set([
+      ...jobs.map((j) => (j.company_1 || j.company || "").trim()),
+      ...charges.map((c) => (c.marketer || "").trim()),
+    ].filter(Boolean))].sort(),
     jobTypes: [...new Set(jobs.map((j) => (j.job_type || "").trim()).filter(Boolean))].sort(),
-  }), [jobs]);
+  }), [jobs, charges]);
+
+  async function saveCharge() {
+    if (!editing || !editing.marketer?.trim()) {
+      toast.error("Pick a marketer/company");
+      return;
+    }
+    try {
+      await upsertPartsCharge({
+        id: editing.id,
+        marketer: editing.marketer.trim(),
+        amount: Number(editing.amount) || 0,
+        charge_date: editing.charge_date || null,
+        description: editing.description || null,
+      });
+      setEditorOpen(false);
+      setEditing(null);
+      await refreshCharges();
+      toast.success("Parts charge saved");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save");
+    }
+  }
+
+  async function removeCharge(id: string) {
+    try {
+      await deletePartsCharge(id);
+      await refreshCharges();
+      toast.success("Parts charge deleted");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to delete");
+    }
+  }
 
   const filteredJobs = useMemo(() => jobs.filter((j) => {
     if (paidFilter === "paid" && !j.paid) return false;
