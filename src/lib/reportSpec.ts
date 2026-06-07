@@ -344,6 +344,32 @@ export function renderReportHtml(data: ReportData, spec: ReportSpec): string {
         parts.push(`<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:12px;color:#777;">No completed jobs for the balance summary.</p>`);
       }
     }
+    if (section.id === "partsCharges") {
+      if (data.partsCharges.length) {
+        const rows = data.partsCharges
+          .map(
+            (c) =>
+              `<tr><td style="padding:4px 8px;border:1px solid #ddd;">${esc(c.charge_date ? new Date(c.charge_date).toLocaleDateString() : "—")}</td>` +
+              `<td style="padding:4px 8px;border:1px solid #ddd;">${esc((c.marketer || "—").trim() || "—")}</td>` +
+              `<td style="padding:4px 8px;border:1px solid #ddd;">${esc(c.description || "—")}</td>` +
+              `<td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">${money(num(c.amount))}</td></tr>`
+          )
+          .join("");
+        parts.push(
+          `<h3 style="margin:12px 0 6px;font-family:Arial,sans-serif;font-size:14px;">Parts charges (company owes office)</h3>` +
+            `<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;margin-bottom:12px;">` +
+            `<thead><tr>` +
+            `<th style="padding:4px 8px;border:1px solid #ddd;text-align:left;background:#f3f3f3;">Date</th>` +
+            `<th style="padding:4px 8px;border:1px solid #ddd;text-align:left;background:#f3f3f3;">Marketer</th>` +
+            `<th style="padding:4px 8px;border:1px solid #ddd;text-align:left;background:#f3f3f3;">Note</th>` +
+            `<th style="padding:4px 8px;border:1px solid #ddd;text-align:right;background:#f3f3f3;">Amount</th>` +
+            `</tr></thead><tbody>${rows}</tbody></table>` +
+            `<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;"><b>Total parts charges: ${money(data.partsChargesTotal)}</b></p>`
+        );
+      } else {
+        parts.push(`<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:12px;color:#777;">No parts charges in this period.</p>`);
+      }
+    }
     if (section.id === "table") {
       const head = data.tableColumns
         .map((c) => `<th style="padding:4px 6px;border:1px solid #ddd;background:#3c3c3c;color:#fff;text-align:left;">${esc(c.label)}</th>`)
