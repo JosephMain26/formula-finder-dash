@@ -289,7 +289,7 @@ function ReportsPage() {
     setActiveTemplateId("");
   }
 
-  const previewData = useMemo(() => computeReportData(jobs, spec), [jobs, spec]);
+  const previewData = useMemo(() => computeReportData(jobs, spec, new Date(), partsCharges), [jobs, spec, partsCharges]);
 
   return (
     <div className="min-h-screen bg-background">
