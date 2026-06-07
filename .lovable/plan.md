@@ -1,44 +1,53 @@
-## What's wrong
+## Goal
 
-Your scheduled emails are not being sent because the background job that triggers them is being rejected with a "401 Unauthorized" error every time it runs.
+Let you record flat fees you charge companies/marketers for parts you buy on their behalf (not jobs). Each charge means **the company owes the office**, so it reduces that marketer's net balance. The charges show up both in the **Marketer Balances** view and in **Reports** (on-screen, PDF, and scheduled email).
 
-What I verified:
-- Your "Marketers report" automation exists, is enabled, and is scheduled weekly (Mondays, 8:00 AM New York time). It has never successfully run (`last_run_at` is empty).
-- The scheduled background task IS firing on time (every 15 minutes) and reaching the report endpoint.
-- The report endpoint rejects every call with **401 Unauthorized**. I reproduced this directly.
-- The **same problem affects job reminder emails** — that endpoint uses the identical security check and also returns 401.
-- Email delivery infrastructure itself is healthy: the domain `notify.gedatajob.com` is verified, and the email-sending queue runs every 5 seconds. So once a report is allowed through, it will actually send.
+## How it behaves
 
-### Root cause
+- A charge has: marketer/company name, amount, date, and an optional note.
+- In balances, net stays "positive = office owes marketer". A parts charge subtracts from that net (since the marketer now owes the office for parts).
+- A marketer who has only parts charges (no jobs) still appears in the balances list.
+- You add/edit/delete charges directly on the Reports & Balances page.
 
-The two endpoints check the incoming key against `process.env.SUPABASE_ANON_KEY`. That specific variable is **not available in the published server runtime** (only `SUPABASE_PUBLISHABLE_KEY` is injected). So the comparison is effectively "key vs. nothing", which always fails → 401.
+## Data
 
-I confirmed the key the scheduler sends is byte-for-byte identical to `SUPABASE_PUBLISHABLE_KEY`. So switching the check to that variable resolves it without changing any scheduled-job configuration.
+New table `parts_charges`:
+- `marketer` (text — matches the company/marketer name used in jobs)
+- `amount` (numeric)
+- `charge_date` (date)
+- `description` (text, optional)
+- standard `id`, `created_at`, `updated_at`
 
-## The fix
+RLS mirrors how jobs/companies are handled: authenticated users can view and create; admins/managers can edit/delete. Includes the required GRANTs and an `updated_at` trigger.
 
-Update the authorization check in both public dispatcher routes to validate against the key that actually exists in the runtime:
-
-1. `src/routes/api/public/hooks/dispatch-report-automations.ts`
-2. `src/routes/api/public/hooks/dispatch-job-reminders.ts`
-
-In each, change the check from comparing against `SUPABASE_ANON_KEY` to comparing against `SUPABASE_PUBLISHABLE_KEY` (keeping `SUPABASE_ANON_KEY` as a secondary fallback so nothing breaks if it ever becomes available).
+## UI / logic changes
 
 ```text
-before:  if (!apikey || apikey !== process.env.SUPABASE_ANON_KEY) -> 401
-after:   expected = SUPABASE_PUBLISHABLE_KEY || SUPABASE_ANON_KEY
-         if (!apikey || !expected || apikey !== expected) -> 401
+Reports & Balances page
+ ├─ Marketer Balances tab
+ │   ├─ NEW "Parts Charges" card: list + add/edit/delete (name, amount, date, note)
+ │   └─ Balances table: net now includes parts charges; new "Parts charged" column
+ └─ Report Builder tab
+     └─ NEW optional "Parts Charges" section (line-item list + total) in preview, PDF, email
 ```
 
-No database, cron, or schedule changes are needed.
+### Files
 
-## After the fix
+1. **Migration** — create `parts_charges` with grants, RLS policies, and update trigger.
 
-- This change only takes effect on the **published** site, so it requires a Publish to go live.
-- Once published, the next scheduled window (Monday 8:00 AM New York time) will send the marketer reports automatically. Job reminders resume immediately on their next cycle.
-- To confirm it works right away (instead of waiting for Monday), I can trigger the report endpoint once manually after publishing — that will send the current marketer reports to the admin recipients. Let me know if you'd like that verification step.
+2. **`src/lib/partsCharges.ts`** (new) — `PartsCharge` type, `loadPartsCharges()`, `upsertPartsCharge()`, `deletePartsCharge()`, and a date-range filter helper. Pure-data helper so it can also be imported by the report layer.
 
-## Out of scope
+3. **`src/lib/marketerBalance.ts`** — extend `summarizeByMarketer` to accept an optional `partsCharges` array. Add `totalPartsCharges` to each summary, subtract it from `net`, and create summary rows for marketers that only have charges. Keeps existing job logic untouched.
 
-- No changes to report content, schedule, recipients, or how balances/reports are calculated.
-- No changes to the email queue, domain, or templates.
+4. **`src/components/BalancesPanel.tsx`** — load parts charges; add a "Parts Charges" management card (add/edit/delete dialog reusing existing Dialog/Input/DatePickerField); pass charges into `summarizeByMarketer`; add a "Parts charged" column and include charges in the per-marketer PDF statement.
+
+5. **`src/lib/reportSpec.ts`** — add `"partsCharges"` to `ReportSectionId` + label; thread an optional `partsCharges` argument through `computeReportData` (fold into balance net like above, expose a charges list + total in `ReportData`); render the new section in `renderReportHtml`.
+
+6. **`src/routes/reports.tsx`** — load parts charges alongside jobs; pass them into `computeReportData` and the PDF generator; render the new section in the on-screen preview and add its toggle in the Sections list.
+
+7. **`src/routes/api/public/hooks/dispatch-report-automations.ts`** — fetch `parts_charges` once and pass into `computeReportData`/`renderReportHtml` so scheduled emails include them.
+
+## Notes
+
+- Charges are matched to marketers by name (same string already used for jobs via `company_1`/`company`), consistent with how balances group today.
+- No changes to job calculations or existing report templates; the new section defaults to off so saved templates are unaffected.
