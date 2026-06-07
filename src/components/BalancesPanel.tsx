@@ -144,9 +144,14 @@ export function BalancesPanel() {
     return true;
   }), [jobs, paidFilter, collectedFilter, marketerFilter, jobTypeFilter]);
 
+  const filteredCharges = useMemo(() => charges.filter((c) => {
+    if (marketerFilter !== "all" && (c.marketer || "").trim() !== marketerFilter) return false;
+    return true;
+  }), [charges, marketerFilter]);
+
   const summaries = useMemo(
-    () => summarizeByMarketer(filteredJobs, dateFrom, dateTo),
-    [filteredJobs, dateFrom, dateTo]
+    () => summarizeByMarketer(filteredJobs, dateFrom, dateTo, filteredCharges),
+    [filteredJobs, dateFrom, dateTo, filteredCharges]
   );
 
   function applyPreset(p: DatePreset) {
