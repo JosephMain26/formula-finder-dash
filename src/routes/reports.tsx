@@ -190,6 +190,7 @@ function pdfFromSpec(jobs: Job[], spec: ReportSpec, partsCharges: PartsCharge[] 
 function ReportsPage() {
   const { tab } = Route.useSearch();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [partsCharges, setPartsCharges] = useState<PartsCharge[]>([]);
   const [companies, setCompanies] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<StatusDef[]>([]);
   const [loading, setLoading] = useState(true);
