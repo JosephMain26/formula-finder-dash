@@ -97,8 +97,8 @@ function SortableSectionRow({
   );
 }
 
-function pdfFromSpec(jobs: Job[], spec: ReportSpec) {
-  const data = computeReportData(jobs, spec);
+function pdfFromSpec(jobs: Job[], spec: ReportSpec, partsCharges: PartsCharge[] = []) {
+  const data = computeReportData(jobs, spec, new Date(), partsCharges);
   const doc = new jsPDF({ orientation: "landscape" });
   let y = 14;
 
