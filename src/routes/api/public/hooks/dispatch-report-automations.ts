@@ -5,6 +5,7 @@ import {
   renderReportHtml,
   type ReportSpec,
 } from "@/lib/reportSpec";
+import type { PartsCharge } from "@/lib/partsCharges";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Job = Tables<"jobs">;
@@ -162,6 +163,16 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
         const { data: jobsData } = await admin.from("jobs").select("*");
         const jobs = (jobsData as Job[]) || [];
 
+        // Fetch parts charges once (flat fees that fold into marketer balances).
+        const { data: chargesData } = await admin.from("parts_charges").select("*");
+        const partsCharges = ((chargesData as any[]) || []).map((c) => ({
+          id: c.id,
+          marketer: (c.marketer || "").trim(),
+          amount: Number(c.amount) || 0,
+          charge_date: c.charge_date,
+          description: c.description,
+        })) as PartsCharge[];
+
         let sent = 0;
         for (const raw of due) {
           const a = raw as Automation;
@@ -189,7 +200,7 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
 
               for (const name of names) {
                 const perSpec: ReportSpec = { ...spec, marketers: [name] };
-                const data = computeReportData(jobs, perSpec, localToday);
+                const data = computeReportData(jobs, perSpec, localToday, partsCharges);
                 const html = renderReportHtml(data, perSpec);
 
                 const recipients = new Set<string>(chosen);
@@ -203,7 +214,7 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
                 }
               }
             } else {
-              const data = computeReportData(jobs, spec, localToday);
+              const data = computeReportData(jobs, spec, localToday, partsCharges);
               const html = renderReportHtml(data, spec);
               const recipients = new Set<string>();
               for (const e of rec.emails || []) if (e) recipients.add(e);

@@ -848,6 +848,36 @@ export type Database = {
           },
         ]
       }
+      parts_charges: {
+        Row: {
+          amount: number
+          charge_date: string | null
+          created_at: string
+          description: string | null
+          id: string
+          marketer: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          charge_date?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          marketer: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          charge_date?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          marketer?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pending_invites: {
         Row: {
           accepted_at: string | null

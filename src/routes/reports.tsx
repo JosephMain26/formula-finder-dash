@@ -31,6 +31,7 @@ import {
   type ReportSpec, type ReportSectionId, type ReportColumnKey, type TotalKey, type ReportDateMode,
 } from "@/lib/reportSpec";
 import { loadTemplates, saveTemplates, makeId, type TemplatesSetting, type ReportTemplate } from "@/lib/settings";
+import { loadPartsCharges, type PartsCharge } from "@/lib/partsCharges";
 import { loadStatuses, type StatusDef } from "@/lib/jobSchema";
 import {
   loadAutomations, upsertAutomation, deleteAutomation,
@@ -96,8 +97,8 @@ function SortableSectionRow({
   );
 }
 
-function pdfFromSpec(jobs: Job[], spec: ReportSpec) {
-  const data = computeReportData(jobs, spec);
+function pdfFromSpec(jobs: Job[], spec: ReportSpec, partsCharges: PartsCharge[] = []) {
+  const data = computeReportData(jobs, spec, new Date(), partsCharges);
   const doc = new jsPDF({ orientation: "landscape" });
   let y = 14;
 
@@ -145,6 +146,27 @@ function pdfFromSpec(jobs: Job[], spec: ReportSpec) {
       doc.text(`Total net: ${money(data.balanceGrandNet)}`, 14, y);
       doc.setFont("helvetica", "normal"); y += 6;
     }
+    if (section.id === "partsCharges") {
+      doc.setFontSize(11); doc.setFont("helvetica", "bold");
+      doc.text("Parts charges (company owes office)", 14, y); doc.setFont("helvetica", "normal"); y += 4;
+      autoTable(doc, {
+        startY: y,
+        head: [["Date", "Marketer", "Note", "Amount"]],
+        body: data.partsCharges.map((c) => [
+          c.charge_date ? new Date(c.charge_date).toLocaleDateString() : "—",
+          (c.marketer || "—").trim() || "—",
+          c.description || "—",
+          money(Number(c.amount || 0)),
+        ]),
+        styles: { fontSize: 8, cellPadding: 1.5 },
+        headStyles: { fillColor: [60, 60, 60] },
+        margin: { left: 8, right: 8 },
+      });
+      y = (doc as any).lastAutoTable.finalY + 4;
+      doc.setFontSize(9); doc.setFont("helvetica", "bold");
+      doc.text(`Total parts charges: ${money(data.partsChargesTotal)}`, 14, y);
+      doc.setFont("helvetica", "normal"); y += 6;
+    }
     if (section.id === "table") {
       autoTable(doc, {
         startY: y,
@@ -168,6 +190,7 @@ function pdfFromSpec(jobs: Job[], spec: ReportSpec) {
 function ReportsPage() {
   const { tab } = Route.useSearch();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [partsCharges, setPartsCharges] = useState<PartsCharge[]>([]);
   const [companies, setCompanies] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<StatusDef[]>([]);
   const [loading, setLoading] = useState(true);
@@ -198,6 +221,7 @@ function ReportsPage() {
     loadTemplates().then(setTemplates);
     loadStatuses().then(setStatuses).catch(() => {});
     loadAutomations().then(setAutomations).catch(() => {});
+    loadPartsCharges().then(setPartsCharges).catch(() => {});
   }, []);
 
   const reportTemplates = templates.reportTemplates || [];
@@ -265,7 +289,7 @@ function ReportsPage() {
     setActiveTemplateId("");
   }
 
-  const previewData = useMemo(() => computeReportData(jobs, spec), [jobs, spec]);
+  const previewData = useMemo(() => computeReportData(jobs, spec, new Date(), partsCharges), [jobs, spec, partsCharges]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -453,7 +477,7 @@ function ReportsPage() {
             </Card>
 
             <div className="flex justify-end">
-              <Button onClick={() => pdfFromSpec(jobs, spec)} disabled={loading}>
+              <Button onClick={() => pdfFromSpec(jobs, spec, partsCharges)} disabled={loading}>
                 <FileDown className="h-4 w-4 mr-2" /> Generate PDF
               </Button>
             </div>

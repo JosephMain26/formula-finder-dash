@@ -1,5 +1,6 @@
 import type { Tables } from "@/integrations/supabase/types";
 import { isCompleted } from "@/lib/databoard/metrics";
+import { filterChargesByRange, type PartsCharge } from "@/lib/partsCharges";
 
 type Job = Tables<"jobs">;
 
@@ -48,6 +49,8 @@ export type MarketerBalanceSummary = {
   jobsCount: number;
   totalEarned: number;
   totalCollectedByMarketer: number;
+  totalPartsCharges: number; // flat fees the marketer owes the office for parts
+  partsCharges: PartsCharge[];
   net: number; // positive = office owes marketer, negative = marketer owes office
   rows: MarketerBalanceRow[];
 };
@@ -55,11 +58,16 @@ export type MarketerBalanceSummary = {
 /**
  * Group completed jobs (within an optional date range) by marketer and compute
  * the net balance due for each. Date filtering uses job_date (inclusive).
+ *
+ * Optional `partsCharges` are flat fees the marketer owes the office for parts
+ * bought on their behalf; they reduce the marketer's net (office owes less).
+ * Charges are filtered to the same date range using charge_date.
  */
 export function summarizeByMarketer(
   jobs: Job[],
   fromDate?: string,
-  toDate?: string
+  toDate?: string,
+  partsCharges: PartsCharge[] = []
 ): MarketerBalanceSummary[] {
   const inRange = (j: Job) => {
     if (fromDate && (!j.job_date || j.job_date < fromDate)) return false;
@@ -68,6 +76,24 @@ export function summarizeByMarketer(
   };
 
   const groups = new Map<string, MarketerBalanceSummary>();
+
+  const ensureGroup = (name: string): MarketerBalanceSummary => {
+    let g = groups.get(name);
+    if (!g) {
+      g = {
+        marketer: name,
+        jobsCount: 0,
+        totalEarned: 0,
+        totalCollectedByMarketer: 0,
+        totalPartsCharges: 0,
+        partsCharges: [],
+        net: 0,
+        rows: [],
+      };
+      groups.set(name, g);
+    }
+    return g;
+  };
 
   for (const job of jobs) {
     if (!isCompleted(job)) continue;
@@ -78,18 +104,7 @@ export function summarizeByMarketer(
     const collectedByMarketer = (job as any).marketer_collected ? num(job.price) : 0;
     const net = jobMarketerBalance(job);
 
-    let g = groups.get(name);
-    if (!g) {
-      g = {
-        marketer: name,
-        jobsCount: 0,
-        totalEarned: 0,
-        totalCollectedByMarketer: 0,
-        net: 0,
-        rows: [],
-      };
-      groups.set(name, g);
-    }
+    const g = ensureGroup(name);
     g.jobsCount += 1;
     g.totalEarned += earned;
     g.totalCollectedByMarketer += collectedByMarketer;
@@ -97,11 +112,23 @@ export function summarizeByMarketer(
     g.rows.push({ job, earned, collectedByMarketer, net });
   }
 
+  // Fold in parts charges. A charge means the marketer owes the office, so it
+  // subtracts from the net. Marketers with only charges still get a group.
+  for (const charge of filterChargesByRange(partsCharges, fromDate, toDate)) {
+    const name = (charge.marketer || "—").trim() || "—";
+    const g = ensureGroup(name);
+    const amt = num(charge.amount);
+    g.totalPartsCharges += amt;
+    g.net -= amt;
+    g.partsCharges.push(charge);
+  }
+
   const out = Array.from(groups.values());
   // Round to cents to avoid float noise.
   for (const g of out) {
     g.totalEarned = Math.round(g.totalEarned * 100) / 100;
     g.totalCollectedByMarketer = Math.round(g.totalCollectedByMarketer * 100) / 100;
+    g.totalPartsCharges = Math.round(g.totalPartsCharges * 100) / 100;
     g.net = Math.round(g.net * 100) / 100;
   }
   out.sort((a, b) => a.marketer.localeCompare(b.marketer));

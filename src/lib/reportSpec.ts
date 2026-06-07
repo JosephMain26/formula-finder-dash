@@ -1,5 +1,6 @@
 import type { Tables } from "@/integrations/supabase/types";
 import { summarizeByMarketer, type MarketerBalanceSummary } from "@/lib/marketerBalance";
+import { filterChargesByRange, type PartsCharge } from "@/lib/partsCharges";
 
 type Job = Tables<"jobs">;
 
@@ -37,13 +38,14 @@ export const REPORT_COLUMNS = [
 export type ReportColumnKey = (typeof REPORT_COLUMNS)[number]["key"];
 
 // ---------- Sections ----------
-export type ReportSectionId = "title" | "range" | "totals" | "balance" | "table";
+export type ReportSectionId = "title" | "range" | "totals" | "balance" | "partsCharges" | "table";
 
 export const REPORT_SECTION_LABELS: Record<ReportSectionId, string> = {
   title: "Title",
   range: "Date Range",
   totals: "Totals",
   balance: "Balance summary",
+  partsCharges: "Parts charges",
   table: "Jobs Table",
 };
 
@@ -88,6 +90,7 @@ export const DEFAULT_REPORT_SPEC: ReportSpec = {
     { id: "range", enabled: true },
     { id: "totals", enabled: true },
     { id: "balance", enabled: false },
+    { id: "partsCharges", enabled: false },
     { id: "table", enabled: true },
   ],
   columns: ["job_date", "company", "tech_name", "job_type", "status", "price", "total_tech", "paid"],
@@ -198,9 +201,16 @@ export interface ReportData {
   tableRows: string[][];
   balanceSummaries: MarketerBalanceSummary[];
   balanceGrandNet: number;
+  partsCharges: PartsCharge[];
+  partsChargesTotal: number;
 }
 
-export function computeReportData(jobs: Job[], spec: ReportSpec, today = new Date()): ReportData {
+export function computeReportData(
+  jobs: Job[],
+  spec: ReportSpec,
+  today = new Date(),
+  partsCharges: PartsCharge[] = []
+): ReportData {
   const range = resolveSpecRange(spec, today);
   const from = range?.from || "";
   const to = range?.to || "";
@@ -220,6 +230,13 @@ export function computeReportData(jobs: Job[], spec: ReportSpec, today = new Dat
     return true;
   });
 
+  // Parts charges: filter by date range, then by marketer selection (if any).
+  const charges = filterChargesByRange(partsCharges, from || undefined, to || undefined).filter(
+    (c) => marketerSet.size === 0 || marketerSet.has((c.marketer || "").trim())
+  );
+  const partsChargesTotal =
+    Math.round(charges.reduce((a, c) => a + num(c.amount), 0) * 100) / 100;
+
   const totals = filtered.reduce<ReportTotals>(
     (acc, j) => {
       acc.revenue += num(j.price);
@@ -237,7 +254,7 @@ export function computeReportData(jobs: Job[], spec: ReportSpec, today = new Dat
   }[];
   const tableRows = filtered.map((j) => tableColumns.map((c) => fmtCell(getCellValue(j, c.key), c.key)));
 
-  const balanceSummaries = summarizeByMarketer(filtered, from || undefined, to || undefined);
+  const balanceSummaries = summarizeByMarketer(filtered, from || undefined, to || undefined, charges);
   const balanceGrandNet = Math.round(balanceSummaries.reduce((a, s) => a + s.net, 0) * 100) / 100;
 
   const rangeText = range
@@ -253,6 +270,8 @@ export function computeReportData(jobs: Job[], spec: ReportSpec, today = new Dat
     tableRows,
     balanceSummaries,
     balanceGrandNet,
+    partsCharges: charges,
+    partsChargesTotal,
   };
 }
 
@@ -323,6 +342,32 @@ export function renderReportHtml(data: ReportData, spec: ReportSpec): string {
         );
       } else {
         parts.push(`<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:12px;color:#777;">No completed jobs for the balance summary.</p>`);
+      }
+    }
+    if (section.id === "partsCharges") {
+      if (data.partsCharges.length) {
+        const rows = data.partsCharges
+          .map(
+            (c) =>
+              `<tr><td style="padding:4px 8px;border:1px solid #ddd;">${esc(c.charge_date ? new Date(c.charge_date).toLocaleDateString() : "—")}</td>` +
+              `<td style="padding:4px 8px;border:1px solid #ddd;">${esc((c.marketer || "—").trim() || "—")}</td>` +
+              `<td style="padding:4px 8px;border:1px solid #ddd;">${esc(c.description || "—")}</td>` +
+              `<td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">${money(num(c.amount))}</td></tr>`
+          )
+          .join("");
+        parts.push(
+          `<h3 style="margin:12px 0 6px;font-family:Arial,sans-serif;font-size:14px;">Parts charges (company owes office)</h3>` +
+            `<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;margin-bottom:12px;">` +
+            `<thead><tr>` +
+            `<th style="padding:4px 8px;border:1px solid #ddd;text-align:left;background:#f3f3f3;">Date</th>` +
+            `<th style="padding:4px 8px;border:1px solid #ddd;text-align:left;background:#f3f3f3;">Marketer</th>` +
+            `<th style="padding:4px 8px;border:1px solid #ddd;text-align:left;background:#f3f3f3;">Note</th>` +
+            `<th style="padding:4px 8px;border:1px solid #ddd;text-align:right;background:#f3f3f3;">Amount</th>` +
+            `</tr></thead><tbody>${rows}</tbody></table>` +
+            `<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;"><b>Total parts charges: ${money(data.partsChargesTotal)}</b></p>`
+        );
+      } else {
+        parts.push(`<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:12px;color:#777;">No parts charges in this period.</p>`);
       }
     }
     if (section.id === "table") {
