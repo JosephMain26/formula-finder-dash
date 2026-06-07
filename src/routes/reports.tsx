@@ -221,6 +221,7 @@ function ReportsPage() {
     loadTemplates().then(setTemplates);
     loadStatuses().then(setStatuses).catch(() => {});
     loadAutomations().then(setAutomations).catch(() => {});
+    loadPartsCharges().then(setPartsCharges).catch(() => {});
   }, []);
 
   const reportTemplates = templates.reportTemplates || [];
