@@ -201,9 +201,16 @@ export interface ReportData {
   tableRows: string[][];
   balanceSummaries: MarketerBalanceSummary[];
   balanceGrandNet: number;
+  partsCharges: PartsCharge[];
+  partsChargesTotal: number;
 }
 
-export function computeReportData(jobs: Job[], spec: ReportSpec, today = new Date()): ReportData {
+export function computeReportData(
+  jobs: Job[],
+  spec: ReportSpec,
+  today = new Date(),
+  partsCharges: PartsCharge[] = []
+): ReportData {
   const range = resolveSpecRange(spec, today);
   const from = range?.from || "";
   const to = range?.to || "";
@@ -223,6 +230,13 @@ export function computeReportData(jobs: Job[], spec: ReportSpec, today = new Dat
     return true;
   });
 
+  // Parts charges: filter by date range, then by marketer selection (if any).
+  const charges = filterChargesByRange(partsCharges, from || undefined, to || undefined).filter(
+    (c) => marketerSet.size === 0 || marketerSet.has((c.marketer || "").trim())
+  );
+  const partsChargesTotal =
+    Math.round(charges.reduce((a, c) => a + num(c.amount), 0) * 100) / 100;
+
   const totals = filtered.reduce<ReportTotals>(
     (acc, j) => {
       acc.revenue += num(j.price);
@@ -240,7 +254,7 @@ export function computeReportData(jobs: Job[], spec: ReportSpec, today = new Dat
   }[];
   const tableRows = filtered.map((j) => tableColumns.map((c) => fmtCell(getCellValue(j, c.key), c.key)));
 
-  const balanceSummaries = summarizeByMarketer(filtered, from || undefined, to || undefined);
+  const balanceSummaries = summarizeByMarketer(filtered, from || undefined, to || undefined, charges);
   const balanceGrandNet = Math.round(balanceSummaries.reduce((a, s) => a + s.net, 0) * 100) / 100;
 
   const rangeText = range
@@ -256,6 +270,8 @@ export function computeReportData(jobs: Job[], spec: ReportSpec, today = new Dat
     tableRows,
     balanceSummaries,
     balanceGrandNet,
+    partsCharges: charges,
+    partsChargesTotal,
   };
 }
 
