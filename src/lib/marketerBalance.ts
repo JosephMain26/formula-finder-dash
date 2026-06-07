@@ -49,6 +49,8 @@ export type MarketerBalanceSummary = {
   jobsCount: number;
   totalEarned: number;
   totalCollectedByMarketer: number;
+  totalPartsCharges: number; // flat fees the marketer owes the office for parts
+  partsCharges: PartsCharge[];
   net: number; // positive = office owes marketer, negative = marketer owes office
   rows: MarketerBalanceRow[];
 };
