@@ -1,53 +1,48 @@
-## Goal
+# App Reference Handbook (PDF)
 
-Let you record flat fees you charge companies/marketers for parts you buy on their behalf (not jobs). Each charge means **the company owes the office**, so it reduces that marketer's net balance. The charges show up both in the **Marketer Balances** view and in **Reports** (on-screen, PDF, and scheduled email).
+Produce a single, professional, downloadable PDF that documents the complete application: every page, form field, button, setting, database column, and calculation formula. The PDF will be generated from the actual codebase (routes, components, lib, and schema) and saved to persistent storage so you can download it.
 
-## How it behaves
+## Output
+- A polished, multi-page PDF: cover page, table of contents, and one chapter per app area.
+- Saved as a downloadable artifact you can open or share with your team.
+- Branded to match the app (colors/typography pulled from the design tokens).
 
-- A charge has: marketer/company name, amount, date, and an optional note.
-- In balances, net stays "positive = office owes marketer". A parts charge subtracts from that net (since the marketer now owes the office for parts).
-- A marketer who has only parts charges (no jobs) still appears in the balances list.
-- You add/edit/delete charges directly on the Reports & Balances page.
-
-## Data
-
-New table `parts_charges`:
-- `marketer` (text — matches the company/marketer name used in jobs)
-- `amount` (numeric)
-- `charge_date` (date)
-- `description` (text, optional)
-- standard `id`, `created_at`, `updated_at`
-
-RLS mirrors how jobs/companies are handled: authenticated users can view and create; admins/managers can edit/delete. Includes the required GRANTs and an `updated_at` trigger.
-
-## UI / logic changes
+## Chapters
 
 ```text
-Reports & Balances page
- ├─ Marketer Balances tab
- │   ├─ NEW "Parts Charges" card: list + add/edit/delete (name, amount, date, note)
- │   └─ Balances table: net now includes parts charges; new "Parts charged" column
- └─ Report Builder tab
-     └─ NEW optional "Parts Charges" section (line-item list + total) in preview, PDF, email
+1.  Cover + Overview        App purpose, tech stack, roles overview
+2.  Core Calculations       Revenue, marketer/tech/office splits, balances, parts charges
+3.  Jobs                    Add/Edit job fields, JobsTable, inline edit, bulk edit, filters
+4.  DataBoard               Widgets, KPIs, insights, goals, mobile drag-lock, exports
+5.  Schedule                Calendar, reschedule, reminders
+6.  Clients / Companies     Lists, import, marketer types
+7.  Technicians / Installers Catalogs, installations editor
+8.  Balances                Marketer balance table, parts charges, PDF statements
+9.  Reports                 Report builder, sections, columns, totals, automations
+10. Messaging & AI          Template variables, SMS, AI message parsing
+11. Settings                Form builder, statuses, type groups, door centers, catalogs, users/RBAC
+12. Database Schema         Every table + column (jobs, parts_charges, app_settings, profiles, etc.)
+13. Roles & Permissions     RBAC matrix
 ```
 
-### Files
+## Key formulas documented (verbatim from code)
 
-1. **Migration** — create `parts_charges` with grants, RLS policies, and update trigger.
+```text
+revenue        = price - co_parts - office_parts - parts - tip - (cc_fee if card)
+marketerBase   = fixed ? marketer_fixed_amount : revenue * marketer_pct
+techBase       = fixed ? tech_fixed_amount     : revenue * tech_pct
+officeBase     = fixed ? office_fixed_amount   : revenue * (1 - marketer_pct - tech_pct)
+total_marketer = marketerBase + co_parts
+total_tech     = techBase + parts + tip
+total_office   = officeBase + office_parts
+marketer net   = positive ⇒ office owes marketer; parts charges reduce net
+```
 
-2. **`src/lib/partsCharges.ts`** (new) — `PartsCharge` type, `loadPartsCharges()`, `upsertPartsCharge()`, `deletePartsCharge()`, and a date-range filter helper. Pure-data helper so it can also be imported by the report layer.
+## How it will be built (technical)
+- A Python script (reportlab) reads the documented structure and renders the PDF to `/mnt/documents/app-reference-handbook.pdf`.
+- Source of truth: existing files already reviewed — `jobCalc.ts`, `marketerBalance.ts`, `reportSpec.ts`, `metrics.ts`, `partsCharges.ts`, route files, settings components, and `integrations/supabase/types.ts` for the schema.
+- After generation, each page is rendered to images and visually QA'd (overflow, clipping, layout) and fixed before delivery.
+- No application code is changed — this is a documentation artifact only.
 
-3. **`src/lib/marketerBalance.ts`** — extend `summarizeByMarketer` to accept an optional `partsCharges` array. Add `totalPartsCharges` to each summary, subtract it from `net`, and create summary rows for marketers that only have charges. Keeps existing job logic untouched.
-
-4. **`src/components/BalancesPanel.tsx`** — load parts charges; add a "Parts Charges" management card (add/edit/delete dialog reusing existing Dialog/Input/DatePickerField); pass charges into `summarizeByMarketer`; add a "Parts charged" column and include charges in the per-marketer PDF statement.
-
-5. **`src/lib/reportSpec.ts`** — add `"partsCharges"` to `ReportSectionId` + label; thread an optional `partsCharges` argument through `computeReportData` (fold into balance net like above, expose a charges list + total in `ReportData`); render the new section in `renderReportHtml`.
-
-6. **`src/routes/reports.tsx`** — load parts charges alongside jobs; pass them into `computeReportData` and the PDF generator; render the new section in the on-screen preview and add its toggle in the Sections list.
-
-7. **`src/routes/api/public/hooks/dispatch-report-automations.ts`** — fetch `parts_charges` once and pass into `computeReportData`/`renderReportHtml` so scheduled emails include them.
-
-## Notes
-
-- Charges are matched to marketers by name (same string already used for jobs via `company_1`/`company`), consistent with how balances group today.
-- No changes to job calculations or existing report templates; the new section defaults to off so saved templates are unaffected.
+## Deliverable
+A `<presentation-artifact>` link to the finished PDF so you can preview/download it directly.
