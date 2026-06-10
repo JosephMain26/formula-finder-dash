@@ -476,6 +476,32 @@ function SettingsPage() {
           <TabsContent value="users" className="mt-4">
             <UsersManager />
           </TabsContent>
+
+          {/* HELP */}
+          <TabsContent value="help" className="mt-4">
+            <Card>
+              <CardHeader><CardTitle>Documentation</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <FileText className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Application Reference Handbook</p>
+                    <p className="text-sm text-muted-foreground">
+                      A complete PDF reference covering every page, field, button, setting, and
+                      calculation formula used across the app — including pay splits, balances, and parts charges.
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href="/app-reference-handbook.pdf"
+                  download
+                  className={buttonVariants({ variant: "default" })}
+                >
+                  <Download className="h-4 w-4 mr-2" /> Download Handbook (PDF)
+                </a>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
     </div>
