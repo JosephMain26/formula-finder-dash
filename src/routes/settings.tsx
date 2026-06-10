@@ -200,6 +200,7 @@ function SettingsPage() {
               <TabsTrigger value="doors">Door Centers</TabsTrigger>
               <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Training</TabsTrigger>
               <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
+              <TabsTrigger value="help"><HelpCircle className="h-4 w-4 mr-1" /> Help</TabsTrigger>
             </TabsList>
           </div>
 
