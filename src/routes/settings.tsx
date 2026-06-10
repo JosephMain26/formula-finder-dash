@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { JobFormBuilder } from "@/components/settings/JobFormBuilder";
 import { MessageTemplatesManager } from "@/components/settings/MessageTemplatesManager";
 import { StatusesManager } from "@/components/settings/StatusesManager";
@@ -199,6 +200,7 @@ function SettingsPage() {
               <TabsTrigger value="doors">Door Centers</TabsTrigger>
               <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Training</TabsTrigger>
               <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
+              <TabsTrigger value="help"><HelpCircle className="h-4 w-4 mr-1" /> Help</TabsTrigger>
             </TabsList>
           </div>
 
@@ -473,6 +475,32 @@ function SettingsPage() {
           {/* USERS */}
           <TabsContent value="users" className="mt-4">
             <UsersManager />
+          </TabsContent>
+
+          {/* HELP */}
+          <TabsContent value="help" className="mt-4">
+            <Card>
+              <CardHeader><CardTitle>Documentation</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <FileText className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Application Reference Handbook</p>
+                    <p className="text-sm text-muted-foreground">
+                      A complete PDF reference covering every page, field, button, setting, and
+                      calculation formula used across the app — including pay splits, balances, and parts charges.
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href="/app-reference-handbook.pdf"
+                  download
+                  className={buttonVariants({ variant: "default" })}
+                >
+                  <Download className="h-4 w-4 mr-2" /> Download Handbook (PDF)
+                </a>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
