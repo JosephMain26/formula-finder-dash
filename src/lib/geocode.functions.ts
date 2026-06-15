@@ -54,7 +54,14 @@ function buildFallbackQueries(address: string): string[] {
 
   const noHouseNumber = cleaned.replace(/^\s*\d+[a-z]?\s+/i, "").trim();
 
-  const queries = [address, cleaned, noHouseNumber].filter(Boolean);
+  // OpenStreetMap often lacks exact house numbers for residential streets, so
+  // progressively fall back to coarser locations (street → city/state/zip) so a
+  // pin still lands in the right area instead of dropping the job entirely.
+  const parts = cleaned.split(",").map((p) => p.trim()).filter(Boolean);
+  const dropStreetLine = parts.length > 1 ? parts.slice(1).join(", ") : "";
+  const lastTwo = parts.length > 2 ? parts.slice(-2).join(", ") : "";
+
+  const queries = [address, cleaned, noHouseNumber, dropStreetLine, lastTwo].filter(Boolean);
   return Array.from(new Set(queries));
 }
 
