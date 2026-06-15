@@ -142,11 +142,13 @@ export const geocodeAddressServer = createServerFn({ method: "POST" })
     // Geocoding/billing access, fall back to the free US Census geocoder
     // (exact US house numbers) and finally OpenStreetMap for anything else.
     const google = await geocodeViaGoogle(data.address);
-    if (google) return google;
+    if (google) { console.log("[geocode] google", data.address); return google; }
 
     const census = await geocodeViaCensus(data.address);
-    if (census) return census;
+    if (census) { console.log("[geocode] census", data.address, census); return census; }
 
-    return geocodeViaNominatim(data.address);
+    const osm = await geocodeViaNominatim(data.address);
+    console.log("[geocode] osm/none", data.address, osm);
+    return osm;
   });
 
