@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
+const CENSUS_URL = "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress";
 
 type GeoResult = { lat: number; lng: number; displayName: string };
 
