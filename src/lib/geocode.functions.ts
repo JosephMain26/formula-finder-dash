@@ -65,6 +65,38 @@ function buildFallbackQueries(address: string): string[] {
   return Array.from(new Set(queries));
 }
 
+// US Census geocoder — free, no key, permits automated/bulk use, and resolves
+// exact house numbers for US addresses. Best fallback for this app's US jobs.
+async function geocodeViaCensus(address: string): Promise<GeoResult | null> {
+  try {
+    const url =
+      `${CENSUS_URL}?address=${encodeURIComponent(address)}` +
+      `&benchmark=Public_AR_Current&format=json`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      result?: {
+        addressMatches?: Array<{
+          matchedAddress?: string;
+          coordinates?: { x: number; y: number };
+        }>;
+      };
+    };
+    const hit = json.result?.addressMatches?.[0];
+    const coords = hit?.coordinates;
+    if (coords && Number.isFinite(coords.x) && Number.isFinite(coords.y)) {
+      return {
+        lat: coords.y,
+        lng: coords.x,
+        displayName: hit?.matchedAddress || address,
+      };
+    }
+  } catch {
+    // fall through to next geocoder
+  }
+  return null;
+}
+
 async function geocodeViaNominatim(address: string): Promise<GeoResult | null> {
   for (const q of buildFallbackQueries(address)) {
     try {
@@ -105,9 +137,15 @@ export const geocodeAddressServer = createServerFn({ method: "POST" })
     return { address };
   })
   .handler(async ({ data }): Promise<GeoResult | null> => {
-    // Prefer Google (most accurate), but fall back to OpenStreetMap so the map
-    // still works when the Google connector key lacks Geocoding/billing access.
+    // Prefer Google (most accurate). When the Google connector key lacks
+    // Geocoding/billing access, fall back to the free US Census geocoder
+    // (exact US house numbers) and finally OpenStreetMap for anything else.
     const google = await geocodeViaGoogle(data.address);
     if (google) return google;
+
+    const census = await geocodeViaCensus(data.address);
+    if (census) return census;
+
     return geocodeViaNominatim(data.address);
   });
+
