@@ -1,31 +1,25 @@
 import { createServerFn } from "@tanstack/react-start";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
+const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 
-export const geocodeAddressServer = createServerFn({ method: "POST" })
-  .inputValidator((data: { address: string }) => {
-    const address = String(data?.address ?? "").trim();
-    if (!address) throw new Error("address required");
-    if (address.length > 500) throw new Error("address too long");
-    return { address };
-  })
-  .handler(async ({ data }) => {
-    const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-    const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
-    if (!GOOGLE_MAPS_API_KEY) throw new Error("GOOGLE_MAPS_API_KEY is not configured");
+type GeoResult = { lat: number; lng: number; displayName: string };
 
-    const url = `${GATEWAY_URL}/maps/api/geocode/json?address=${encodeURIComponent(data.address)}`;
+async function geocodeViaGoogle(address: string): Promise<GeoResult | null> {
+  const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
+  const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+  // If the connector isn't configured, skip silently and let the fallback run.
+  if (!LOVABLE_API_KEY || !GOOGLE_MAPS_API_KEY) return null;
+
+  try {
+    const url = `${GATEWAY_URL}/maps/api/geocode/json?address=${encodeURIComponent(address)}`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "X-Connection-Api-Key": GOOGLE_MAPS_API_KEY,
       },
     });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Geocode failed [${res.status}]: ${text.slice(0, 200)}`);
-    }
+    if (!res.ok) return null;
     const json = (await res.json()) as {
       status: string;
       results?: Array<{
@@ -35,10 +29,78 @@ export const geocodeAddressServer = createServerFn({ method: "POST" })
     };
     const hit = json.results?.[0];
     const loc = hit?.geometry?.location;
+    // status can be REQUEST_DENIED / ZERO_RESULTS when the connector key lacks
+    // Geocoding/billing — treat anything non-OK as "no result" and fall back.
     if (json.status !== "OK" || !loc) return null;
     return {
       lat: loc.lat,
       lng: loc.lng,
-      displayName: hit?.formatted_address || data.address,
+      displayName: hit?.formatted_address || address,
     };
+  } catch {
+    return null;
+  }
+}
+
+// Progressively simplify an address so a free geocoder can still place a pin
+// (e.g. strip unit/apartment, then drop the house number to city + state + zip).
+function buildFallbackQueries(address: string): string[] {
+  const cleaned = address
+    .replace(/\b(?:apt|apartment|unit|ste|suite|fl|floor|bldg|building|#)\b\.?\s*[\w-]*/gi, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s*,\s*/g, ", ")
+    .replace(/,+/g, ",")
+    .trim();
+
+  const noHouseNumber = cleaned.replace(/^\s*\d+[a-z]?\s+/i, "").trim();
+
+  const queries = [address, cleaned, noHouseNumber].filter(Boolean);
+  return Array.from(new Set(queries));
+}
+
+async function geocodeViaNominatim(address: string): Promise<GeoResult | null> {
+  for (const q of buildFallbackQueries(address)) {
+    try {
+      const url = `${NOMINATIM_URL}?format=json&limit=1&q=${encodeURIComponent(q)}`;
+      const res = await fetch(url, {
+        headers: {
+          // Nominatim requires an identifying User-Agent.
+          "User-Agent": "lovable-databoard/1.0 (map widget geocoding)",
+          Accept: "application/json",
+        },
+      });
+      if (!res.ok) continue;
+      const arr = (await res.json()) as Array<{
+        lat?: string;
+        lon?: string;
+        display_name?: string;
+      }>;
+      const hit = arr?.[0];
+      if (hit?.lat && hit?.lon) {
+        return {
+          lat: Number(hit.lat),
+          lng: Number(hit.lon),
+          displayName: hit.display_name || address,
+        };
+      }
+    } catch {
+      // try next, less specific query
+    }
+  }
+  return null;
+}
+
+export const geocodeAddressServer = createServerFn({ method: "POST" })
+  .inputValidator((data: { address: string }) => {
+    const address = String(data?.address ?? "").trim();
+    if (!address) throw new Error("address required");
+    if (address.length > 500) throw new Error("address too long");
+    return { address };
+  })
+  .handler(async ({ data }): Promise<GeoResult | null> => {
+    // Prefer Google (most accurate), but fall back to OpenStreetMap so the map
+    // still works when the Google connector key lacks Geocoding/billing access.
+    const google = await geocodeViaGoogle(data.address);
+    if (google) return google;
+    return geocodeViaNominatim(data.address);
   });
