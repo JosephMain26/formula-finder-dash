@@ -25,6 +25,7 @@ import { loadJobInstallations, saveJobInstallations, loadDoorCenters, type JobIn
 import { SendMessageDialog } from "@/components/SendMessageDialog";
 import { CheckPhotoField } from "@/components/CheckPhotoField";
 import { Send } from "lucide-react";
+import { PAYMENT_RECIPIENTS, getJobPayments, type JobPayment } from "@/lib/jobPayments";
 
 type Company = Tables<"companies">;
 type Technician = {
