@@ -190,6 +190,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         });
         setUseManualPercentage(!!job.manual_percentage);
         loadJobInstallations(job.id).then(setInstallations);
+        setPayments(getJobPayments(job));
         setUseManualMarketerPercentage(false);
       } else {
         const seedStatus = statuses.length ? defaultStatusName(statuses) : "Pending";
