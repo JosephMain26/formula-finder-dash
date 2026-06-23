@@ -14,6 +14,7 @@ export interface PartsCharge {
   amount: number;
   charge_date: string | null;
   description: string | null;
+  paid: boolean;
   created_at?: string;
   updated_at?: string;
 }
