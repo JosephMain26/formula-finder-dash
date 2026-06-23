@@ -1,30 +1,53 @@
-# One-Click PDF Handbook Download
+# Multiple payments per job
 
-Add a one-click download button for the generated Application Reference Handbook PDF, placed in a new admin-only **Help** tab on the Settings page.
+Let jobs record several payments instead of one. Each payment captures **amount**, **who received it** (Marketer / Office / Tech), **payment method**, and — when the method is a check — a **check number** plus **front/back photos**. The existing single payment fields stay as-is; the new list is added below them. Marketer-collected payments feed into the balances math.
 
-## What you'll get
-- A new **Help** tab in Settings (admin-only, matching the existing Settings access control).
-- A clean card with a short description and a **Download Handbook (PDF)** button.
-- Clicking the button instantly downloads the PDF — no generation wait, no extra steps.
+## Where data lives (no new table)
 
-## How it works (technical)
+Payments are stored as a JSON array on the job record, inside the existing `extra_fields` JSON column (`extra_fields.payments`). No database migration, no new access rules — fastest and lowest-credit path. Check photos reuse the existing private `check-photos` storage bucket and the current `CheckPhotoField` uploader.
+
+Each payment entry:
 
 ```text
-public/app-reference-handbook.pdf   ← PDF served as a static asset
-        │
-        ▼
-Settings → Help tab → "Download Handbook (PDF)" button (anchor with download attr)
+{
+  id, amount, recipient ("Marketer" | "Office" | "Tech"),
+  method, check_no, check_front_url, check_back_url, date
+}
 ```
 
-### Steps
-1. **Serve the PDF as a static asset.** Copy the already-generated `app-reference-handbook.pdf` into the project's `public/` folder so the app can serve it at `/app-reference-handbook.pdf`. This is the lightest-weight approach — no backend, no storage bucket, no credits to generate on demand.
-2. **Add a Help tab to `src/routes/settings.tsx`.**
-   - Add a new `<TabsTrigger value="help">` (with a `FileText` icon) to the existing `TabsList`.
-   - Add a matching `<TabsContent value="help">` containing a `Card` with a title ("Documentation"), a one-line description, and a download button.
-   - The button is a styled anchor: `<a href="/app-reference-handbook.pdf" download>` wrapped to look like the app's primary `Button` (using `buttonVariants`), with a `Download` icon.
-   - Access stays admin-only automatically — the whole Settings page already redirects non-admins to `/`.
+## 1. Job dialog — new "Payments" section
 
-## Notes
-- No database, RLS, or backend changes.
-- If the handbook content changes later, regenerating the PDF and replacing the file in `public/` keeps the same download link working.
-- Only `src/routes/settings.tsx` is edited; one static file is added.
+In `src/components/AddJobDialog.tsx`, below the current Payment Method / check / "Marketer received the payment" fields, add an **Additional payments** block:
+
+- "Add payment" button appends a row.
+- Each row: amount input, recipient dropdown (Marketer / Office / Tech), method dropdown (same `paymentMethods` list as the main field), and a remove (trash) button.
+- When the chosen method contains "check", the row reveals a check-number input and two `CheckPhotoField` uploaders (front/back), exactly like the existing check UI.
+- The array is seeded from `job.extra_fields.payments` when editing, empty when adding.
+- On save, the payments array is written into the `extra_fields` payload (alongside the existing `check_front_url` / `check_back_url` handling) so nothing else in the form changes.
+
+Recipient options are fixed to Marketer / Office / Tech per the request.
+
+## 2. Feed marketer-collected payments into balances
+
+In `src/lib/marketerBalance.ts`, generalize "collected by marketer":
+
+- Today: if `marketer_collected` is true, the marketer is treated as holding the **full price**, so `net = total_marketer - price`.
+- New: compute `collectedByMarketer` = sum of `extra_fields.payments` amounts where `recipient === "Marketer"`. Then `net = total_marketer - collectedByMarketer`.
+- **Backward compatible:** if a job has no payments array, fall back to the current behavior (`marketer_collected ? price : 0`). So existing jobs and the existing checkbox keep working unchanged.
+
+This flows automatically into `summarizeByMarketer`, the Balances table ("Collected by marketer" column and Net balance), and the PDF statement, since they all read from the same summary.
+
+Office- and Tech-recipient payments are recorded on the job for reference. (The app currently only has a *marketer* balances view, so those amounts are stored but don't change any existing payout screen — there's no tech/office balance page to feed today.)
+
+## Technical notes
+
+- `extra_fields` is already a JSON column read/written by the dialog, so no migration tool call is needed.
+- Money math stays in `marketerBalance.ts`; `computeJobTotals` (job totals) is untouched — totals already come from price/percentages, and payments only affect who-holds-the-cash (the balance), not earnings.
+- Validation: amounts parsed as numbers, blank rows ignored on save; check photo requirement mirrors the existing check rule.
+
+## Files touched
+
+- `src/components/AddJobDialog.tsx` — payments state, UI section, save payload.
+- `src/lib/marketerBalance.ts` — `collectedByMarketer` from payments with fallback.
+
+No backend, schema, or access-rule changes.
