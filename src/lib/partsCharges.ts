@@ -36,6 +36,7 @@ export async function loadPartsCharges(): Promise<PartsCharge[]> {
     amount: num(r.amount),
     charge_date: r.charge_date,
     description: r.description,
+    paid: !!r.paid,
     created_at: r.created_at,
     updated_at: r.updated_at,
   }));
