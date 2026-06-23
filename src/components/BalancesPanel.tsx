@@ -376,7 +376,7 @@ export function BalancesPanel() {
           <Button
             size="sm"
             onClick={() => {
-              setEditing({ marketer: "", amount: 0, charge_date: dateTo || "", description: "" });
+              setEditing({ marketer: "", amount: 0, charge_date: dateTo || "", description: "", paid: false });
               setEditorOpen(true);
             }}
           >
