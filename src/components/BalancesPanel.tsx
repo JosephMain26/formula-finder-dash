@@ -136,6 +136,15 @@ export function BalancesPanel() {
     }
   }
 
+  async function toggleChargePaid(c: PartsCharge, paid: boolean) {
+    try {
+      await upsertPartsCharge({ ...c, paid });
+      await refreshCharges();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to update");
+    }
+  }
+
   const filteredJobs = useMemo(() => jobs.filter((j) => {
     if (paidFilter === "paid" && !j.paid) return false;
     if (paidFilter === "unpaid" && j.paid) return false;
