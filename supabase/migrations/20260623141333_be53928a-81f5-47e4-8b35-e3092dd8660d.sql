@@ -1,0 +1,1 @@
+ALTER TABLE public.parts_charges ADD COLUMN IF NOT EXISTS paid boolean NOT NULL DEFAULT false;

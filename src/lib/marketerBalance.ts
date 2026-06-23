@@ -129,6 +129,7 @@ export function summarizeByMarketer(
   // Fold in parts charges. A charge means the marketer owes the office, so it
   // subtracts from the net. Marketers with only charges still get a group.
   for (const charge of filterChargesByRange(partsCharges, fromDate, toDate)) {
+    if (charge.paid) continue; // settled charges don't affect the balance
     const name = (charge.marketer || "—").trim() || "—";
     const g = ensureGroup(name);
     const amt = num(charge.amount);

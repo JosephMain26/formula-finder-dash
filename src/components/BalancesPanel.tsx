@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { FileDown, Plus, Pencil, Trash2 } from "lucide-react";
 import { DatePickerField } from "@/components/DatePickerField";
@@ -114,6 +115,7 @@ export function BalancesPanel() {
         amount: Number(editing.amount) || 0,
         charge_date: editing.charge_date || null,
         description: editing.description || null,
+        paid: !!editing.paid,
       });
       setEditorOpen(false);
       setEditing(null);
@@ -131,6 +133,15 @@ export function BalancesPanel() {
       toast.success("Parts charge deleted");
     } catch (e: any) {
       toast.error(e?.message || "Failed to delete");
+    }
+  }
+
+  async function toggleChargePaid(c: PartsCharge, paid: boolean) {
+    try {
+      await upsertPartsCharge({ ...c, paid });
+      await refreshCharges();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to update");
     }
   }
 
@@ -365,7 +376,7 @@ export function BalancesPanel() {
           <Button
             size="sm"
             onClick={() => {
-              setEditing({ marketer: "", amount: 0, charge_date: dateTo || "", description: "" });
+              setEditing({ marketer: "", amount: 0, charge_date: dateTo || "", description: "", paid: false });
               setEditorOpen(true);
             }}
           >
@@ -383,16 +394,24 @@ export function BalancesPanel() {
                   <TableHead>Marketer / Company</TableHead>
                   <TableHead>Note</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-center">Paid</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCharges.map((c) => (
-                  <TableRow key={c.id}>
+                  <TableRow key={c.id} className={cn(c.paid && "opacity-60")}>
                     <TableCell>{c.charge_date ? new Date(c.charge_date).toLocaleDateString() : "—"}</TableCell>
                     <TableCell className="font-medium">{c.marketer || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{c.description || "—"}</TableCell>
                     <TableCell className="text-right">{money(Number(c.amount || 0))}</TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={c.paid}
+                        onCheckedChange={(v) => toggleChargePaid(c, v === true)}
+                        aria-label="Mark charge as paid"
+                      />
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(c); setEditorOpen(true); }}>
                         <Pencil className="h-4 w-4" />
@@ -457,6 +476,13 @@ export function BalancesPanel() {
                   className="h-9"
                 />
               </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={!!editing.paid}
+                  onCheckedChange={(v) => setEditing((s) => ({ ...s!, paid: v === true }))}
+                />
+                Mark as paid (excluded from balance report)
+              </label>
             </div>
           )}
           <DialogFooter>

@@ -14,6 +14,7 @@ export interface PartsCharge {
   amount: number;
   charge_date: string | null;
   description: string | null;
+  paid: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -35,6 +36,7 @@ export async function loadPartsCharges(): Promise<PartsCharge[]> {
     amount: num(r.amount),
     charge_date: r.charge_date,
     description: r.description,
+    paid: !!r.paid,
     created_at: r.created_at,
     updated_at: r.updated_at,
   }));
@@ -48,6 +50,7 @@ export async function upsertPartsCharge(
     amount: num(charge.amount),
     charge_date: charge.charge_date || null,
     description: charge.description?.trim() || null,
+    paid: !!charge.paid,
   };
   if (charge.id) {
     const { error } = await supabase
