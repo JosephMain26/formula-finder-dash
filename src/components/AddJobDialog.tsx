@@ -249,6 +249,50 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  function addPayment() {
+    setPayments((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        amount: 0,
+        recipient: "Office",
+        method: form.payment || "",
+        check_no: "",
+        check_front_url: "",
+        check_back_url: "",
+        date: form.job_date || "",
+      },
+    ]);
+  }
+
+  function updatePayment(id: string, patch: Partial<JobPayment>) {
+    setPayments((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  }
+
+  function removePayment(id: string) {
+    setPayments((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  // Drop blank rows and coerce amounts to numbers before persisting.
+  function cleanPayments(list: JobPayment[]): JobPayment[] {
+    return list
+      .filter((p) => (Number(p.amount) || 0) !== 0 || p.method || p.check_no)
+      .map((p) => {
+        const isCheck = (p.method || "").toLowerCase().includes("check");
+        return {
+          id: p.id,
+          amount: Number(p.amount) || 0,
+          recipient: p.recipient,
+          method: p.method || "",
+          check_no: isCheck ? (p.check_no || null) : null,
+          check_front_url: isCheck ? (p.check_front_url || null) : null,
+          check_back_url: isCheck ? (p.check_back_url || null) : null,
+          date: p.date || null,
+        };
+      });
+  }
+
+
   function feePercentFor(methodName: string): number {
     const m = paymentMethods.find((p) => p.name === methodName);
     return typeof m?.feePercent === "number" ? m.feePercent : 0;
