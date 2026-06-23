@@ -50,6 +50,7 @@ export async function upsertPartsCharge(
     amount: num(charge.amount),
     charge_date: charge.charge_date || null,
     description: charge.description?.trim() || null,
+    paid: !!charge.paid,
   };
   if (charge.id) {
     const { error } = await supabase
