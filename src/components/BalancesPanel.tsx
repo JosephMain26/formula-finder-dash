@@ -115,6 +115,7 @@ export function BalancesPanel() {
         amount: Number(editing.amount) || 0,
         charge_date: editing.charge_date || null,
         description: editing.description || null,
+        paid: !!editing.paid,
       });
       setEditorOpen(false);
       setEditing(null);
