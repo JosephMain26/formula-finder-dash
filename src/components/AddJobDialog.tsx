@@ -373,6 +373,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         ...(form.payment?.toLowerCase().includes("check")
           ? { check_front_url: form.check_front_url || null, check_back_url: form.check_back_url || null }
           : { check_front_url: null, check_back_url: null }),
+        payments: cleanPayments(payments),
       },
       deposit_received: !!form.deposit_received,
       deposit_amount: form.deposit_amount ? parseFloat(form.deposit_amount) : 0,
