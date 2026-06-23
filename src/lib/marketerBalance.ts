@@ -115,7 +115,7 @@ export function summarizeByMarketer(
 
     const name = marketerName(job);
     const earned = num((job as any).total_marketer);
-    const collectedByMarketer = (job as any).marketer_collected ? num(job.price) : 0;
+    const collectedByMarketer = marketerCollectedAmount(job);
     const net = jobMarketerBalance(job);
 
     const g = ensureGroup(name);
