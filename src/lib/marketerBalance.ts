@@ -44,10 +44,7 @@ function marketerCollectedAmount(job: Job): number {
 export function jobMarketerBalance(job: Job): number {
   if (!isCompleted(job)) return 0;
   const earned = num((job as any).total_marketer);
-  if ((job as any).marketer_collected) {
-    return earned - num(job.price);
-  }
-  return earned;
+  return earned - marketerCollectedAmount(job);
 }
 
 export function marketerName(job: Job): string {
