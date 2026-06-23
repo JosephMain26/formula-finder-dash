@@ -1,6 +1,7 @@
 import type { Tables } from "@/integrations/supabase/types";
 import { isCompleted } from "@/lib/databoard/metrics";
 import { filterChargesByRange, type PartsCharge } from "@/lib/partsCharges";
+import { getJobPayments, sumCollectedBy } from "@/lib/jobPayments";
 
 type Job = Tables<"jobs">;
 
@@ -8,6 +9,22 @@ const num = (v: unknown) => {
   const n = Number(v ?? 0);
   return Number.isFinite(n) ? n : 0;
 };
+
+/**
+ * Amount of the customer's payment the marketer is holding for a job.
+ *
+ * Preferred source: the per-payment list (sum of payments whose recipient is
+ * "Marketer"). Falls back to the legacy `marketer_collected` boolean (which
+ * meant the marketer held the whole price) when no payments are recorded, so
+ * existing jobs keep working unchanged.
+ */
+function marketerCollectedAmount(job: Job): number {
+  const payments = getJobPayments(job);
+  if (payments.length > 0) {
+    return sumCollectedBy(payments, "Marketer");
+  }
+  return (job as any).marketer_collected ? num(job.price) : 0;
+}
 
 /**
  * Net balance contribution of a single job, from the office's perspective.
@@ -27,10 +44,7 @@ const num = (v: unknown) => {
 export function jobMarketerBalance(job: Job): number {
   if (!isCompleted(job)) return 0;
   const earned = num((job as any).total_marketer);
-  if ((job as any).marketer_collected) {
-    return earned - num(job.price);
-  }
-  return earned;
+  return earned - marketerCollectedAmount(job);
 }
 
 export function marketerName(job: Job): string {
@@ -101,7 +115,7 @@ export function summarizeByMarketer(
 
     const name = marketerName(job);
     const earned = num((job as any).total_marketer);
-    const collectedByMarketer = (job as any).marketer_collected ? num(job.price) : 0;
+    const collectedByMarketer = marketerCollectedAmount(job);
     const net = jobMarketerBalance(job);
 
     const g = ensureGroup(name);

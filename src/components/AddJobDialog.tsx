@@ -25,6 +25,7 @@ import { loadJobInstallations, saveJobInstallations, loadDoorCenters, type JobIn
 import { SendMessageDialog } from "@/components/SendMessageDialog";
 import { CheckPhotoField } from "@/components/CheckPhotoField";
 import { Send } from "lucide-react";
+import { PAYMENT_RECIPIENTS, getJobPayments, type JobPayment } from "@/lib/jobPayments";
 
 type Company = Tables<"companies">;
 type Technician = {
@@ -113,6 +114,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
 
   const [form, setForm] = useState(emptyForm);
   const [installations, setInstallations] = useState<JobInstallation[]>([]);
+  const [payments, setPayments] = useState<JobPayment[]>([]);
   const [sendOpen, setSendOpen] = useState(false);
 
   useEffect(() => {
@@ -188,11 +190,13 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         });
         setUseManualPercentage(!!job.manual_percentage);
         loadJobInstallations(job.id).then(setInstallations);
+        setPayments(getJobPayments(job));
         setUseManualMarketerPercentage(false);
       } else {
         const seedStatus = statuses.length ? defaultStatusName(statuses) : "Pending";
         setForm({ ...emptyForm, status: seedStatus, ...(prefill || {}) } as typeof emptyForm);
         setInstallations([]);
+        setPayments([]);
         setUseManualPercentage(false);
         setUseManualMarketerPercentage(false);
         setClientMode("skip");
@@ -244,6 +248,50 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   function update(field: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
+
+  function addPayment() {
+    setPayments((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        amount: 0,
+        recipient: "Office",
+        method: form.payment || "",
+        check_no: "",
+        check_front_url: "",
+        check_back_url: "",
+        date: form.job_date || "",
+      },
+    ]);
+  }
+
+  function updatePayment(id: string, patch: Partial<JobPayment>) {
+    setPayments((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  }
+
+  function removePayment(id: string) {
+    setPayments((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  // Drop blank rows and coerce amounts to numbers before persisting.
+  function cleanPayments(list: JobPayment[]): JobPayment[] {
+    return list
+      .filter((p) => (Number(p.amount) || 0) !== 0 || p.method || p.check_no)
+      .map((p) => {
+        const isCheck = (p.method || "").toLowerCase().includes("check");
+        return {
+          id: p.id,
+          amount: Number(p.amount) || 0,
+          recipient: p.recipient,
+          method: p.method || "",
+          check_no: isCheck ? (p.check_no || null) : null,
+          check_front_url: isCheck ? (p.check_front_url || null) : null,
+          check_back_url: isCheck ? (p.check_back_url || null) : null,
+          date: p.date || null,
+        };
+      });
+  }
+
 
   function feePercentFor(methodName: string): number {
     const m = paymentMethods.find((p) => p.name === methodName);
@@ -369,6 +417,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
         ...(form.payment?.toLowerCase().includes("check")
           ? { check_front_url: form.check_front_url || null, check_back_url: form.check_back_url || null }
           : { check_front_url: null, check_back_url: null }),
+        payments: cleanPayments(payments),
       },
       deposit_received: !!form.deposit_received,
       deposit_amount: form.deposit_amount ? parseFloat(form.deposit_amount) : 0,
@@ -986,6 +1035,90 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               </p>
             </div>
           )}
+
+          {/* ---------------- ADDITIONAL PAYMENTS ---------------- */}
+          <div className="md:col-span-2 mt-2 pt-3 border-t rounded-lg border bg-muted/30 p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Additional payments</div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Record split or partial payments and who received each (Marketer / Office / Tech).
+                </p>
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={addPayment}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Add payment
+              </Button>
+            </div>
+
+            {payments.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground">No additional payments recorded.</p>
+            ) : (
+              payments.map((p) => {
+                const isCheck = (p.method || "").toLowerCase().includes("check");
+                return (
+                  <div key={p.id} className="rounded-md border bg-background p-3 space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                      <div className="md:col-span-3">
+                        <label className="text-xs font-medium text-muted-foreground">Amount ($)</label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={p.amount === 0 ? "" : String(p.amount)}
+                          onChange={(e) => updatePayment(p.id, { amount: parseFloat(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="md:col-span-3">
+                        <label className="text-xs font-medium text-muted-foreground">Received by</label>
+                        <Select value={p.recipient} onValueChange={(v) => updatePayment(p.id, { recipient: v as JobPayment["recipient"] })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {PAYMENT_RECIPIENTS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="md:col-span-4">
+                        <label className="text-xs font-medium text-muted-foreground">Method</label>
+                        <Select value={p.method || ""} onValueChange={(v) => updatePayment(p.id, { method: v })}>
+                          <SelectTrigger>
+                            <SelectValue placeholder={paymentMethods.length ? "Select method" : "Add methods in Settings"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {paymentMethods.map((m) => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="md:col-span-2 flex justify-end">
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9" onClick={() => removePayment(p.id)} aria-label="Remove payment">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {isCheck && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="md:col-span-2">
+                          <label className="text-xs font-medium text-muted-foreground">Check #</label>
+                          <Input value={p.check_no || ""} onChange={(e) => updatePayment(p.id, { check_no: e.target.value })} />
+                        </div>
+                        <CheckPhotoField
+                          label="Check photo — front"
+                          value={p.check_front_url || ""}
+                          onChange={(url) => updatePayment(p.id, { check_front_url: url })}
+                        />
+                        <CheckPhotoField
+                          label="Check photo — back"
+                          value={p.check_back_url || ""}
+                          onChange={(url) => updatePayment(p.id, { check_back_url: url })}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+
 
 
 
