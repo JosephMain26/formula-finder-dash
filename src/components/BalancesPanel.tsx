@@ -476,6 +476,13 @@ export function BalancesPanel() {
                   className="h-9"
                 />
               </div>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={!!editing.paid}
+                  onCheckedChange={(v) => setEditing((s) => ({ ...s!, paid: v === true }))}
+                />
+                Mark as paid (excluded from balance report)
+              </label>
             </div>
           )}
           <DialogFooter>
