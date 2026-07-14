@@ -50,6 +50,7 @@ export type Database = {
       clients: {
         Row: {
           address: string | null
+          company_name: string | null
           created_at: string
           created_by: string | null
           email: string | null
@@ -61,6 +62,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          company_name?: string | null
           created_at?: string
           created_by?: string | null
           email?: string | null
@@ -72,6 +74,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          company_name?: string | null
           created_at?: string
           created_by?: string | null
           email?: string | null
@@ -1158,6 +1161,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number

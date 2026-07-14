@@ -1,16 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ArrowLeft, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowLeft, ExternalLink, Building2, Phone, Mail, MapPin, StickyNote } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
@@ -21,6 +24,7 @@ import type { Tables } from "@/integrations/supabase/types";
 type Client = {
   id: string;
   name: string;
+  company_name: string | null;
   phone: string | null;
   email: string | null;
   address: string | null;
@@ -58,6 +62,14 @@ function ClientsPage() {
   const [toDelete, setToDelete] = useState<Client | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
+  // Split-screen profile (single click)
+  const [profileClient, setProfileClient] = useState<Client | null>(null);
+  // Edit form dialog (double click / add / edit button)
+  const [formOpen, setFormOpen] = useState(false);
+  const [formClient, setFormClient] = useState<Client | null>(null);
+
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   async function fetchClients() {
     setLoading(true);
     const { data } = await (supabase as any).from("clients").select("*").order("name");
@@ -67,7 +79,6 @@ function ClientsPage() {
 
   useEffect(() => {
     fetchClients();
-    // Check for highlight param from URL
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const hl = params.get("highlight");
@@ -75,11 +86,44 @@ function ClientsPage() {
     }
   }, []);
 
+  // Auto-open edit form when highlight param matches (kept from previous behavior)
+  useEffect(() => {
+    if (!highlightId || clients.length === 0) return;
+    const match = clients.find((c) => c.id === highlightId);
+    if (match) {
+      openEdit(match);
+      setHighlightId(null);
+    }
+  }, [highlightId, clients]);
+
+  function openAdd() {
+    setFormClient(null);
+    setFormOpen(true);
+  }
+  function openEdit(c: Client) {
+    setFormClient(c);
+    setFormOpen(true);
+  }
+  function handleRowClick(c: Client) {
+    if (clickTimer.current) return;
+    clickTimer.current = setTimeout(() => {
+      clickTimer.current = null;
+      setProfileClient(c);
+    }, 220);
+  }
+  function handleRowDoubleClick(c: Client) {
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+    }
+    openEdit(c);
+  }
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return clients;
     return clients.filter((c) =>
-      [c.name, c.phone, c.email, c.address].some((v) => (v || "").toLowerCase().includes(q))
+      [c.name, c.company_name, c.phone, c.email, c.address].some((v) => (v || "").toLowerCase().includes(q))
     );
   }, [clients, search]);
 
@@ -89,6 +133,7 @@ function ClientsPage() {
     if (error) toast.error(error.message);
     else toast.success("Client deleted");
     setToDelete(null);
+    if (profileClient?.id === toDelete.id) setProfileClient(null);
     fetchClients();
   }
 
@@ -108,7 +153,7 @@ function ClientsPage() {
           </div>
           <div className="flex items-center gap-2">
             <ImportClientsDialog onImported={fetchClients} />
-            <ClientDialog onSaved={fetchClients} />
+            <Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" /> Add Client</Button>
           </div>
         </div>
       </header>
@@ -116,9 +161,12 @@ function ClientsPage() {
       <main className="max-w-[1200px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <Card>
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <CardTitle className="text-lg">All Clients</CardTitle>
+            <div>
+              <CardTitle className="text-lg">All Clients</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">Single-click a row to view profile · double-click to edit</p>
+            </div>
             <Input
-              placeholder="Search name, phone, email, address…"
+              placeholder="Search name, company, phone, email, address…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full sm:max-w-xs h-9"
@@ -134,10 +182,11 @@ function ClientsPage() {
               </div>
             ) : (
               <div className="rounded-lg border overflow-x-auto">
-                <Table className="min-w-[800px]">
+                <Table className="min-w-[900px]">
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead>Name</TableHead>
+                      <TableHead>Company</TableHead>
                       <TableHead>Phone</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Address</TableHead>
@@ -147,15 +196,28 @@ function ClientsPage() {
                   </TableHeader>
                   <TableBody>
                     {filtered.map((c) => (
-                      <TableRow key={c.id} className={highlightId === c.id ? "bg-primary/10 ring-1 ring-primary/30" : ""}>
+                      <TableRow
+                        key={c.id}
+                        onClick={() => handleRowClick(c)}
+                        onDoubleClick={() => handleRowDoubleClick(c)}
+                        className={
+                          "cursor-pointer select-none " +
+                          (profileClient?.id === c.id ? "bg-primary/10 ring-1 ring-primary/30" : "")
+                        }
+                      >
                         <TableCell className="font-medium">{c.name}</TableCell>
+                        <TableCell>{c.company_name || "—"}</TableCell>
                         <TableCell>{c.phone || "—"}</TableCell>
                         <TableCell>{c.email || "—"}</TableCell>
                         <TableCell className="max-w-[260px] truncate">{c.address || "—"}</TableCell>
                         <TableCell className="max-w-[200px] truncate">{c.notes || "—"}</TableCell>
                         <TableCell>
-                          <div className="flex gap-1">
-                            {canEdit && <ClientDialog client={c} onSaved={fetchClients} autoOpen={highlightId === c.id} onOpened={() => setHighlightId(null)} />}
+                          <div className="flex gap-1" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+                            {canEdit && (
+                              <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
                             {canDelete && (
                               <Button variant="ghost" size="icon" onClick={() => setToDelete(c)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -172,6 +234,26 @@ function ClientsPage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Split-screen profile */}
+      <ClientProfileSheet
+        client={profileClient}
+        onOpenChange={(o) => { if (!o) setProfileClient(null); }}
+        onEdit={(c) => { setProfileClient(null); openEdit(c); }}
+        onJobSaved={fetchClients}
+        canEdit={canEdit}
+      />
+
+      {/* Add / Edit form */}
+      <ClientFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        client={formClient}
+        onSaved={(saved) => {
+          fetchClients();
+          if (saved && profileClient?.id === saved.id) setProfileClient(saved);
+        }}
+      />
 
       <AlertDialog open={!!toDelete} onOpenChange={(v) => !v && setToDelete(null)}>
         <AlertDialogContent>
@@ -192,46 +274,179 @@ function ClientsPage() {
   );
 }
 
-function ClientDialog({ client, onSaved, autoOpen, onOpened }: { client?: Client; onSaved: () => void; autoOpen?: boolean; onOpened?: () => void }) {
-  const isEdit = !!client;
-  const [open, setOpen] = useState(false);
-
-  // Auto-open when highlight param matches
-  useEffect(() => {
-    if (autoOpen && !open) {
-      setOpen(true);
-      onOpened?.();
-    }
-  }, [autoOpen]);
-  const [loading, setLoading] = useState(false);
+function ClientProfileSheet({
+  client, onOpenChange, onEdit, onJobSaved, canEdit,
+}: {
+  client: Client | null;
+  onOpenChange: (o: boolean) => void;
+  onEdit: (c: Client) => void;
+  onJobSaved: () => void;
+  canEdit: boolean;
+}) {
   const [linkedJobs, setLinkedJobs] = useState<LinkedJob[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(false);
   const [editJob, setEditJob] = useState<Tables<"jobs"> | null>(null);
+
+  useEffect(() => {
+    if (!client) { setLinkedJobs([]); return; }
+    setLoadingJobs(true);
+    (supabase as any)
+      .from("jobs")
+      .select("id,job_date,address,status,price,phone_no,tech_name")
+      .eq("client_id", client.id)
+      .order("job_date", { ascending: false })
+      .then(({ data }: any) => {
+        setLinkedJobs((data as LinkedJob[]) || []);
+        setLoadingJobs(false);
+      });
+  }, [client]);
+
+  const totalValue = linkedJobs.reduce((s, j) => s + (Number(j.price) || 0), 0);
+
+  return (
+    <>
+      <Sheet open={!!client} onOpenChange={onOpenChange}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          {client && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="text-xl">{client.name}</SheetTitle>
+                {client.company_name && (
+                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Building2 className="h-3.5 w-3.5" /> {client.company_name}
+                  </p>
+                )}
+              </SheetHeader>
+
+              {canEdit && (
+                <div className="mt-4">
+                  <Button className="w-full" onClick={() => onEdit(client)}>
+                    <Pencil className="h-4 w-4 mr-2" /> Edit Client
+                  </Button>
+                </div>
+              )}
+
+              {/* Contact details */}
+              <div className="mt-6 space-y-3">
+                <ProfileRow icon={<Phone className="h-4 w-4" />} label="Phone" value={client.phone} />
+                <ProfileRow icon={<Mail className="h-4 w-4" />} label="Email" value={client.email} />
+                <ProfileRow icon={<MapPin className="h-4 w-4" />} label="Address" value={client.address} />
+                <ProfileRow icon={<StickyNote className="h-4 w-4" />} label="Notes" value={client.notes} />
+              </div>
+
+              {/* Stats */}
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Total jobs</p>
+                  <p className="text-2xl font-bold">{linkedJobs.length}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Total value</p>
+                  <p className="text-2xl font-bold">${totalValue.toFixed(0)}</p>
+                </div>
+              </div>
+
+              {/* Past jobs */}
+              <div className="mt-6">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                  Past Jobs {linkedJobs.length > 0 && `(${linkedJobs.length})`}
+                </p>
+                {loadingJobs ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">Loading…</p>
+                ) : linkedJobs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">No jobs linked to this client yet.</p>
+                ) : (
+                  <div className="space-y-1">
+                    {linkedJobs.map((j) => (
+                      <button
+                        key={j.id}
+                        type="button"
+                        className="w-full text-left flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent transition-colors"
+                        onClick={() => {
+                          supabase.from("jobs").select("*").eq("id", j.id).single().then(({ data }) => {
+                            if (data) setEditJob(data);
+                          });
+                        }}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="text-muted-foreground text-xs whitespace-nowrap">{j.job_date || "No date"}</span>
+                          <span className="truncate">{j.address || j.phone_no || "—"}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs text-muted-foreground">{j.status}</span>
+                          {j.price != null && <span className="text-xs font-medium">${Number(j.price).toFixed(0)}</span>}
+                          <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {editJob && (
+        <JobDialog
+          job={editJob}
+          open={!!editJob}
+          onOpenChange={(o) => { if (!o) setEditJob(null); }}
+          onJobSaved={() => {
+            setEditJob(null);
+            onJobSaved();
+            // refresh linked jobs
+            if (client) {
+              (supabase as any)
+                .from("jobs")
+                .select("id,job_date,address,status,price,phone_no,tech_name")
+                .eq("client_id", client.id)
+                .order("job_date", { ascending: false })
+                .then(({ data }: any) => setLinkedJobs((data as LinkedJob[]) || []));
+            }
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function ProfileRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | null }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="text-muted-foreground mt-0.5">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-sm break-words">{value || "—"}</p>
+      </div>
+    </div>
+  );
+}
+
+function ClientFormDialog({
+  open, onOpenChange, client, onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  client: Client | null;
+  onSaved: (saved: Client | null) => void;
+}) {
+  const isEdit = !!client;
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    name: client?.name || "",
-    phone: client?.phone || "",
-    email: client?.email || "",
-    address: client?.address || "",
-    notes: client?.notes || "",
+    name: "", company_name: "", phone: "", email: "", address: "", notes: "",
   });
 
   useEffect(() => {
     if (open) {
       setForm({
         name: client?.name || "",
+        company_name: client?.company_name || "",
         phone: client?.phone || "",
         email: client?.email || "",
         address: client?.address || "",
         notes: client?.notes || "",
       });
-      setLinkedJobs([]);
-      if (isEdit && client) {
-        (supabase as any)
-          .from("jobs")
-          .select("id,job_date,address,status,price,phone_no,tech_name")
-          .eq("client_id", client.id)
-          .order("job_date", { ascending: false })
-          .then(({ data }: any) => setLinkedJobs((data as LinkedJob[]) || []));
-      }
     }
   }, [open, client]);
 
@@ -246,15 +461,16 @@ function ClientDialog({ client, onSaved, autoOpen, onOpened }: { client?: Client
 
     const payload = {
       name: form.name.trim(),
+      company_name: form.company_name.trim() || null,
       phone: form.phone.trim() || null,
       email: form.email.trim() || null,
       address: form.address.trim() || null,
       notes: form.notes.trim() || null,
     };
 
-    const { error } = isEdit && client
-      ? await (supabase as any).from("clients").update(payload).eq("id", client.id)
-      : await (supabase as any).from("clients").insert(payload);
+    const { data, error } = isEdit && client
+      ? await (supabase as any).from("clients").update(payload).eq("id", client.id).select().single()
+      : await (supabase as any).from("clients").insert(payload).select().single();
 
     setLoading(false);
     if (error) {
@@ -264,105 +480,48 @@ function ClientDialog({ client, onSaved, autoOpen, onOpened }: { client?: Client
       return;
     }
     toast.success(isEdit ? "Client updated" : "Client added");
-    setOpen(false);
-    onSaved();
+    onOpenChange(false);
+    onSaved((data as Client) || null);
   }
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          {isEdit ? (
-            <Button variant="ghost" size="icon"><Pencil className="h-4 w-4" /></Button>
-          ) : (
-            <Button><Plus className="h-4 w-4 mr-2" /> Add Client</Button>
-          )}
-        </DialogTrigger>
-        <DialogContent aria-describedby={undefined} className="max-w-lg w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle>{isEdit ? "Edit Client" : "Add Client"}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Name *</label>
-              <Input value={form.name} onChange={(e) => update("name", e.target.value)} required maxLength={120} />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Phone</label>
-              <Input value={form.phone} onChange={(e) => update("phone", e.target.value)} maxLength={40} />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Email</label>
-              <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} maxLength={255} />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Address</label>
-              <Input value={form.address} onChange={(e) => update("address", e.target.value)} maxLength={300} />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Notes</label>
-              <Input value={form.notes} onChange={(e) => update("notes", e.target.value)} maxLength={500} />
-            </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent aria-describedby={undefined} className="max-w-lg w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Edit Client" : "Add Client"}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Name *</label>
+            <Input value={form.name} onChange={(e) => update("name", e.target.value)} required maxLength={120} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Company</label>
+            <Input value={form.company_name} onChange={(e) => update("company_name", e.target.value)} maxLength={160} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Phone</label>
+            <Input value={form.phone} onChange={(e) => update("phone", e.target.value)} maxLength={40} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Email</label>
+            <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} maxLength={255} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Address</label>
+            <Input value={form.address} onChange={(e) => update("address", e.target.value)} maxLength={300} />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Notes</label>
+            <Input value={form.notes} onChange={(e) => update("notes", e.target.value)} maxLength={500} />
+          </div>
 
-            {/* Linked Jobs */}
-            {isEdit && linkedJobs.length > 0 && (
-              <div className="pt-3 border-t">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Linked Jobs ({linkedJobs.length})
-                </label>
-                <div className="mt-2 space-y-1 max-h-[180px] overflow-y-auto">
-                  {linkedJobs.map((j) => (
-                    <button
-                      key={j.id}
-                      type="button"
-                      className="w-full text-left flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent transition-colors"
-                      onClick={() => {
-                        // Fetch full job to open in JobDialog
-                        supabase.from("jobs").select("*").eq("id", j.id).single().then(({ data }) => {
-                          if (data) setEditJob(data);
-                        });
-                      }}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-muted-foreground text-xs whitespace-nowrap">{j.job_date || "No date"}</span>
-                        <span className="truncate">{j.address || j.phone_no || "—"}</span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-muted-foreground">{j.status}</span>
-                        {j.price != null && <span className="text-xs font-medium">${Number(j.price).toFixed(0)}</span>}
-                        <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {isEdit && linkedJobs.length === 0 && (
-              <div className="pt-3 border-t">
-                <p className="text-xs text-muted-foreground">No jobs linked to this client yet.</p>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Job edit dialog opened from linked jobs */}
-      {editJob && (
-        <JobDialog
-          job={editJob}
-          open={!!editJob}
-          onOpenChange={(o) => { if (!o) setEditJob(null); }}
-          onJobSaved={() => {
-            setEditJob(null);
-            onSaved();
-          }}
-        />
-      )}
-    </>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
