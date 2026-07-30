@@ -66,7 +66,9 @@ export function AIRuleBuilder() {
     setBusy(true);
     try {
       const compiled = await compileAIRule({ data: { text, ...lists } });
-      const rule = newStructuredRule({ text, when: compiled.when as any, then: compiled.then as any });
+      const rule = normalizeStructuredRule(
+        newStructuredRule({ text, when: compiled.when as any, then: compiled.then as any })
+      );
       await persist([rule, ...rules]);
       setDraft("");
       toast.success("Rule added — it will be enforced automatically from now on");
