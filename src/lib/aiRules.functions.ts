@@ -40,7 +40,7 @@ export const compileAIRule = createServerFn({ method: "POST" })
             content: `Convert one plain-English parsing rule into a single structured rule for a job-management app.
 "source" is what to look at: message (whole text) or a parsed field.
 "op": contains | equals | any (any = always apply).
-"then.field" is the parsed field to set: company, tech_name, job_type, payment, notes, phone_no, address, customer_name, price, parts, co_parts, office_parts.
+"then.field" is the parsed field to set: status (job status), company, tech_name, job_type, payment, notes, phone_no, address, customer_name, price, parts, co_parts, office_parts.
 "then.mode": set (replace), prefix, append.
 Match values to the known lists when clearly intended.
 ${known}`,
