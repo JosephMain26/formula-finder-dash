@@ -43,7 +43,7 @@ export function AIRuleBuilder() {
         supabase.from("job_types").select("name"),
       ]);
       setTraining(t);
-      setRules(t.structuredRules || []);
+      setRules((t.structuredRules || []).map(normalizeStructuredRule));
       setLists({
         companies: (c.data || []).map((x: any) => x.company_name).filter(Boolean),
         technicians: (tech.data || []).map((x: any) => x.tech_name).filter(Boolean),
