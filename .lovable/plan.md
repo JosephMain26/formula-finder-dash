@@ -1,53 +1,46 @@
-# Multiple payments per job
+# Plan: AI Rule Builder + If-This-Then-That Automation Center
 
-Let jobs record several payments instead of one. Each payment captures **amount**, **who received it** (Marketer / Office / Tech), **payment method**, and — when the method is a check — a **check number** plus **front/back photos**. The existing single payment fields stay as-is; the new list is added below them. Marketer-collected payments feed into the balances math.
+## Part 1 — Fix the AI Training center
 
-## Where data lives (no new table)
+**Why it's failing today:** the "General AI Rules" box is free text that is only pasted into the parsing prompt. The model can and does ignore it, and nothing enforces it afterwards.
 
-Payments are stored as a JSON array on the job record, inside the existing `extra_fields` JSON column (`extra_fields.payments`). No database migration, no new access rules — fastest and lowest-credit path. Check photos reuse the existing private `check-photos` storage bucket and the current `CheckPhotoField` uploader.
+**Fix — write once with AI, enforce with plain logic:**
 
-Each payment entry:
+- New **Rule Builder** in Settings → AI Rules. You type a rule in plain English ("if the message mentions Elite, marketer is Elite Doors"; "if payment says zelle, set payment method to Zelle"; "phone numbers with 10 digits get +1").
+- One single AI call turns that sentence into a structured rule: `{ when: field/message contains X, then: set field Y = Z }`. That call happens **once, when you save the rule** — never again.
+- Saved rules are then applied by ordinary code after every parse, so they can never be ignored. A "Test rule" box lets you paste a sample message and see exactly which rules fire, before saving.
+- Existing marketer mapping rules and corrections stay and are folded into the same list.
+- Rules keep living in the existing `app_settings.ai_training` record — no migration needed.
 
-```text
-{
-  id, amount, recipient ("Marketer" | "Office" | "Tech"),
-  method, check_no, check_front_url, check_back_url, date
-}
-```
+## Part 2 — Automation Center (if this → then that)
 
-## 1. Job dialog — new "Payments" section
+New **Automations** tab in Settings (no extra screen in the nav). Each automation is a card: *Name • Trigger • Conditions • Actions • On/Off*.
 
-In `src/components/AddJobDialog.tsx`, below the current Payment Method / check / "Marketer received the payment" fields, add an **Additional payments** block:
+**Triggers**
+- Job created
+- Job updated
+- A field changed to a value (e.g. Status → Completed, Paid → true)
+- Time-based (e.g. job completed N days ago and still unpaid; job scheduled tomorrow)
+- Balance/parts threshold (e.g. a marketer's net balance goes above/below an amount)
 
-- "Add payment" button appends a row.
-- Each row: amount input, recipient dropdown (Marketer / Office / Tech), method dropdown (same `paymentMethods` list as the main field), and a remove (trash) button.
-- When the chosen method contains "check", the row reveals a check-number input and two `CheckPhotoField` uploaders (front/back), exactly like the existing check UI.
-- The array is seeded from `job.extra_fields.payments` when editing, empty when adding.
-- On save, the payments array is written into the `extra_fields` payload (alongside the existing `check_front_url` / `check_back_url` handling) so nothing else in the form changes.
+**Conditions** — optional AND-list of field comparisons (job type, marketer, status, price >, paid, installer empty, etc.).
 
-Recipient options are fixed to Marketer / Office / Tech per the request.
+**Actions**
+- Set a field on the job (status, paid, notes, installer, …)
+- Send email or SMS using an existing message template, to marketer / tech / client / a fixed address
+- Create an in-app alert shown in a bell menu on the dashboard
+- Run one of your existing report automations now
 
-## 2. Feed marketer-collected payments into balances
+**When they run**
+- Job created / updated / field-changed → evaluated instantly in the app the moment a job is saved (no cron delay, no credits).
+- Time-based and balance thresholds → evaluated by a new scheduled endpoint running every 15 minutes, alongside the existing report dispatcher.
 
-In `src/lib/marketerBalance.ts`, generalize "collected by marketer":
+Every run is logged so you can see what fired and why, and each automation has a "Run now (dry run)" preview that lists matching jobs and intended actions without applying them.
 
-- Today: if `marketer_collected` is true, the marketer is treated as holding the **full price**, so `net = total_marketer - price`.
-- New: compute `collectedByMarketer` = sum of `extra_fields.payments` amounts where `recipient === "Marketer"`. Then `net = total_marketer - collectedByMarketer`.
-- **Backward compatible:** if a job has no payments array, fall back to the current behavior (`marketer_collected ? price : 0`). So existing jobs and the existing checkbox keep working unchanged.
+## Technical details
 
-This flows automatically into `summarizeByMarketer`, the Balances table ("Collected by marketer" column and Net balance), and the PDF statement, since they all read from the same summary.
-
-Office- and Tech-recipient payments are recorded on the job for reference. (The app currently only has a *marketer* balances view, so those amounts are stored but don't change any existing payout screen — there's no tech/office balance page to feed today.)
-
-## Technical notes
-
-- `extra_fields` is already a JSON column read/written by the dialog, so no migration tool call is needed.
-- Money math stays in `marketerBalance.ts`; `computeJobTotals` (job totals) is untouched — totals already come from price/percentages, and payments only affect who-holds-the-cash (the balance), not earnings.
-- Validation: amounts parsed as numbers, blank rows ignored on save; check photo requirement mirrors the existing check rule.
-
-## Files touched
-
-- `src/components/AddJobDialog.tsx` — payments state, UI section, save payload.
-- `src/lib/marketerBalance.ts` — `collectedByMarketer` from payments with fallback.
-
-No backend, schema, or access-rule changes.
+- **Migration:** two tables — `automations` (name, enabled, trigger jsonb, conditions jsonb, actions jsonb, last_run_at) and `app_alerts` (title, body, job_id, read_at, created_at). Admin-managed via existing role policies; grants + RLS included.
+- **New files:** `src/lib/automations.ts` (types + CRUD), `src/lib/automationEngine.ts` (pure condition/action evaluator, shared by client and server), `src/components/settings/AutomationCenter.tsx`, `src/components/settings/AIRuleBuilder.tsx`, `src/routes/api/public/hooks/dispatch-automations.ts`.
+- **Edited:** `src/lib/aiTraining.ts` (add `structuredRules`, apply function), `src/components/ParseMessageDialog.tsx` (apply structured rules post-parse), `src/routes/settings.tsx` (two tabs), `src/components/AddJobDialog.tsx` (fire job-save triggers), `src/routes/index.tsx` (alerts bell).
+- **AI usage:** exactly one small gateway call per rule you create (rule text → JSON), via a server function using `openai/gpt-5.6-sol` with reasoning off. Nothing else calls AI at runtime.
+- pg_cron entry added for the new dispatch endpoint (15 min), reusing the existing anon-key auth pattern.
