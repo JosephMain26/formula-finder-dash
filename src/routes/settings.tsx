@@ -535,7 +535,9 @@ function SettingsPage() {
               </CardContent>
             </Card>
           </TabsContent>
+          </div>
         </Tabs>
+
       </main>
     </div>
   );
