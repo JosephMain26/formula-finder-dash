@@ -24,6 +24,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksDispatchReportAutomationsRouteImport } from './routes/api/public/hooks/dispatch-report-automations'
 import { Route as ApiPublicHooksDispatchJobRemindersRouteImport } from './routes/api/public/hooks/dispatch-job-reminders'
+import { Route as ApiPublicHooksDispatchAutomationsRouteImport } from './routes/api/public/hooks/dispatch-automations'
 
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
@@ -103,6 +104,12 @@ const ApiPublicHooksDispatchJobRemindersRoute =
     path: '/api/public/hooks/dispatch-job-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksDispatchAutomationsRoute =
+  ApiPublicHooksDispatchAutomationsRouteImport.update({
+    id: '/api/public/hooks/dispatch-automations',
+    path: '/api/public/hooks/dispatch-automations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/upload': typeof UploadRoute
+  '/api/public/hooks/dispatch-automations': typeof ApiPublicHooksDispatchAutomationsRoute
   '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
   '/api/public/hooks/dispatch-report-automations': typeof ApiPublicHooksDispatchReportAutomationsRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -134,6 +142,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/upload': typeof UploadRoute
+  '/api/public/hooks/dispatch-automations': typeof ApiPublicHooksDispatchAutomationsRoute
   '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
   '/api/public/hooks/dispatch-report-automations': typeof ApiPublicHooksDispatchReportAutomationsRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -152,6 +161,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/upload': typeof UploadRoute
+  '/api/public/hooks/dispatch-automations': typeof ApiPublicHooksDispatchAutomationsRoute
   '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
   '/api/public/hooks/dispatch-report-automations': typeof ApiPublicHooksDispatchReportAutomationsRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/technicians'
     | '/upload'
+    | '/api/public/hooks/dispatch-automations'
     | '/api/public/hooks/dispatch-job-reminders'
     | '/api/public/hooks/dispatch-report-automations'
     | '/lovable/email/queue/process'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/technicians'
     | '/upload'
+    | '/api/public/hooks/dispatch-automations'
     | '/api/public/hooks/dispatch-job-reminders'
     | '/api/public/hooks/dispatch-report-automations'
     | '/lovable/email/queue/process'
@@ -205,6 +217,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/technicians'
     | '/upload'
+    | '/api/public/hooks/dispatch-automations'
     | '/api/public/hooks/dispatch-job-reminders'
     | '/api/public/hooks/dispatch-report-automations'
     | '/lovable/email/queue/process'
@@ -223,6 +236,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TechniciansRoute: typeof TechniciansRoute
   UploadRoute: typeof UploadRoute
+  ApiPublicHooksDispatchAutomationsRoute: typeof ApiPublicHooksDispatchAutomationsRoute
   ApiPublicHooksDispatchJobRemindersRoute: typeof ApiPublicHooksDispatchJobRemindersRoute
   ApiPublicHooksDispatchReportAutomationsRoute: typeof ApiPublicHooksDispatchReportAutomationsRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -335,6 +349,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDispatchJobRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/dispatch-automations': {
+      id: '/api/public/hooks/dispatch-automations'
+      path: '/api/public/hooks/dispatch-automations'
+      fullPath: '/api/public/hooks/dispatch-automations'
+      preLoaderRoute: typeof ApiPublicHooksDispatchAutomationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -351,6 +372,8 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TechniciansRoute: TechniciansRoute,
   UploadRoute: UploadRoute,
+  ApiPublicHooksDispatchAutomationsRoute:
+    ApiPublicHooksDispatchAutomationsRoute,
   ApiPublicHooksDispatchJobRemindersRoute:
     ApiPublicHooksDispatchJobRemindersRoute,
   ApiPublicHooksDispatchReportAutomationsRoute:

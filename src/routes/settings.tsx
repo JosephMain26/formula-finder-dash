@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText, Zap } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { JobFormBuilder } from "@/components/settings/JobFormBuilder";
 import { MessageTemplatesManager } from "@/components/settings/MessageTemplatesManager";
@@ -16,6 +16,8 @@ import { InstallationCatalogManager } from "@/components/settings/InstallationCa
 import { DoorCentersManager } from "@/components/settings/DoorCentersManager";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { UsersManager } from "@/components/UsersManager";
+import { AIRuleBuilder } from "@/components/settings/AIRuleBuilder";
+import { AutomationCenter } from "@/components/settings/AutomationCenter";
 import { MyProfileCard } from "@/components/MyProfileCard";
 import { MobileNav } from "@/components/MobileNav";
 import { supabase } from "@/integrations/supabase/client";
@@ -198,7 +200,8 @@ function SettingsPage() {
               <TabsTrigger value="messages"><MessageSquare className="h-4 w-4 mr-1" /> Message Templates</TabsTrigger>
               <TabsTrigger value="catalog">Installation Catalog</TabsTrigger>
               <TabsTrigger value="doors">Door Centers</TabsTrigger>
-              <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Training</TabsTrigger>
+              <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Rules</TabsTrigger>
+              <TabsTrigger value="automations"><Zap className="h-4 w-4 mr-1" /> Automations</TabsTrigger>
               <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
               <TabsTrigger value="help"><HelpCircle className="h-4 w-4 mr-1" /> Help</TabsTrigger>
             </TabsList>
@@ -358,8 +361,14 @@ function SettingsPage() {
           </TabsContent>
 
 
+          {/* AUTOMATIONS */}
+          <TabsContent value="automations" className="mt-4">
+            <AutomationCenter />
+          </TabsContent>
+
           {/* AI TRAINING */}
           <TabsContent value="ai" className="mt-4 space-y-6">
+            <AIRuleBuilder />
             <Card>
               <CardHeader>
                 <CardTitle>Marketer Mapping Rules</CardTitle>
