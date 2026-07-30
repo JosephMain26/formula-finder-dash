@@ -189,26 +189,50 @@ function SettingsPage() {
       </header>
 
       <main className="max-w-[1400px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        <Tabs defaultValue="profile">
-          <div className="overflow-x-auto -mx-1 px-1">
-            <TabsList className="w-max">
-              <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" /> My Profile</TabsTrigger>
-              <TabsTrigger value="form"><FormInput className="h-4 w-4 mr-1" /> Job Form & Statuses</TabsTrigger>
-              <TabsTrigger value="types">Job & Comp Types</TabsTrigger>
-              <TabsTrigger value="payment">Payment Methods</TabsTrigger>
-              <TabsTrigger value="templates">Templates</TabsTrigger>
-              <TabsTrigger value="messages"><MessageSquare className="h-4 w-4 mr-1" /> Message Templates</TabsTrigger>
-              <TabsTrigger value="catalog">Installation Catalog</TabsTrigger>
-              <TabsTrigger value="doors">Door Centers</TabsTrigger>
-              <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Rules</TabsTrigger>
-              <TabsTrigger value="automations"><Zap className="h-4 w-4 mr-1" /> Automations</TabsTrigger>
-              <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
-              <TabsTrigger value="help"><HelpCircle className="h-4 w-4 mr-1" /> Help</TabsTrigger>
-            </TabsList>
+        <Tabs value={tab} onValueChange={setTab} className="flex flex-col lg:flex-row lg:items-start gap-4 lg:gap-8">
+          {/* Mobile: compact picker */}
+          <div className="lg:hidden">
+            <Select value={tab} onValueChange={setTab}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SETTINGS_NAV.map((group) => (
+                  <SelectGroup key={group.label}>
+                    <SelectLabel>{group.label}</SelectLabel>
+                    {group.items.map((i) => (
+                      <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
+          {/* Desktop: grouped sidebar */}
+          <aside className="hidden lg:block w-56 shrink-0 sticky top-20 space-y-5">
+            {SETTINGS_NAV.map((group) => (
+              <div key={group.label} className="space-y-1">
+                <p className="px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {group.label}
+                </p>
+                <TabsList className="flex-col h-auto w-full bg-transparent p-0 gap-0.5 items-stretch">
+                  {group.items.map((i) => (
+                    <TabsTrigger
+                      key={i.value}
+                      value={i.value}
+                      className="justify-start w-full px-2 py-1.5 text-sm data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                    >
+                      <i.icon className="h-4 w-4 mr-2 shrink-0" />
+                      <span className="truncate">{i.label}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
+            ))}
+          </aside>
 
-          {/* PAYMENT METHODS */}
+          <div className="flex-1 min-w-0 [&>[role=tabpanel]]:mt-0">
+
+
           {/* MY PROFILE */}
           <TabsContent value="profile" className="mt-4">
             <MyProfileCard />
