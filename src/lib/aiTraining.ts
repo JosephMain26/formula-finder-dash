@@ -144,6 +144,25 @@ export function newStructuredRule(partial?: Partial<StructuredRule>): Structured
   } as StructuredRule;
 }
 
+/** Repairs partial/legacy rule records so the UI never reads undefined.when/then */
+export function normalizeStructuredRule(r: any): StructuredRule {
+  return {
+    id: typeof r?.id === "string" && r.id ? r.id : uid(),
+    text: typeof r?.text === "string" ? r.text : "",
+    enabled: r?.enabled !== false,
+    when: {
+      source: String(r?.when?.source || "message"),
+      op: String(r?.when?.op || "contains"),
+      value: String(r?.when?.value ?? ""),
+    },
+    then: {
+      field: String(r?.then?.field || "company"),
+      value: String(r?.then?.value ?? ""),
+      mode: String(r?.then?.mode || "set"),
+    },
+  };
+}
+
 export const RULE_SOURCES = [
   "message",
   "company",
