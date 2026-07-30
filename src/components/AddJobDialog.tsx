@@ -456,6 +456,14 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     if (!error) {
       if (insertedJobId) {
         try { await saveJobInstallations(insertedJobId, installations); } catch {}
+        // Fire deterministic automations (no AI, no credits).
+        try {
+          const { data: saved } = await supabase.from("jobs").select("*").eq("id", insertedJobId).maybeSingle();
+          if (saved) {
+            const { runJobAutomations } = await import("@/lib/automationRunner");
+            await runJobAutomations(saved as any, isEdit && job ? (job as any) : null);
+          }
+        } catch {}
       }
       if (canManageClients && clientMode === "new" && !isEdit && insertedJobId) {
         const seedName = ((overrideAddress ?? form.address)?.split(",")[0]?.trim()) || form.phone_no || "";

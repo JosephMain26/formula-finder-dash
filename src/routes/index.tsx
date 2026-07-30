@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
 import { MobileNav } from "@/components/MobileNav";
+import { AlertsBell } from "@/components/AlertsBell";
 import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
 import { loadStatuses } from "@/lib/jobSchema";
 
@@ -262,6 +263,7 @@ function Dashboard() {
                 <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Settings</Button>
               </Link>
             )}
+            <AlertsBell />
             <ParseMessageDialog onJobSaved={fetchJobs} />
             <AddJobDialog onJobAdded={fetchJobs} />
             <Button variant="ghost" size="icon" onClick={signOut} title="Sign out" className="hidden lg:inline-flex"><LogOut className="h-4 w-4" /></Button>

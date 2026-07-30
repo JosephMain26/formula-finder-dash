@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { JobDialog } from "@/components/AddJobDialog";
 import { toast } from "sonner";
-import { loadAITraining, applyMarketerRules, recordMatchOverride } from "@/lib/aiTraining";
+import { loadAITraining, applyMarketerRules, applyStructuredRules, recordMatchOverride } from "@/lib/aiTraining";
 import { fetchCandidateJobs, findMatches, type JobLite, type ScoredMatch } from "@/lib/jobMatching";
 import { MatchReviewDialog } from "@/components/parseMessage/MatchReviewDialog";
 import { DiffPreviewDialog } from "@/components/parseMessage/DiffPreviewDialog";
@@ -104,7 +104,10 @@ export function ParseMessageDialog({ onJobSaved }: { onJobSaved: () => void }) {
         return;
       }
 
-      const ex = data?.extracted || {};
+      let ex = data?.extracted || {};
+
+      // Deterministic rules always win over whatever the model produced.
+      ex = applyStructuredRules(ex, trimmed, training.structuredRules).result;
 
       const ruleMatch = applyMarketerRules(
         { company: ex.company, customer_name: ex.customer_name, notes: ex.notes },

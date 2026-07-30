@@ -34,6 +34,7 @@ export type AITrainingSetting = {
   generalRules: string;
   corrections: Correction[]; // capped 100
   matchOverrides: MatchOverride[]; // capped 50
+  structuredRules?: StructuredRule[];
 };
 
 const KEY = "ai_training";
@@ -43,6 +44,7 @@ export const emptyTraining: AITrainingSetting = {
   generalRules: "",
   corrections: [],
   matchOverrides: [],
+  structuredRules: [],
 };
 
 
@@ -62,6 +64,7 @@ export async function loadAITraining(): Promise<AITrainingSetting> {
     generalRules: typeof v.generalRules === "string" ? v.generalRules : "",
     corrections: Array.isArray(v.corrections) ? v.corrections : [],
     matchOverrides: Array.isArray(v.matchOverrides) ? v.matchOverrides : [],
+    structuredRules: Array.isArray(v.structuredRules) ? v.structuredRules : [],
   };
 }
 
@@ -115,4 +118,93 @@ export async function recordCorrection(c: Omit<Correction, "id" | "at">) {
   const next: Correction = { id: uid(), at: new Date().toISOString(), ...c };
   const corrections = [next, ...t.corrections].slice(0, 100);
   await saveAITraining({ ...t, corrections });
+}
+
+// ---------------------------------------------------------------------------
+// Structured rules: written once (optionally with AI help), then enforced by
+// plain code after every parse so the model can never ignore them.
+// ---------------------------------------------------------------------------
+
+export type StructuredRule = {
+  id: string;
+  text: string; // the original plain-English sentence
+  enabled: boolean;
+  when: { source: string; op: string; value: string };
+  then: { field: string; value: string; mode: string };
+};
+
+export function newStructuredRule(partial?: Partial<StructuredRule>): StructuredRule {
+  return {
+    id: uid(),
+    text: "",
+    enabled: true,
+    when: { source: "message", op: "contains", value: "" },
+    then: { field: "company", value: "", mode: "set" },
+    ...partial,
+  } as StructuredRule;
+}
+
+export const RULE_SOURCES = [
+  "message",
+  "company",
+  "customer_name",
+  "notes",
+  "payment",
+  "job_type",
+  "tech_name",
+  "address",
+  "phone_no",
+] as const;
+
+export const RULE_TARGET_FIELDS = [
+  "company",
+  "tech_name",
+  "job_type",
+  "payment",
+  "notes",
+  "phone_no",
+  "address",
+  "customer_name",
+  "price",
+  "parts",
+  "co_parts",
+  "office_parts",
+] as const;
+
+/**
+ * Apply structured rules to a parsed result. Returns the updated object plus
+ * the ids of rules that fired (used by the rule tester).
+ */
+export function applyStructuredRules(
+  parsed: Record<string, any>,
+  rawMessage: string,
+  rules: StructuredRule[] | undefined
+): { result: Record<string, any>; fired: string[] } {
+  const result = { ...parsed };
+  const fired: string[] = [];
+  for (const r of rules || []) {
+    if (!r?.enabled || !r.then?.field) continue;
+    const src =
+      r.when.source === "message"
+        ? rawMessage || ""
+        : String(result[r.when.source] ?? "");
+    const hay = src.toLowerCase();
+    const needle = (r.when.value || "").trim().toLowerCase();
+    let hit = false;
+    if (r.when.op === "any") hit = true;
+    else if (r.when.op === "equals") hit = !!needle && hay.trim() === needle;
+    else hit = !!needle && hay.includes(needle);
+    if (!hit) continue;
+
+    const current = result[r.then.field];
+    if (r.then.mode === "prefix") {
+      result[r.then.field] = `${r.then.value} ${current ?? ""}`.trim();
+    } else if (r.then.mode === "append") {
+      result[r.then.field] = `${current ?? ""} ${r.then.value}`.trim();
+    } else {
+      result[r.then.field] = r.then.value;
+    }
+    fired.push(r.id);
+  }
+  return { result, fired };
 }
