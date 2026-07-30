@@ -29,6 +29,36 @@ export type Database = {
         }
         Relationships: []
       }
+      app_alerts: {
+        Row: {
+          automation_id: string | null
+          body: string | null
+          created_at: string
+          id: string
+          job_id: string | null
+          read_at: string | null
+          title: string
+        }
+        Insert: {
+          automation_id?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          read_at?: string | null
+          title: string
+        }
+        Update: {
+          automation_id?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          read_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           key: string
@@ -44,6 +74,83 @@ export type Database = {
           key?: string
           updated_at?: string
           value?: Json
+        }
+        Relationships: []
+      }
+      automation_runs: {
+        Row: {
+          automation_id: string | null
+          automation_name: string | null
+          created_at: string
+          detail: string | null
+          id: string
+          job_id: string | null
+          status: string
+        }
+        Insert: {
+          automation_id?: string | null
+          automation_name?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          job_id?: string | null
+          status?: string
+        }
+        Update: {
+          automation_id?: string | null
+          automation_name?: string | null
+          created_at?: string
+          detail?: string | null
+          id?: string
+          job_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_runs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automations: {
+        Row: {
+          actions: Json
+          conditions: Json
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          name: string
+          trigger: Json
+          updated_at: string
+        }
+        Insert: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          name: string
+          trigger?: Json
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          trigger?: Json
+          updated_at?: string
         }
         Relationships: []
       }
