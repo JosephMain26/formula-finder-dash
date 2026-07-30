@@ -137,8 +137,29 @@ export function AIRuleBuilder() {
         </CardHeader>
         <CardContent className="space-y-3">
           {rules.length === 0 && (
-            <p className="text-sm text-muted-foreground">No rules yet.</p>
+            <div className="rounded-md border border-dashed p-4 space-y-3">
+              <p className="text-sm font-medium">No rules yet</p>
+              <p className="text-xs text-muted-foreground">
+                Start from an example below (it fills the box above — edit it however you want), or
+                write your own and press “Build rule”.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "If the message says completed, set the status to Completed",
+                  "If the message mentions Elite, the marketer is Elite Doors",
+                  "If payment is check, add “Collect check photo” to the notes",
+                ].map((s) => (
+                  <Button key={s} variant="secondary" size="sm" onClick={() => setDraft(s)}>
+                    {s}
+                  </Button>
+                ))}
+              </div>
+              <Button variant="outline" size="sm" onClick={() => persist([newStructuredRule(), ...rules])}>
+                <Plus className="h-4 w-4 mr-1" /> Or build one manually
+              </Button>
+            </div>
           )}
+
           {rules.map((r) => (
             <div key={r.id} className="border rounded-md p-3 space-y-2">
               <div className="flex items-center gap-2">

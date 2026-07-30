@@ -173,9 +173,11 @@ export const RULE_SOURCES = [
   "tech_name",
   "address",
   "phone_no",
+  "status",
 ] as const;
 
 export const RULE_TARGET_FIELDS = [
+  "status",
   "company",
   "tech_name",
   "job_type",
