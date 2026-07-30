@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText, Zap } from "lucide-react";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText, Zap, CreditCard, LayoutTemplate, Package, Store, Shapes } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { JobFormBuilder } from "@/components/settings/JobFormBuilder";
 import { MessageTemplatesManager } from "@/components/settings/MessageTemplatesManager";
@@ -51,8 +51,48 @@ export const Route = createFileRoute("/settings")({
   }),
 });
 
+const SETTINGS_NAV = [
+  {
+    label: "Account",
+    items: [
+      { value: "profile", label: "My Profile", icon: User },
+      { value: "users", label: "Users", icon: Users },
+    ],
+  },
+  {
+    label: "Jobs",
+    items: [
+      { value: "form", label: "Job Form & Statuses", icon: FormInput },
+      { value: "types", label: "Job & Comp Types", icon: Shapes },
+      { value: "payment", label: "Payment Methods", icon: CreditCard },
+    ],
+  },
+  {
+    label: "Content",
+    items: [
+      { value: "templates", label: "Templates", icon: LayoutTemplate },
+      { value: "messages", label: "Message Templates", icon: MessageSquare },
+      { value: "catalog", label: "Installation Catalog", icon: Package },
+      { value: "doors", label: "Door Centers", icon: Store },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [
+      { value: "ai", label: "AI Rules", icon: Brain },
+      { value: "automations", label: "Automations", icon: Zap },
+    ],
+  },
+  {
+    label: "Support",
+    items: [{ value: "help", label: "Help", icon: HelpCircle }],
+  },
+] as const;
+
 function SettingsPage() {
+  const [tab, setTab] = useState<string>("profile");
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
+
   const [templates, setTemplates] = useState<TemplatesSetting>({ dashboardViews: [], exportTemplates: [] });
   const [training, setTraining] = useState<AITrainingSetting>(emptyTraining);
   const [companyNames, setCompanyNames] = useState<string[]>([]);
@@ -189,26 +229,50 @@ function SettingsPage() {
       </header>
 
       <main className="max-w-[1400px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
-        <Tabs defaultValue="profile">
-          <div className="overflow-x-auto -mx-1 px-1">
-            <TabsList className="w-max">
-              <TabsTrigger value="profile"><User className="h-4 w-4 mr-1" /> My Profile</TabsTrigger>
-              <TabsTrigger value="form"><FormInput className="h-4 w-4 mr-1" /> Job Form & Statuses</TabsTrigger>
-              <TabsTrigger value="types">Job & Comp Types</TabsTrigger>
-              <TabsTrigger value="payment">Payment Methods</TabsTrigger>
-              <TabsTrigger value="templates">Templates</TabsTrigger>
-              <TabsTrigger value="messages"><MessageSquare className="h-4 w-4 mr-1" /> Message Templates</TabsTrigger>
-              <TabsTrigger value="catalog">Installation Catalog</TabsTrigger>
-              <TabsTrigger value="doors">Door Centers</TabsTrigger>
-              <TabsTrigger value="ai"><Brain className="h-4 w-4 mr-1" /> AI Rules</TabsTrigger>
-              <TabsTrigger value="automations"><Zap className="h-4 w-4 mr-1" /> Automations</TabsTrigger>
-              <TabsTrigger value="users"><Users className="h-4 w-4 mr-1" /> Users</TabsTrigger>
-              <TabsTrigger value="help"><HelpCircle className="h-4 w-4 mr-1" /> Help</TabsTrigger>
-            </TabsList>
+        <Tabs value={tab} onValueChange={setTab} className="flex flex-col lg:flex-row lg:items-start gap-4 lg:gap-8">
+          {/* Mobile: compact picker */}
+          <div className="lg:hidden">
+            <Select value={tab} onValueChange={setTab}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SETTINGS_NAV.map((group) => (
+                  <SelectGroup key={group.label}>
+                    <SelectLabel>{group.label}</SelectLabel>
+                    {group.items.map((i) => (
+                      <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
+          {/* Desktop: grouped sidebar */}
+          <aside className="hidden lg:block w-56 shrink-0 sticky top-20 space-y-5">
+            {SETTINGS_NAV.map((group) => (
+              <div key={group.label} className="space-y-1">
+                <p className="px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {group.label}
+                </p>
+                <TabsList className="flex-col h-auto w-full bg-transparent p-0 gap-0.5 items-stretch">
+                  {group.items.map((i) => (
+                    <TabsTrigger
+                      key={i.value}
+                      value={i.value}
+                      className="justify-start w-full px-2 py-1.5 text-sm data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                    >
+                      <i.icon className="h-4 w-4 mr-2 shrink-0" />
+                      <span className="truncate">{i.label}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
+            ))}
+          </aside>
 
-          {/* PAYMENT METHODS */}
+          <div className="flex-1 min-w-0 [&>[role=tabpanel]]:mt-0">
+
+
           {/* MY PROFILE */}
           <TabsContent value="profile" className="mt-4">
             <MyProfileCard />
@@ -511,7 +575,9 @@ function SettingsPage() {
               </CardContent>
             </Card>
           </TabsContent>
+          </div>
         </Tabs>
+
       </main>
     </div>
   );
