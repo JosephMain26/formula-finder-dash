@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   loadAITraining,
   saveAITraining,
-  newStructuredRule,
+  normalizeStructuredRule,
   applyStructuredRules,
   RULE_SOURCES,
   RULE_TARGET_FIELDS,
