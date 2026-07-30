@@ -51,8 +51,48 @@ export const Route = createFileRoute("/settings")({
   }),
 });
 
+const SETTINGS_NAV = [
+  {
+    label: "Account",
+    items: [
+      { value: "profile", label: "My Profile", icon: User },
+      { value: "users", label: "Users", icon: Users },
+    ],
+  },
+  {
+    label: "Jobs",
+    items: [
+      { value: "form", label: "Job Form & Statuses", icon: FormInput },
+      { value: "types", label: "Job & Comp Types", icon: Shapes },
+      { value: "payment", label: "Payment Methods", icon: CreditCard },
+    ],
+  },
+  {
+    label: "Content",
+    items: [
+      { value: "templates", label: "Templates", icon: LayoutTemplate },
+      { value: "messages", label: "Message Templates", icon: MessageSquare },
+      { value: "catalog", label: "Installation Catalog", icon: Package },
+      { value: "doors", label: "Door Centers", icon: Store },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [
+      { value: "ai", label: "AI Rules", icon: Brain },
+      { value: "automations", label: "Automations", icon: Zap },
+    ],
+  },
+  {
+    label: "Support",
+    items: [{ value: "help", label: "Help", icon: HelpCircle }],
+  },
+] as const;
+
 function SettingsPage() {
+  const [tab, setTab] = useState<string>("profile");
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
+
   const [templates, setTemplates] = useState<TemplatesSetting>({ dashboardViews: [], exportTemplates: [] });
   const [training, setTraining] = useState<AITrainingSetting>(emptyTraining);
   const [companyNames, setCompanyNames] = useState<string[]>([]);
