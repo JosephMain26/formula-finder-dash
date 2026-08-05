@@ -24,6 +24,8 @@ import { JobInstallationsEditor } from "@/components/JobInstallationsEditor";
 import { loadJobInstallations, saveJobInstallations, loadDoorCenters, type JobInstallation, type DoorCenter } from "@/lib/installCatalog";
 import { SendMessageDialog } from "@/components/SendMessageDialog";
 import { CheckPhotoField } from "@/components/CheckPhotoField";
+import { JobPhotosField } from "@/components/JobPhotosField";
+
 import { Send } from "lucide-react";
 import { PAYMENT_RECIPIENTS, getJobPayments, type JobPayment } from "@/lib/jobPayments";
 
