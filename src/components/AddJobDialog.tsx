@@ -24,6 +24,8 @@ import { JobInstallationsEditor } from "@/components/JobInstallationsEditor";
 import { loadJobInstallations, saveJobInstallations, loadDoorCenters, type JobInstallation, type DoorCenter } from "@/lib/installCatalog";
 import { SendMessageDialog } from "@/components/SendMessageDialog";
 import { CheckPhotoField } from "@/components/CheckPhotoField";
+import { JobPhotosField } from "@/components/JobPhotosField";
+
 import { Send } from "lucide-react";
 import { PAYMENT_RECIPIENTS, getJobPayments, type JobPayment } from "@/lib/jobPayments";
 
@@ -1044,7 +1046,17 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
             </div>
           )}
 
+          {/* ---------------- JOB PHOTOS ---------------- */}
+          <div className="md:col-span-2 mt-2 pt-3 border-t rounded-lg border bg-muted/30 p-3 space-y-3">
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">Job photos</div>
+            <JobPhotosField
+              value={Array.isArray(extra.job_photos) ? extra.job_photos : []}
+              onChange={(paths) => setExtra((prev) => ({ ...prev, job_photos: paths }))}
+            />
+          </div>
+
           {/* ---------------- ADDITIONAL PAYMENTS ---------------- */}
+
           <div className="md:col-span-2 mt-2 pt-3 border-t rounded-lg border bg-muted/30 p-3 space-y-3">
             <div className="flex items-center justify-between">
               <div>
