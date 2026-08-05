@@ -61,6 +61,7 @@ export function ParseMessageDialog({ onJobSaved }: { onJobSaved: () => void }) {
       tech_name: ex.tech_name || "",
       payment: ex.payment || "",
       customer_name: ex.customer_name || "",
+      status: ex.status || "",
       _companyName: ex.company || "",
     };
   }
