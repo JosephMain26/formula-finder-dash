@@ -82,7 +82,9 @@ export function DiffPreviewDialog({
       : (job.notes ?? "");
 
   const suggestedStatus =
-    parsed.price && (!job.status || job.status === "Pending" || job.status === "Scheduled")
+    (parsed as any).status
+      ? String((parsed as any).status)
+      : parsed.price && (!job.status || job.status === "Pending" || job.status === "Scheduled")
       ? "Completed"
       : (job.status ?? "");
 

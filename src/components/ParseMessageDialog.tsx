@@ -24,6 +24,7 @@ type Prefill = {
   tech_name?: string;
   payment?: string;
   customer_name?: string;
+  status?: string;
   _companyName?: string;
 };
 
@@ -60,6 +61,7 @@ export function ParseMessageDialog({ onJobSaved }: { onJobSaved: () => void }) {
       tech_name: ex.tech_name || "",
       payment: ex.payment || "",
       customer_name: ex.customer_name || "",
+      ...(ex.status ? { status: String(ex.status) } : {}),
       _companyName: ex.company || "",
     };
   }
