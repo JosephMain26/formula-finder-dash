@@ -24,6 +24,7 @@ type Prefill = {
   tech_name?: string;
   payment?: string;
   customer_name?: string;
+  status?: string;
   _companyName?: string;
 };
 
