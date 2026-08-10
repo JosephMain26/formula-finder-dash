@@ -103,47 +103,6 @@ export function BalancesPanel() {
     jobTypes: [...new Set(jobs.map((j) => (j.job_type || "").trim()).filter(Boolean))].sort(),
   }), [jobs, charges]);
 
-  async function saveCharge() {
-    if (!editing || !editing.marketer?.trim()) {
-      toast.error("Pick a marketer/company");
-      return;
-    }
-    try {
-      await upsertPartsCharge({
-        id: editing.id,
-        marketer: editing.marketer.trim(),
-        amount: Number(editing.amount) || 0,
-        charge_date: editing.charge_date || null,
-        description: editing.description || null,
-        paid: !!editing.paid,
-      });
-      setEditorOpen(false);
-      setEditing(null);
-      await refreshCharges();
-      toast.success("Parts charge saved");
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to save");
-    }
-  }
-
-  async function removeCharge(id: string) {
-    try {
-      await deletePartsCharge(id);
-      await refreshCharges();
-      toast.success("Parts charge deleted");
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to delete");
-    }
-  }
-
-  async function toggleChargePaid(c: PartsCharge, paid: boolean) {
-    try {
-      await upsertPartsCharge({ ...c, paid });
-      await refreshCharges();
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to update");
-    }
-  }
 
   const filteredJobs = useMemo(() => jobs.filter((j) => {
     if (paidFilter === "paid" && !j.paid) return false;
