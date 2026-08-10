@@ -60,9 +60,8 @@ export function BalancesPanel() {
   const [marketerFilter, setMarketerFilter] = useState("all");
   const [jobTypeFilter, setJobTypeFilter] = useState("all");
 
-  // Parts charge editor
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editing, setEditing] = useState<Partial<PartsCharge> | null>(null);
+
+
 
   async function refreshCharges() {
     try {
