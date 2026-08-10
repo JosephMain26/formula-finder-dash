@@ -38,6 +38,7 @@ import {
   type ReportAutomation, type AutomationFreq,
 } from "@/lib/reportAutomations";
 import { BalancesPanel } from "@/components/BalancesPanel";
+import { PartsChargesPanel } from "@/components/PartsChargesPanel";
 
 
 
