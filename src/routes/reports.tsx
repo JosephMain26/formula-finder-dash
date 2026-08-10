@@ -38,6 +38,7 @@ import {
   type ReportAutomation, type AutomationFreq,
 } from "@/lib/reportAutomations";
 import { BalancesPanel } from "@/components/BalancesPanel";
+import { PartsChargesPanel } from "@/components/PartsChargesPanel";
 
 
 
@@ -307,10 +308,11 @@ function ReportsPage() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue={tab === "balances" ? "balances" : tab === "automations" ? "automations" : "builder"}>
+        <Tabs defaultValue={tab === "balances" ? "balances" : tab === "parts" ? "parts" : tab === "automations" ? "automations" : "builder"}>
           <TabsList>
             <TabsTrigger value="builder">Report Builder</TabsTrigger>
             <TabsTrigger value="balances">Marketer Balances</TabsTrigger>
+            <TabsTrigger value="parts">Parts Charges</TabsTrigger>
             <TabsTrigger value="automations">Automation Center</TabsTrigger>
           </TabsList>
 
@@ -318,6 +320,12 @@ function ReportsPage() {
           <TabsContent value="balances">
             <BalancesPanel />
           </TabsContent>
+
+          {/* ---------------- PARTS CHARGES (standalone) ---------------- */}
+          <TabsContent value="parts">
+            <PartsChargesPanel />
+          </TabsContent>
+
 
 
           {/* ---------------- BUILDER ---------------- */}
