@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, BookmarkPlus } from "lucide-react";
+import { loadProductCategories, loadProducts, categoryLabel, createProduct, type Product, type ProductCategory } from "@/lib/products";
 import { JobPhotosField } from "@/components/JobPhotosField";
 import { loadBillingTemplates, type BillingTemplate } from "@/lib/settings";
 import { toast } from "sonner";
@@ -35,6 +36,9 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [jobs, setJobs] = useState<JobRow[]>([]);
   const [templates, setTemplates] = useState<BillingTemplate[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [cats, setCats] = useState<ProductCategory[]>([]);
+  const [catFilter, setCatFilter] = useState<string>("all");
 
   useEffect(() => {
     if (!open) return;
@@ -44,6 +48,8 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
       .order("created_at", { ascending: false }).limit(300)
       .then(({ data }: any) => setJobs((data as JobRow[]) || []));
 
+    loadProducts().then(setProducts);
+    loadProductCategories().then(setCats);
     loadBillingTemplates().then(setTemplates);
     if (doc?.id) {
       setForm(doc);
@@ -66,6 +72,30 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
 
   function updateItem(idx: number, patch: Partial<BillingItem>) {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+  }
+
+  function addFromCatalog(id: string) {
+    const p = products.find((x) => x.id === id);
+    if (!p) return;
+    setItems((prev) => {
+      const base = prev.filter((i) => i.description.trim() || Number(i.unit_price));
+      return [...base, { ...emptyItem(base.length), description: p.name, unit_price: Number(p.unit_price) || 0 }];
+    });
+  }
+
+  async function saveItemToCatalog(it: BillingItem) {
+    if (!it.description.trim()) return toast.error("Add a description first");
+    try {
+      const created = await createProduct({
+        name: it.description.trim(),
+        unit_price: Number(it.unit_price) || 0,
+        category_id: catFilter !== "all" ? catFilter : null,
+      });
+      if (created) setProducts((p) => [...p, created]);
+      toast.success("Added to catalog");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to add to catalog");
+    }
   }
 
   function addDiscount() {
@@ -178,9 +208,31 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
         <div className="mt-4">
           <div className="flex items-center justify-between mb-2">
             <Label className="text-sm font-medium">Line items</Label>
-            <Button type="button" variant="outline" size="sm" onClick={() => setItems((p) => [...p, emptyItem(p.length)])}>
-              <Plus className="h-3.5 w-3.5 mr-1" /> Add item
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={catFilter} onValueChange={setCatFilter}>
+                <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue placeholder="Category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {cats.map((c) => <SelectItem key={c.id} value={c.id}>{categoryLabel(c)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value="" onValueChange={addFromCatalog}>
+                <SelectTrigger className="h-8 w-[190px] text-xs"><SelectValue placeholder="Add from catalog" /></SelectTrigger>
+                <SelectContent>
+                  {products
+                    .filter((p) => p.active && (catFilter === "all" || p.category_id === catFilter))
+                    .map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name} · {money(Number(p.unit_price) || 0)}</SelectItem>
+                    ))}
+                  {products.filter((p) => p.active && (catFilter === "all" || p.category_id === catFilter)).length === 0 && (
+                    <SelectItem value="__empty__" disabled>No products in catalog</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              <Button type="button" variant="outline" size="sm" onClick={() => setItems((p) => [...p, emptyItem(p.length)])}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> One-time item
+              </Button>
+            </div>
           </div>
           <div className="space-y-2">
             {items.map((it, idx) => (
@@ -218,6 +270,10 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
                 </div>
                 <div className="col-span-2 sm:col-span-2 flex items-center justify-between gap-1">
                   <span className="text-sm font-medium whitespace-nowrap">{money(itemNet(it))}</span>
+                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" title="Save to catalog"
+                    onClick={() => saveItemToCatalog(it)}>
+                    <BookmarkPlus className="h-3.5 w-3.5" />
+                  </Button>
                   <Button type="button" variant="ghost" size="icon" className="h-7 w-7"
                     onClick={() => setItems((p) => p.filter((_, i) => i !== idx))}>
                     <Trash2 className="h-3.5 w-3.5 text-destructive" />
