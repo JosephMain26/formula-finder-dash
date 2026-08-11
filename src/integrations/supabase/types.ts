@@ -154,6 +154,191 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_documents: {
+        Row: {
+          amount_paid: number
+          approval_mode: string | null
+          approved_at: string | null
+          approved_by: string | null
+          client_address: string | null
+          client_email: string | null
+          client_id: string | null
+          client_name: string | null
+          client_phone: string | null
+          converted_from: string | null
+          converted_to: string | null
+          created_at: string
+          created_by: string | null
+          discount_total: number
+          discounts: Json
+          doc_number: string
+          due_date: string | null
+          id: string
+          issue_date: string | null
+          job_id: string | null
+          kind: string
+          notes: string | null
+          paid: boolean
+          payment_method: string | null
+          share_expires_at: string | null
+          share_token: string | null
+          signature_data_url: string | null
+          signed_at: string | null
+          signed_ip: string | null
+          signed_user_agent: string | null
+          signer_name: string | null
+          status: string
+          subtotal: number
+          tax_rate: number
+          tax_total: number
+          terms: string | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          amount_paid?: number
+          approval_mode?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          client_address?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          converted_from?: string | null
+          converted_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount_total?: number
+          discounts?: Json
+          doc_number: string
+          due_date?: string | null
+          id?: string
+          issue_date?: string | null
+          job_id?: string | null
+          kind: string
+          notes?: string | null
+          paid?: boolean
+          payment_method?: string | null
+          share_expires_at?: string | null
+          share_token?: string | null
+          signature_data_url?: string | null
+          signed_at?: string | null
+          signed_ip?: string | null
+          signed_user_agent?: string | null
+          signer_name?: string | null
+          status?: string
+          subtotal?: number
+          tax_rate?: number
+          tax_total?: number
+          terms?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number
+          approval_mode?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          client_address?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          converted_from?: string | null
+          converted_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount_total?: number
+          discounts?: Json
+          doc_number?: string
+          due_date?: string | null
+          id?: string
+          issue_date?: string | null
+          job_id?: string | null
+          kind?: string
+          notes?: string | null
+          paid?: boolean
+          payment_method?: string | null
+          share_expires_at?: string | null
+          share_token?: string | null
+          signature_data_url?: string | null
+          signed_at?: string | null
+          signed_ip?: string | null
+          signed_user_agent?: string | null
+          signer_name?: string | null
+          status?: string
+          subtotal?: number
+          tax_rate?: number
+          tax_total?: number
+          terms?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_documents_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_items: {
+        Row: {
+          created_at: string
+          description: string
+          discount_type: string
+          discount_value: number
+          document_id: string
+          id: string
+          qty: number
+          sort_order: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          discount_type?: string
+          discount_value?: number
+          document_id: string
+          id?: string
+          qty?: number
+          sort_order?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          discount_type?: string
+          discount_value?: number
+          document_id?: string
+          id?: string
+          qty?: number
+          sort_order?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_items_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "billing_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
