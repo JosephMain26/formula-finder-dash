@@ -57,7 +57,7 @@ export function InsightSettingsDialog({ open, onOpenChange, title, settings, onS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Configure widget</DialogTitle></DialogHeader>
 
         <div className="space-y-3">

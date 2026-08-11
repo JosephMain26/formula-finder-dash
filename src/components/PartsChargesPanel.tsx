@@ -248,7 +248,7 @@ export function PartsChargesPanel() {
       </Card>
 
       <Dialog open={editorOpen} onOpenChange={(o) => { setEditorOpen(o); if (!o) setEditing(null); }}>
-        <DialogContent>
+        <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing?.id ? "Edit parts charge" : "Add parts charge"}</DialogTitle>
           </DialogHeader>

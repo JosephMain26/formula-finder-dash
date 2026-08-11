@@ -293,7 +293,7 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
           <FileDown className="h-4 w-4 mr-2" /> Export PDF
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)]">
         <DialogHeader>
           <DialogTitle>Export Jobs Report</DialogTitle>
         </DialogHeader>

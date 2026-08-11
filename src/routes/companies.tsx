@@ -247,7 +247,7 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
           <Button><Plus className="h-4 w-4 mr-2" /> Add Marketer</Button>
         )}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Marketer" : "Add Marketer"}</DialogTitle>
         </DialogHeader>

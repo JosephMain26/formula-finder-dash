@@ -98,7 +98,7 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)]">
         <DialogHeader>
           <DialogTitle>
             {doc?.id ? "Edit" : "New"} {kind === "estimate" ? "estimate" : "invoice"} {form.doc_number && `· ${form.doc_number}`}
@@ -301,7 +301,7 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
               <Textarea rows={2} value={form.terms || ""} onChange={(e) => set("terms", e.target.value)} />
             </div>
             {kind === "invoice" && (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs">Amount paid</Label>
                   <Input type="number" step="0.01" value={form.amount_paid} onChange={(e) => set("amount_paid", Number(e.target.value))} />

@@ -309,12 +309,14 @@ function ReportsPage() {
 
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue={tab === "balances" ? "balances" : tab === "parts" ? "parts" : tab === "automations" ? "automations" : "builder"}>
-          <TabsList>
-            <TabsTrigger value="builder">Report Builder</TabsTrigger>
-            <TabsTrigger value="balances">Marketer Balances</TabsTrigger>
-            <TabsTrigger value="parts">Parts Charges</TabsTrigger>
-            <TabsTrigger value="automations">Automation Center</TabsTrigger>
-          </TabsList>
+          <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
+            <TabsList className="w-max">
+              <TabsTrigger value="builder" className="shrink-0">Report Builder</TabsTrigger>
+              <TabsTrigger value="balances" className="shrink-0">Marketer Balances</TabsTrigger>
+              <TabsTrigger value="parts" className="shrink-0">Parts Charges</TabsTrigger>
+              <TabsTrigger value="automations" className="shrink-0">Automation Center</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* ---------------- BALANCES ---------------- */}
           <TabsContent value="balances">
@@ -614,7 +616,7 @@ function AutomationCenter({
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg max-h-[88vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[88vh] overflow-y-auto w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)]">
           <DialogHeader><DialogTitle>{editing?.id ? "Edit automation" : "New automation"}</DialogTitle></DialogHeader>
           {editing && (
             <AutomationForm editing={editing} setEditing={setEditing} reportTemplates={reportTemplates} companies={companies} statuses={statuses} />

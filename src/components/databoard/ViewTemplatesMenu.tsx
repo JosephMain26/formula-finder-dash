@@ -121,7 +121,7 @@ export function ViewTemplatesMenu({ current, onApply, activeId, onActiveChange }
       </DropdownMenu>
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Save view template</DialogTitle></DialogHeader>
           <Input placeholder="Template name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
           <DialogFooter>
