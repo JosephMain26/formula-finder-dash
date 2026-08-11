@@ -616,7 +616,7 @@ function AutomationCenter({
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg max-h-[88vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[88vh] overflow-y-auto w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)]">
           <DialogHeader><DialogTitle>{editing?.id ? "Edit automation" : "New automation"}</DialogTitle></DialogHeader>
           {editing && (
             <AutomationForm editing={editing} setEditing={setEditing} reportTemplates={reportTemplates} companies={companies} statuses={statuses} />

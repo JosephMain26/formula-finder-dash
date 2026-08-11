@@ -196,7 +196,7 @@ export function ParseMessageDialog({ onJobSaved }: { onJobSaved: () => void }) {
             <Sparkles className="h-4 w-4 mr-2" /> Parse Message
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Parse Job from Message</DialogTitle>
             <DialogDescription>
@@ -236,7 +236,7 @@ export function ParseMessageDialog({ onJobSaved }: { onJobSaved: () => void }) {
 
       {/* No-match confirmation */}
       <Dialog open={confirmNewOpen} onOpenChange={setConfirmNewOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>No matching job found</DialogTitle>
             <DialogDescription>

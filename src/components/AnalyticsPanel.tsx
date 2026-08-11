@@ -173,7 +173,7 @@ function DrillDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)]">
         <DialogHeader>
           <DialogTitle>{label}: {value} ({matched.length} jobs)</DialogTitle>
         </DialogHeader>

@@ -226,7 +226,7 @@ function TechnicianDialog({
           <Button><Plus className="h-4 w-4 mr-2" /> Add Technician</Button>
         )}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Technician" : "Add Technician"}</DialogTitle>
         </DialogHeader>

@@ -39,7 +39,7 @@ export function DocumentView({ doc, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)]">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2">
             <span>{doc.kind === "estimate" ? "Estimate" : "Invoice"} {doc.doc_number}</span>
@@ -50,7 +50,7 @@ export function DocumentView({ doc, open, onOpenChange }: Props) {
         </DialogHeader>
 
         <div id="billing-print" className="space-y-4 text-sm">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <div className="text-xs text-muted-foreground">Billed to</div>
               <div className="font-medium">{doc.client_name || "—"}</div>
@@ -112,7 +112,7 @@ export function DocumentView({ doc, open, onOpenChange }: Props) {
           {photoUrls.length > 0 && (
             <div>
               <div className="text-xs text-muted-foreground mb-1">Photos</div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {photoUrls.map((u) => (
                   <a key={u} href={u} target="_blank" rel="noreferrer">
                     <img src={u} alt="Attachment" className="h-24 w-full rounded border object-cover bg-muted" />

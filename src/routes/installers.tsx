@@ -176,7 +176,7 @@ function InstallerDialog({ installer, onSaved }: { installer?: Installer; onSave
           <Button><Plus className="h-4 w-4 mr-2" /> Add Installer</Button>
         )}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Installer" : "Add Installer"}</DialogTitle>
         </DialogHeader>

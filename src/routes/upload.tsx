@@ -605,7 +605,7 @@ function ParseTab({ opts, identity }: { opts: Options; identity: TechIdentity | 
       </div>
 
       <Dialog open={reviewOpen} onOpenChange={(o) => { if (!submitting) setReviewOpen(o); }}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)]">
           <DialogHeader>
             <DialogTitle>Review & Edit Job Details</DialogTitle>
             <DialogDescription>
