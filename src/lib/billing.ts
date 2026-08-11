@@ -37,6 +37,7 @@ export interface BillingDoc {
   notes: string | null;
   terms: string | null;
   discounts: DiscountRule[];
+  photos: string[];
   subtotal: number;
   discount_total: number;
   tax_total: number;
@@ -164,6 +165,7 @@ function mapDoc(r: any): BillingDoc {
     notes: r.notes ?? null,
     terms: r.terms ?? null,
     discounts: Array.isArray(r.discounts) ? (r.discounts as DiscountRule[]) : [],
+    photos: Array.isArray(r.photos) ? (r.photos as string[]) : [],
     subtotal: num(r.subtotal),
     discount_total: num(r.discount_total),
     tax_total: num(r.tax_total),
@@ -250,6 +252,7 @@ export function newDoc(kind: DocKind, doc_number: string): BillingDoc {
     notes: null,
     terms: null,
     discounts: [],
+    photos: [],
     subtotal: 0,
     discount_total: 0,
     tax_total: 0,
@@ -291,6 +294,7 @@ export async function saveDocument(doc: BillingDoc, items: BillingItem[]): Promi
     notes: doc.notes || null,
     terms: doc.terms || null,
     discounts: doc.discounts || [],
+    photos: doc.photos || [],
     subtotal: t.subtotal,
     discount_total: t.discount_total,
     tax_total: t.tax_total,
