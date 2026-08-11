@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
@@ -16,10 +17,21 @@ interface Props {
 /** Read-only, print-friendly view of an estimate/invoice, including the signature audit block. */
 export function DocumentView({ doc, open, onOpenChange }: Props) {
   const [items, setItems] = useState<BillingItem[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
 
   useEffect(() => {
     if (open && doc?.id) loadItems(doc.id).then(setItems);
   }, [open, doc?.id]);
+
+  useEffect(() => {
+    const paths = (doc?.photos || []).filter(Boolean);
+    if (!open || paths.length === 0) { setPhotoUrls([]); return; }
+    let active = true;
+    Promise.all(
+      paths.map((p) => supabase.storage.from("check-photos").createSignedUrl(p, 3600).then(({ data }) => data?.signedUrl || "")),
+    ).then((urls) => { if (active) setPhotoUrls(urls.filter(Boolean)); });
+    return () => { active = false; };
+  }, [open, doc?.photos]);
 
   if (!doc) return null;
   const totals = computeTotals(items, doc.discounts, doc.tax_rate);
@@ -96,6 +108,19 @@ export function DocumentView({ doc, open, onOpenChange }: Props) {
 
           {doc.notes && <div><div className="text-xs text-muted-foreground">Notes</div><p>{doc.notes}</p></div>}
           {doc.terms && <div><div className="text-xs text-muted-foreground">Terms</div><p>{doc.terms}</p></div>}
+
+          {photoUrls.length > 0 && (
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Photos</div>
+              <div className="grid grid-cols-3 gap-2">
+                {photoUrls.map((u) => (
+                  <a key={u} href={u} target="_blank" rel="noreferrer">
+                    <img src={u} alt="Attachment" className="h-24 w-full rounded border object-cover bg-muted" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {doc.signed_at ? (
             <div className="rounded-md border p-3 space-y-2">

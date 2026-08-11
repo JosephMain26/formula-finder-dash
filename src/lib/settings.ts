@@ -137,3 +137,37 @@ export async function saveTemplates(t: TemplatesSetting) {
 export function makeId() {
   return uid();
 }
+
+// ---------- Billing note/terms templates ----------
+export type BillingTemplate = {
+  id: string;
+  name: string;
+  kind: "notes" | "terms";
+  appliesTo: "both" | "estimate" | "invoice";
+  body: string;
+  isDefault?: boolean;
+};
+
+const BILLING_TEMPLATES_KEY = "billing_templates";
+
+export async function loadBillingTemplates(): Promise<BillingTemplate[]> {
+  const { data } = await (supabase as any)
+    .from("app_settings")
+    .select("value")
+    .eq("key", BILLING_TEMPLATES_KEY)
+    .maybeSingle();
+  const list = data?.value?.templates;
+  return Array.isArray(list) ? (list as BillingTemplate[]) : [];
+}
+
+export async function saveBillingTemplates(templates: BillingTemplate[]) {
+  await (supabase as any).from("app_settings").upsert({
+    key: BILLING_TEMPLATES_KEY,
+    value: { templates },
+    updated_at: new Date().toISOString(),
+  });
+}
+
+export function newBillingTemplate(kind: "notes" | "terms"): BillingTemplate {
+  return { id: uid(), name: kind === "notes" ? "New note template" : "New terms template", kind, appliesTo: "both", body: "" };
+}

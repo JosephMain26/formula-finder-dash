@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
+import { JobPhotosField } from "@/components/JobPhotosField";
+import { loadBillingTemplates, type BillingTemplate } from "@/lib/settings";
 import { toast } from "sonner";
 import {
   computeTotals, docDiscountAmounts, emptyItem, itemNet, loadItems, makeId, money,
@@ -32,6 +34,7 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
   const [items, setItems] = useState<BillingItem[]>([emptyItem(0)]);
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [jobs, setJobs] = useState<JobRow[]>([]);
+  const [templates, setTemplates] = useState<BillingTemplate[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -41,12 +44,16 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
       .order("created_at", { ascending: false }).limit(300)
       .then(({ data }: any) => setJobs((data as JobRow[]) || []));
 
+    loadBillingTemplates().then(setTemplates);
     if (doc?.id) {
       setForm(doc);
       loadItems(doc.id).then((rows) => setItems(rows.length ? rows : [emptyItem(0)]));
     } else {
-      nextDocNumber(kind).then((n) => {
-        setForm({ ...newDoc(kind, n), job_id: presetJobId ?? null });
+      Promise.all([nextDocNumber(kind), loadBillingTemplates()]).then(([n, tpl]) => {
+        setTemplates(tpl);
+        const pick = (k: "notes" | "terms") =>
+          tpl.find((t) => t.kind === k && t.isDefault && (t.appliesTo === "both" || t.appliesTo === kind))?.body ?? null;
+        setForm({ ...newDoc(kind, n), job_id: presetJobId ?? null, notes: pick("notes"), terms: pick("terms") });
       });
       setItems([emptyItem(0)]);
     }
@@ -144,6 +151,18 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
           <div>
             <Label className="text-xs">Client email</Label>
             <Input type="email" value={form.client_email || ""} onChange={(e) => set("client_email", e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">Client phone</Label>
+            <Input value={form.client_phone || ""} onChange={(e) => set("client_phone", e.target.value)} />
+          </div>
+          <div className="sm:col-span-2">
+            <Label className="text-xs">Address</Label>
+            <Input
+              placeholder="Street, city, state, ZIP"
+              value={form.client_address || ""}
+              onChange={(e) => set("client_address", e.target.value)}
+            />
           </div>
           <div>
             <Label className="text-xs">Issue date</Label>
@@ -253,6 +272,14 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
           </div>
         </div>
 
+        {/* Photos */}
+        <div className="mt-4">
+          <Label className="text-sm font-medium">Photos</Label>
+          <div className="mt-2">
+            <JobPhotosField value={form.photos || []} onChange={(paths) => set("photos", paths)} />
+          </div>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2 mt-4">
           <div className="space-y-3">
             <div>
@@ -260,11 +287,17 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
               <Input type="number" step="0.01" value={form.tax_rate} onChange={(e) => set("tax_rate", Number(e.target.value))} />
             </div>
             <div>
-              <Label className="text-xs">Notes</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs">Notes</Label>
+                <TemplatePicker templates={templates} kind="notes" docKind={kind} onPick={(b) => set("notes", b)} />
+              </div>
               <Textarea rows={2} value={form.notes || ""} onChange={(e) => set("notes", e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs">Terms</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs">Terms</Label>
+                <TemplatePicker templates={templates} kind="terms" docKind={kind} onPick={(b) => set("terms", b)} />
+              </div>
               <Textarea rows={2} value={form.terms || ""} onChange={(e) => set("terms", e.target.value)} />
             </div>
             {kind === "invoice" && (
@@ -295,5 +328,25 @@ export function DocumentEditorDialog({ kind, doc, trigger, onSaved, presetJobId 
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function TemplatePicker({
+  templates, kind, docKind, onPick,
+}: {
+  templates: BillingTemplate[];
+  kind: "notes" | "terms";
+  docKind: DocKind;
+  onPick: (body: string) => void;
+}) {
+  const list = templates.filter((t) => t.kind === kind && (t.appliesTo === "both" || t.appliesTo === docKind));
+  if (list.length === 0) return null;
+  return (
+    <Select value="" onValueChange={(id) => { const t = list.find((x) => x.id === id); if (t) onPick(t.body); }}>
+      <SelectTrigger className="h-7 w-[160px] text-xs"><SelectValue placeholder="Use template" /></SelectTrigger>
+      <SelectContent>
+        {list.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+      </SelectContent>
+    </Select>
   );
 }
