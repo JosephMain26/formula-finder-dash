@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { JobBillingLink } from "@/components/billing/JobBillingLink";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -1199,6 +1200,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
               )}
             </div>
           )}
+          {isEdit && (job as any)?.id && <JobBillingLink jobId={(job as any).id} />}
           {canManageClients && isEdit && (
             <div className="md:col-span-2 mt-2 pt-3 border-t">
               <label className="text-xs font-medium text-muted-foreground">Linked Client</label>

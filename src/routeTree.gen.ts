@@ -18,9 +18,11 @@ import { Route as InstallersRouteImport } from './routes/installers'
 import { Route as DataboardRouteImport } from './routes/databoard'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as ClientsRouteImport } from './routes/clients'
+import { Route as BillingRouteImport } from './routes/billing'
 import { Route as BalancesRouteImport } from './routes/balances'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SignTokenRouteImport } from './routes/sign.$token'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicHooksDispatchReportAutomationsRouteImport } from './routes/api/public/hooks/dispatch-report-automations'
 import { Route as ApiPublicHooksDispatchJobRemindersRouteImport } from './routes/api/public/hooks/dispatch-job-reminders'
@@ -71,6 +73,11 @@ const ClientsRoute = ClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BalancesRoute = BalancesRouteImport.update({
   id: '/balances',
   path: '/balances',
@@ -84,6 +91,11 @@ const AuthRoute = AuthRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignTokenRoute = SignTokenRouteImport.update({
+  id: '/sign/$token',
+  path: '/sign/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LovableEmailQueueProcessRoute =
@@ -115,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/balances': typeof BalancesRoute
+  '/billing': typeof BillingRoute
   '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
@@ -124,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/upload': typeof UploadRoute
+  '/sign/$token': typeof SignTokenRoute
   '/api/public/hooks/dispatch-automations': typeof ApiPublicHooksDispatchAutomationsRoute
   '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
   '/api/public/hooks/dispatch-report-automations': typeof ApiPublicHooksDispatchReportAutomationsRoute
@@ -133,6 +147,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/balances': typeof BalancesRoute
+  '/billing': typeof BillingRoute
   '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
@@ -142,6 +157,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/upload': typeof UploadRoute
+  '/sign/$token': typeof SignTokenRoute
   '/api/public/hooks/dispatch-automations': typeof ApiPublicHooksDispatchAutomationsRoute
   '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
   '/api/public/hooks/dispatch-report-automations': typeof ApiPublicHooksDispatchReportAutomationsRoute
@@ -152,6 +168,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/balances': typeof BalancesRoute
+  '/billing': typeof BillingRoute
   '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
@@ -161,6 +178,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/technicians': typeof TechniciansRoute
   '/upload': typeof UploadRoute
+  '/sign/$token': typeof SignTokenRoute
   '/api/public/hooks/dispatch-automations': typeof ApiPublicHooksDispatchAutomationsRoute
   '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
   '/api/public/hooks/dispatch-report-automations': typeof ApiPublicHooksDispatchReportAutomationsRoute
@@ -172,6 +190,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/balances'
+    | '/billing'
     | '/clients'
     | '/companies'
     | '/databoard'
@@ -181,6 +200,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/technicians'
     | '/upload'
+    | '/sign/$token'
     | '/api/public/hooks/dispatch-automations'
     | '/api/public/hooks/dispatch-job-reminders'
     | '/api/public/hooks/dispatch-report-automations'
@@ -190,6 +210,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/balances'
+    | '/billing'
     | '/clients'
     | '/companies'
     | '/databoard'
@@ -199,6 +220,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/technicians'
     | '/upload'
+    | '/sign/$token'
     | '/api/public/hooks/dispatch-automations'
     | '/api/public/hooks/dispatch-job-reminders'
     | '/api/public/hooks/dispatch-report-automations'
@@ -208,6 +230,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/balances'
+    | '/billing'
     | '/clients'
     | '/companies'
     | '/databoard'
@@ -217,6 +240,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/technicians'
     | '/upload'
+    | '/sign/$token'
     | '/api/public/hooks/dispatch-automations'
     | '/api/public/hooks/dispatch-job-reminders'
     | '/api/public/hooks/dispatch-report-automations'
@@ -227,6 +251,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   BalancesRoute: typeof BalancesRoute
+  BillingRoute: typeof BillingRoute
   ClientsRoute: typeof ClientsRoute
   CompaniesRoute: typeof CompaniesRoute
   DataboardRoute: typeof DataboardRoute
@@ -236,6 +261,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TechniciansRoute: typeof TechniciansRoute
   UploadRoute: typeof UploadRoute
+  SignTokenRoute: typeof SignTokenRoute
   ApiPublicHooksDispatchAutomationsRoute: typeof ApiPublicHooksDispatchAutomationsRoute
   ApiPublicHooksDispatchJobRemindersRoute: typeof ApiPublicHooksDispatchJobRemindersRoute
   ApiPublicHooksDispatchReportAutomationsRoute: typeof ApiPublicHooksDispatchReportAutomationsRoute
@@ -307,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/balances': {
       id: '/balances'
       path: '/balances'
@@ -326,6 +359,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign/$token': {
+      id: '/sign/$token'
+      path: '/sign/$token'
+      fullPath: '/sign/$token'
+      preLoaderRoute: typeof SignTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
@@ -363,6 +403,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   BalancesRoute: BalancesRoute,
+  BillingRoute: BillingRoute,
   ClientsRoute: ClientsRoute,
   CompaniesRoute: CompaniesRoute,
   DataboardRoute: DataboardRoute,
@@ -372,6 +413,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TechniciansRoute: TechniciansRoute,
   UploadRoute: UploadRoute,
+  SignTokenRoute: SignTokenRoute,
   ApiPublicHooksDispatchAutomationsRoute:
     ApiPublicHooksDispatchAutomationsRoute,
   ApiPublicHooksDispatchJobRemindersRoute:
@@ -383,13 +425,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
