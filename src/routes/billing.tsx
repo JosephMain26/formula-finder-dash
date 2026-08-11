@@ -247,7 +247,7 @@ function BillingPage() {
 
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="estimates">
-          <TabsList>
+          <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="estimates">Estimates</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
           </TabsList>
