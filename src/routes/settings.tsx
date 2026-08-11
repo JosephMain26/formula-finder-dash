@@ -6,10 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText, Zap, CreditCard, LayoutTemplate, Package, Store, Shapes } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText, Zap, CreditCard, LayoutTemplate, Package, Store, Shapes, Receipt } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { JobFormBuilder } from "@/components/settings/JobFormBuilder";
 import { MessageTemplatesManager } from "@/components/settings/MessageTemplatesManager";
+import { BillingTemplatesManager } from "@/components/settings/BillingTemplatesManager";
 import { StatusesManager } from "@/components/settings/StatusesManager";
 import { TypeGroupsManager } from "@/components/settings/TypeGroupsManager";
 import { InstallationCatalogManager } from "@/components/settings/InstallationCatalogManager";
@@ -72,6 +73,7 @@ const SETTINGS_NAV = [
     items: [
       { value: "templates", label: "Templates", icon: LayoutTemplate },
       { value: "messages", label: "Message Templates", icon: MessageSquare },
+      { value: "billing-templates", label: "Estimate & Invoice Templates", icon: Receipt },
       { value: "catalog", label: "Installation Catalog", icon: Package },
       { value: "doors", label: "Door Centers", icon: Store },
     ],
@@ -414,6 +416,10 @@ function SettingsPage() {
           {/* MESSAGE TEMPLATES */}
           <TabsContent value="messages" className="mt-4">
             <MessageTemplatesManager />
+          </TabsContent>
+
+          <TabsContent value="billing-templates" className="mt-4">
+            <BillingTemplatesManager />
           </TabsContent>
 
           <TabsContent value="catalog" className="mt-4">
