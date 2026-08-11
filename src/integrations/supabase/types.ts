@@ -180,6 +180,7 @@ export type Database = {
           notes: string | null
           paid: boolean
           payment_method: string | null
+          photos: Json
           share_expires_at: string | null
           share_token: string | null
           signature_data_url: string | null
@@ -220,6 +221,7 @@ export type Database = {
           notes?: string | null
           paid?: boolean
           payment_method?: string | null
+          photos?: Json
           share_expires_at?: string | null
           share_token?: string | null
           signature_data_url?: string | null
@@ -260,6 +262,7 @@ export type Database = {
           notes?: string | null
           paid?: boolean
           payment_method?: string | null
+          photos?: Json
           share_expires_at?: string | null
           share_token?: string | null
           signature_data_url?: string | null
