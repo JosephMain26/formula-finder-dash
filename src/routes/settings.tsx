@@ -14,6 +14,7 @@ import { BillingTemplatesManager } from "@/components/settings/BillingTemplatesM
 import { StatusesManager } from "@/components/settings/StatusesManager";
 import { TypeGroupsManager } from "@/components/settings/TypeGroupsManager";
 import { InstallationCatalogManager } from "@/components/settings/InstallationCatalogManager";
+import { ProductCatalogManager } from "@/components/settings/ProductCatalogManager";
 import { DoorCentersManager } from "@/components/settings/DoorCentersManager";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { UsersManager } from "@/components/UsersManager";
@@ -75,6 +76,7 @@ const SETTINGS_NAV = [
       { value: "messages", label: "Message Templates", icon: MessageSquare },
       { value: "billing-templates", label: "Estimate & Invoice Templates", icon: Receipt },
       { value: "catalog", label: "Installation Catalog", icon: Package },
+      { value: "products", label: "Product Catalog", icon: Package },
       { value: "doors", label: "Door Centers", icon: Store },
     ],
   },
@@ -420,6 +422,10 @@ function SettingsPage() {
 
           <TabsContent value="billing-templates" className="mt-4">
             <BillingTemplatesManager />
+          </TabsContent>
+
+          <TabsContent value="products" className="mt-4">
+            <ProductCatalogManager />
           </TabsContent>
 
           <TabsContent value="catalog" className="mt-4">
