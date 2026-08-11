@@ -1,46 +1,52 @@
-# Plan: AI Rule Builder + If-This-Then-That Automation Center
+# Estimates & Invoices
 
-## Part 1 — Fix the AI Training center
+Add a document system for estimates and invoices, with client e-signature approval, conversion to invoice, flexible discounts, and links to jobs.
 
-**Why it's failing today:** the "General AI Rules" box is free text that is only pasted into the parsing prompt. The model can and does ignore it, and nothing enforces it afterwards.
+## What you'll get
 
-**Fix — write once with AI, enforce with plain logic:**
+**New "Billing" page** (`/billing`) with two tabs: Estimates and Invoices.
+- List view: number, client, job link, date, total, status badge (Draft / Sent / Approved / Declined / Invoiced · Unpaid / Paid), search + status filter.
+- Editor dialog: pick client (existing clients list), optional linked job, line items (description, qty, unit price), notes/terms, tax rate.
 
-- New **Rule Builder** in Settings → AI Rules. You type a rule in plain English ("if the message mentions Elite, marketer is Elite Doors"; "if payment says zelle, set payment method to Zelle"; "phone numbers with 10 digits get +1").
-- One single AI call turns that sentence into a structured rule: `{ when: field/message contains X, then: set field Y = Z }`. That call happens **once, when you save the rule** — never again.
-- Saved rules are then applied by ordinary code after every parse, so they can never be ignored. A "Test rule" box lets you paste a sample message and see exactly which rules fire, before saving.
-- Existing marketer mapping rules and corrections stay and are folded into the same list.
-- Rules keep living in the existing `app_settings.ai_training` record — no migration needed.
+**Line items and discounts**
+- Per-item discount: fixed amount or percentage.
+- Document-level discounts: add multiple discounts, each fixed or percentage, each with a label.
+- Live totals: subtotal → item discounts → document discounts (applied in order) → tax → total.
 
-## Part 2 — Automation Center (if this → then that)
+**Approval of an estimate — two paths**
+1. Manual approve: one button, records who approved and when.
+2. Send to client: generates a unique public link (emailed, or copy the link). Client opens a clean read-only estimate page, types their full name, draws a signature on a canvas, and submits.
+   - On signing we capture: full name, signature image, IP address, date/time, and device/browser (user agent).
+   - Those details are then shown on the estimate (a "Signed by" block with the signature image and the audit line) for you and on the printable view.
+   - Link can be expired/revoked; already-signed links show the signed state instead of the form.
 
-New **Automations** tab in Settings (no extra screen in the nav). Each automation is a card: *Name • Trigger • Conditions • Actions • On/Off*.
+**Convert to invoice**
+- Approved estimate gets a "Convert to invoice" button: copies client, job link, items and discounts into a new invoice, marks the estimate as Invoiced, and keeps a reference both ways.
+- Invoices track paid/unpaid, amount paid, and payment method.
 
-**Triggers**
-- Job created
-- Job updated
-- A field changed to a value (e.g. Status → Completed, Paid → true)
-- Time-based (e.g. job completed N days ago and still unpaid; job scheduled tomorrow)
-- Balance/parts threshold (e.g. a marketer's net balance goes above/below an amount)
+**Job linking**
+- In the job form (Add/Edit Job), a "Billing" line lets you attach an existing estimate or invoice, or create one from the job (prefills client and price).
+- On the billing document, the linked job is shown with a link back to it.
 
-**Conditions** — optional AND-list of field comparisons (job type, marketer, status, price >, paid, installer empty, etc.).
+**Print / PDF**
+- Both estimates and invoices get a print-friendly view (browser Print → Save as PDF) including the signature block.
 
-**Actions**
-- Set a field on the job (status, paid, notes, installer, …)
-- Send email or SMS using an existing message template, to marketer / tech / client / a fixed address
-- Create an in-app alert shown in a bell menu on the dashboard
-- Run one of your existing report automations now
+## Technical notes
 
-**When they run**
-- Job created / updated / field-changed → evaluated instantly in the app the moment a job is saved (no cron delay, no credits).
-- Time-based and balance thresholds → evaluated by a new scheduled endpoint running every 15 minutes, alongside the existing report dispatcher.
+Database (one migration):
+- `billing_documents` — kind (estimate/invoice), number (auto sequence per kind), client_id, job_id, status, issue_date, due_date, tax_rate, notes/terms, discounts jsonb (array of {label, type, value}), totals (subtotal, discount_total, tax_total, total), approval fields (approved_by, approved_at, approval_mode), signature fields (signer_name, signature_data_url, signed_ip, signed_at, signed_user_agent), converted_from/converted_to, created_by. Plus `share_token`, `share_expires_at`.
+- `billing_items` — document_id, description, qty, unit_price, discount_type, discount_value, sort_order.
+- GRANTs for authenticated/service_role, RLS scoped to authenticated users (same visibility model as jobs), `updated_at` triggers. Signing is performed by a server function using service role after validating the token, so no anon table access is granted.
+- `jobs` gets no schema change; the link lives on the document (`job_id`), and the job form reads/writes it.
 
-Every run is logged so you can see what fired and why, and each automation has a "Run now (dry run)" preview that lists matching jobs and intended actions without applying them.
+Code:
+- `src/lib/billing.ts` — types, totals math (single shared function used by editor, list, and public view), CRUD.
+- `src/lib/billing.functions.ts` — server functions: `getPublicDocument({token})` (read-only projection, no internal fields) and `signDocument({token, fullName, signature})` which reads IP from request headers (`cf-connecting-ip` / `x-forwarded-for`) and user agent server-side, so the client can't spoof them; writes with the admin client after token validation.
+- `src/routes/billing.tsx` — page + tabs; `src/components/billing/*` — DocumentEditorDialog, DocumentList, DocumentView, DiscountEditor, LineItemsEditor, SignaturePad (small canvas component, no new dependency).
+- `src/routes/sign.$token.tsx` — public route (top-level, SSR, no auth gate) for the client-facing signing page.
+- Email of the estimate link reuses the existing transactional email path already used by report automations.
+- Nav entry added to the desktop nav and `MobileNav`.
 
-## Technical details
-
-- **Migration:** two tables — `automations` (name, enabled, trigger jsonb, conditions jsonb, actions jsonb, last_run_at) and `app_alerts` (title, body, job_id, read_at, created_at). Admin-managed via existing role policies; grants + RLS included.
-- **New files:** `src/lib/automations.ts` (types + CRUD), `src/lib/automationEngine.ts` (pure condition/action evaluator, shared by client and server), `src/components/settings/AutomationCenter.tsx`, `src/components/settings/AIRuleBuilder.tsx`, `src/routes/api/public/hooks/dispatch-automations.ts`.
-- **Edited:** `src/lib/aiTraining.ts` (add `structuredRules`, apply function), `src/components/ParseMessageDialog.tsx` (apply structured rules post-parse), `src/routes/settings.tsx` (two tabs), `src/components/AddJobDialog.tsx` (fire job-save triggers), `src/routes/index.tsx` (alerts bell).
-- **AI usage:** exactly one small gateway call per rule you create (rule text → JSON), via a server function using `openai/gpt-5.6-sol` with reasoning off. Nothing else calls AI at runtime.
-- pg_cron entry added for the new dispatch endpoint (15 min), reusing the existing anon-key auth pattern.
+## Not included (say the word and I'll add)
+- Online payment collection on invoices.
+- Recurring invoices or partial payment schedules.
