@@ -18,6 +18,7 @@ import { Route as InstallersRouteImport } from './routes/installers'
 import { Route as DataboardRouteImport } from './routes/databoard'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as ClientsRouteImport } from './routes/clients'
+import { Route as BillingRouteImport } from './routes/billing'
 import { Route as BalancesRouteImport } from './routes/balances'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -71,6 +72,11 @@ const ClientsRoute = ClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BalancesRoute = BalancesRouteImport.update({
   id: '/balances',
   path: '/balances',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/balances': typeof BalancesRoute
+  '/billing': typeof BillingRoute
   '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/balances': typeof BalancesRoute
+  '/billing': typeof BillingRoute
   '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/balances': typeof BalancesRoute
+  '/billing': typeof BillingRoute
   '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
@@ -172,6 +181,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/balances'
+    | '/billing'
     | '/clients'
     | '/companies'
     | '/databoard'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/balances'
+    | '/billing'
     | '/clients'
     | '/companies'
     | '/databoard'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/balances'
+    | '/billing'
     | '/clients'
     | '/companies'
     | '/databoard'
@@ -227,6 +239,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   BalancesRoute: typeof BalancesRoute
+  BillingRoute: typeof BillingRoute
   ClientsRoute: typeof ClientsRoute
   CompaniesRoute: typeof CompaniesRoute
   DataboardRoute: typeof DataboardRoute
@@ -307,6 +320,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/balances': {
       id: '/balances'
       path: '/balances'
@@ -363,6 +383,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   BalancesRoute: BalancesRoute,
+  BillingRoute: BillingRoute,
   ClientsRoute: ClientsRoute,
   CompaniesRoute: CompaniesRoute,
   DataboardRoute: DataboardRoute,
@@ -383,13 +404,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
