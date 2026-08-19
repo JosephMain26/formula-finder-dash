@@ -261,6 +261,12 @@ function Dashboard() {
                 <Button variant="outline"><Receipt className="h-4 w-4 mr-2" /> Billing</Button>
               </Link>
             )}
+            {isAdmin && (
+              <Link to="/expenses" className="hidden lg:inline-flex">
+                <Button variant="outline"><Wallet className="h-4 w-4 mr-2" /> Expenses</Button>
+              </Link>
+            )}
+
 
 
 
