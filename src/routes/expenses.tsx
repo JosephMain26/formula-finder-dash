@@ -190,6 +190,8 @@ function ExpensesPage() {
         onOpenChange={(v) => !v && setOpenId(null)}
         onChanged={refresh}
       />
+
+      <VendorsAccountsDialog open={manageOpen} onOpenChange={setManageOpen} onChanged={refresh} />
     </div>
   );
 }
