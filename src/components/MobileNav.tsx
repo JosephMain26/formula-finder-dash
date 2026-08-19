@@ -52,6 +52,9 @@ export function MobileNav({ className }: MobileNavProps) {
               <Link to="/billing" onClick={close} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm">
                 <Receipt className="h-4 w-4" /> Estimates & Invoices
               </Link>
+              <Link to="/expenses" onClick={close} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm">
+                <Wallet className="h-4 w-4" /> Expenses
+              </Link>
 
               <Link to="/settings" onClick={close} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm">
                 <Settings className="h-4 w-4" /> Settings
