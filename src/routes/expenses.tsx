@@ -41,7 +41,9 @@ function ExpensesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
 
   async function refresh() {
     setLoading(true);
