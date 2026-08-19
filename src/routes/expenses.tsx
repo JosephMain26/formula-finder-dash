@@ -111,7 +111,7 @@ function ExpensesPage() {
               <Receipt className="h-4 w-4" /> Vendor invoices &amp; receipts
               <span className="text-xs font-normal text-muted-foreground">· {money(total)}</span>
             </CardTitle>
-            <div>
+            <div className="flex flex-wrap gap-2">
               <input
                 ref={fileRef}
                 type="file"
@@ -120,6 +120,9 @@ function ExpensesPage() {
                 className="hidden"
                 onChange={(e) => handleFiles(e.target.files)}
               />
+              <Button size="sm" variant="outline" onClick={() => setManageOpen(true)}>
+                <Settings2 className="h-4 w-4 mr-1" /> Vendors &amp; categories
+              </Button>
               <Button size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
                 {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
                 {uploading ? "Uploading…" : "Upload invoice"}
