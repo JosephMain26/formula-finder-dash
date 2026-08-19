@@ -552,6 +552,210 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_accounts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          number: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expense_attachments: {
+        Row: {
+          created_at: string
+          expense_id: string
+          file_mime: string | null
+          file_path: string
+          id: string
+          position: number
+        }
+        Insert: {
+          created_at?: string
+          expense_id: string
+          file_mime?: string | null
+          file_path: string
+          id?: string
+          position?: number
+        }
+        Update: {
+          created_at?: string
+          expense_id?: string
+          file_mime?: string | null
+          file_path?: string
+          id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_attachments_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_line_items: {
+        Row: {
+          description: string | null
+          expense_id: string
+          id: string
+          line_total: number | null
+          position: number
+          product_id: string | null
+          product_number: string | null
+          quantity: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          description?: string | null
+          expense_id: string
+          id?: string
+          line_total?: number | null
+          position?: number
+          product_id?: string | null
+          product_number?: string | null
+          quantity?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          description?: string | null
+          expense_id?: string
+          id?: string
+          line_total?: number | null
+          position?: number
+          product_id?: string | null
+          product_number?: string | null
+          quantity?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_line_items_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_line_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          account_id: string | null
+          ai_raw: Json | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          customer_po: string | null
+          id: string
+          invoice_date: string | null
+          invoice_number: string | null
+          job_id: string | null
+          notes: string | null
+          status: Database["public"]["Enums"]["expense_status"]
+          subject: string | null
+          subtotal: number | null
+          tax_amount: number | null
+          tax_rate: number | null
+          total: number | null
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          ai_raw?: Json | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_po?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          job_id?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["expense_status"]
+          subject?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total?: number | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          ai_raw?: Json | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_po?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          job_id?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["expense_status"]
+          subject?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total?: number | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "expense_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       install_colors: {
         Row: {
           created_at: string
@@ -1519,6 +1723,42 @@ export type Database = {
         }
         Relationships: []
       }
+      vendors: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          tax_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1574,6 +1814,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "manager" | "user" | "tech"
+      expense_status: "draft" | "confirmed" | "attached"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1702,6 +1943,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "manager", "user", "tech"],
+      expense_status: ["draft", "confirmed", "attached"],
     },
   },
 } as const
