@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Upload, Loader2, Receipt } from "lucide-react";
+import { ArrowLeft, Upload, Loader2, Receipt, Settings2 } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 import { toast } from "sonner";
 import { ExpenseDialog } from "@/components/expenses/ExpenseDialog";
+import { VendorsAccountsDialog } from "@/components/expenses/VendorsAccountsDialog";
 import { parseExpense } from "@/lib/expenseAi.functions";
 import { createExpenseWithFiles, loadExpenses, money, type Expense } from "@/lib/expenses";
 
