@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Upload, Loader2, Receipt } from "lucide-react";
+import { ArrowLeft, Upload, Loader2, Receipt, Settings2 } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 import { toast } from "sonner";
 import { ExpenseDialog } from "@/components/expenses/ExpenseDialog";
+import { VendorsAccountsDialog } from "@/components/expenses/VendorsAccountsDialog";
 import { parseExpense } from "@/lib/expenseAi.functions";
 import { createExpenseWithFiles, loadExpenses, money, type Expense } from "@/lib/expenses";
 
@@ -40,7 +41,9 @@ function ExpensesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
 
   async function refresh() {
     setLoading(true);
@@ -108,7 +111,7 @@ function ExpensesPage() {
               <Receipt className="h-4 w-4" /> Vendor invoices &amp; receipts
               <span className="text-xs font-normal text-muted-foreground">· {money(total)}</span>
             </CardTitle>
-            <div>
+            <div className="flex flex-wrap gap-2">
               <input
                 ref={fileRef}
                 type="file"
@@ -117,6 +120,9 @@ function ExpensesPage() {
                 className="hidden"
                 onChange={(e) => handleFiles(e.target.files)}
               />
+              <Button size="sm" variant="outline" onClick={() => setManageOpen(true)}>
+                <Settings2 className="h-4 w-4 mr-1" /> Vendors &amp; categories
+              </Button>
               <Button size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
                 {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
                 {uploading ? "Uploading…" : "Upload invoice"}
@@ -184,6 +190,8 @@ function ExpensesPage() {
         onOpenChange={(v) => !v && setOpenId(null)}
         onChanged={refresh}
       />
+
+      <VendorsAccountsDialog open={manageOpen} onOpenChange={setManageOpen} onChanged={refresh} />
     </div>
   );
 }
