@@ -201,7 +201,34 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
 
           try {
             const localToday = tzToday(now, a.schedule?.tz || "UTC");
-            if (rec.perMarketer) {
+            if ((rec.kind || "jobs") === "tech") {
+              // One statement per technician: their cut + what they owe the office.
+              const range = resolveSpecRange(spec, localToday);
+              const summaries = summarizeByTech(jobs, {
+                from: range?.from,
+                to: range?.to,
+                statuses: spec.statuses || [],
+                techNames: rec.techs || [],
+              });
+              const rangeText = techRangeText(range?.from, range?.to);
+
+              const chosen = new Set<string>();
+              for (const e of rec.emails || []) if (e) chosen.add(e);
+              for (const e of await resolveRoleEmails(admin, rec.roles || [])) chosen.add(e);
+
+              const techEmails = rec.sendToTech ? await resolveTechEmails(admin) : new Map<string, string>();
+
+              for (const s of summaries) {
+                const html = renderTechReportHtml(s, rangeText, spec.title || "Technician Report");
+                const recipients = new Set<string>(chosen);
+                const own = techEmails.get(s.tech);
+                if (own) recipients.add(own);
+                for (const to of recipients) {
+                  await sendEmail(admin, to, `${spec.title || "Technician Report"} — ${s.tech}`, html, a.id);
+                  sent++;
+                }
+              }
+            } else if (rec.perMarketer) {
               // Build one report per marketer. Whether the marketer themselves
               // receives it is controlled by `sendToMarketer`; the chosen
               // recipients (roles + custom emails + specifically selected
