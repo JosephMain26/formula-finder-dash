@@ -3,8 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 import {
   computeReportData,
   renderReportHtml,
+  resolveSpecRange,
   type ReportSpec,
 } from "@/lib/reportSpec";
+import { summarizeByTech, renderTechReportHtml, techRangeText } from "@/lib/techReport";
 import type { PartsCharge } from "@/lib/partsCharges";
 import type { Tables } from "@/integrations/supabase/types";
 
