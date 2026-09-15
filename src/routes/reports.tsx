@@ -534,7 +534,10 @@ function freqLabel(a: ReportAutomation): string {
   if (s.freq === "daily") when = `Daily at ${t}`;
   else if (s.freq === "monthly") when = `Monthly on day ${s.monthDay ?? 1} at ${t}`;
   else when = `Weekly on ${WEEKDAYS[s.weekday ?? 1]} at ${t}`;
-  return `${when} · ${range}${a.recipients?.perMarketer ? " · per marketer" : ""}`;
+  const extra = (a.recipients?.kind || "jobs") === "tech"
+    ? " · per technician"
+    : a.recipients?.perMarketer ? " · per marketer" : "";
+  return `${when} · ${range}${extra}`;
 }
 
 
