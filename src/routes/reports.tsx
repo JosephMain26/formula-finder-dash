@@ -309,15 +309,21 @@ function ReportsPage() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue={tab === "balances" ? "balances" : tab === "parts" ? "parts" : tab === "automations" ? "automations" : "builder"}>
+        <Tabs defaultValue={tab === "balances" ? "balances" : tab === "parts" ? "parts" : tab === "techs" ? "techs" : tab === "automations" ? "automations" : "builder"}>
           <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
             <TabsList className="w-max">
               <TabsTrigger value="builder" className="shrink-0">Report Builder</TabsTrigger>
+              <TabsTrigger value="techs" className="shrink-0">Tech Reports</TabsTrigger>
               <TabsTrigger value="balances" className="shrink-0">Marketer Balances</TabsTrigger>
               <TabsTrigger value="parts" className="shrink-0">Parts Charges</TabsTrigger>
               <TabsTrigger value="automations" className="shrink-0">Automation Center</TabsTrigger>
             </TabsList>
           </div>
+
+          {/* ---------------- TECH REPORTS ---------------- */}
+          <TabsContent value="techs">
+            <TechReportsPanel />
+          </TabsContent>
 
           {/* ---------------- BALANCES ---------------- */}
           <TabsContent value="balances">
