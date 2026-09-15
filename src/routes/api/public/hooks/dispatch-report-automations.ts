@@ -27,6 +27,9 @@ type Recipients = {
   emails?: string[];
   perMarketer?: boolean;
   sendToMarketer?: boolean;
+  kind?: "jobs" | "tech";
+  techs?: string[];
+  sendToTech?: boolean;
 };
 
 type Automation = {
