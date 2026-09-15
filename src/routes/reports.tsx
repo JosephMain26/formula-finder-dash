@@ -631,7 +631,7 @@ function AutomationCenter({
         <DialogContent className="max-w-lg max-h-[88vh] overflow-y-auto w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)]">
           <DialogHeader><DialogTitle>{editing?.id ? "Edit automation" : "New automation"}</DialogTitle></DialogHeader>
           {editing && (
-            <AutomationForm editing={editing} setEditing={setEditing} reportTemplates={reportTemplates} companies={companies} statuses={statuses} />
+            <AutomationForm editing={editing} setEditing={setEditing} reportTemplates={reportTemplates} companies={companies} statuses={statuses} techNames={techNames} />
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
