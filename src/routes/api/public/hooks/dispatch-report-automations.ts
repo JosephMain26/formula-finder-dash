@@ -3,8 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 import {
   computeReportData,
   renderReportHtml,
+  resolveSpecRange,
   type ReportSpec,
 } from "@/lib/reportSpec";
+import { summarizeByTech, renderTechReportHtml, techRangeText } from "@/lib/techReport";
 import type { PartsCharge } from "@/lib/partsCharges";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -27,6 +29,9 @@ type Recipients = {
   emails?: string[];
   perMarketer?: boolean;
   sendToMarketer?: boolean;
+  kind?: "jobs" | "tech";
+  techs?: string[];
+  sendToTech?: boolean;
 };
 
 type Automation = {
@@ -118,6 +123,21 @@ async function resolveMarketerEmails(admin: any, names: string[]): Promise<Map<s
   return map;
 }
 
+/** Technician name -> email of their linked login account. */
+async function resolveTechEmails(admin: any): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const { data: techs } = await admin.from("technicians").select("tech_name, user_id");
+  const ids = [...new Set((techs || []).map((t: any) => t.user_id).filter(Boolean))];
+  if (!ids.length) return map;
+  const { data: profs } = await admin.from("profiles").select("id, email").in("id", ids);
+  const byId = new Map((profs || []).map((p: any) => [p.id, p.email]));
+  for (const t of techs || []) {
+    const email = t.user_id ? byId.get(t.user_id) : null;
+    if (email && t.tech_name) map.set(String(t.tech_name).trim(), String(email));
+  }
+  return map;
+}
+
 async function sendEmail(admin: any, to: string, subject: string, html: string, autoId: string) {
   await admin.rpc("enqueue_email", {
     queue_name: "transactional_emails",
@@ -181,7 +201,34 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
 
           try {
             const localToday = tzToday(now, a.schedule?.tz || "UTC");
-            if (rec.perMarketer) {
+            if ((rec.kind || "jobs") === "tech") {
+              // One statement per technician: their cut + what they owe the office.
+              const range = resolveSpecRange(spec, localToday);
+              const summaries = summarizeByTech(jobs, {
+                from: range?.from,
+                to: range?.to,
+                statuses: spec.statuses || [],
+                techNames: rec.techs || [],
+              });
+              const rangeText = techRangeText(range?.from, range?.to);
+
+              const chosen = new Set<string>();
+              for (const e of rec.emails || []) if (e) chosen.add(e);
+              for (const e of await resolveRoleEmails(admin, rec.roles || [])) chosen.add(e);
+
+              const techEmails = rec.sendToTech ? await resolveTechEmails(admin) : new Map<string, string>();
+
+              for (const s of summaries) {
+                const html = renderTechReportHtml(s, rangeText, spec.title || "Technician Report");
+                const recipients = new Set<string>(chosen);
+                const own = techEmails.get(s.tech);
+                if (own) recipients.add(own);
+                for (const to of recipients) {
+                  await sendEmail(admin, to, `${spec.title || "Technician Report"} — ${s.tech}`, html, a.id);
+                  sent++;
+                }
+              }
+            } else if (rec.perMarketer) {
               // Build one report per marketer. Whether the marketer themselves
               // receives it is controlled by `sendToMarketer`; the chosen
               // recipients (roles + custom emails + specifically selected

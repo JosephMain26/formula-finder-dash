@@ -35,10 +35,11 @@ import { loadPartsCharges, type PartsCharge } from "@/lib/partsCharges";
 import { loadStatuses, type StatusDef } from "@/lib/jobSchema";
 import {
   loadAutomations, upsertAutomation, deleteAutomation,
-  type ReportAutomation, type AutomationFreq,
+  type ReportAutomation, type AutomationFreq, type AutomationKind,
 } from "@/lib/reportAutomations";
 import { BalancesPanel } from "@/components/BalancesPanel";
 import { PartsChargesPanel } from "@/components/PartsChargesPanel";
+import { TechReportsPanel } from "@/components/TechReportsPanel";
 
 
 
@@ -193,6 +194,7 @@ function ReportsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [partsCharges, setPartsCharges] = useState<PartsCharge[]>([]);
   const [companies, setCompanies] = useState<string[]>([]);
+  const [techNames, setTechNames] = useState<string[]>([]);
   const [statuses, setStatuses] = useState<StatusDef[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -217,6 +219,8 @@ function ReportsPage() {
       setJobs(list);
       const co = [...new Set(list.map((j) => (j.company_1 || j.company || "").trim()).filter(Boolean))].sort();
       setCompanies(co);
+      const tn = [...new Set(list.map((j) => (j.tech_name || "").trim()).filter(Boolean))].sort();
+      setTechNames(tn);
       setLoading(false);
     })();
     loadTemplates().then(setTemplates);
@@ -308,15 +312,21 @@ function ReportsPage() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue={tab === "balances" ? "balances" : tab === "parts" ? "parts" : tab === "automations" ? "automations" : "builder"}>
+        <Tabs defaultValue={tab === "balances" ? "balances" : tab === "parts" ? "parts" : tab === "techs" ? "techs" : tab === "automations" ? "automations" : "builder"}>
           <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
             <TabsList className="w-max">
               <TabsTrigger value="builder" className="shrink-0">Report Builder</TabsTrigger>
+              <TabsTrigger value="techs" className="shrink-0">Tech Reports</TabsTrigger>
               <TabsTrigger value="balances" className="shrink-0">Marketer Balances</TabsTrigger>
               <TabsTrigger value="parts" className="shrink-0">Parts Charges</TabsTrigger>
               <TabsTrigger value="automations" className="shrink-0">Automation Center</TabsTrigger>
             </TabsList>
           </div>
+
+          {/* ---------------- TECH REPORTS ---------------- */}
+          <TabsContent value="techs">
+            <TechReportsPanel />
+          </TabsContent>
 
           {/* ---------------- BALANCES ---------------- */}
           <TabsContent value="balances">
@@ -501,6 +511,7 @@ function ReportsPage() {
               reportTemplates={reportTemplates}
               companies={companies}
               statuses={statuses}
+              techNames={techNames}
             />
           </TabsContent>
         </Tabs>
@@ -523,18 +534,22 @@ function freqLabel(a: ReportAutomation): string {
   if (s.freq === "daily") when = `Daily at ${t}`;
   else if (s.freq === "monthly") when = `Monthly on day ${s.monthDay ?? 1} at ${t}`;
   else when = `Weekly on ${WEEKDAYS[s.weekday ?? 1]} at ${t}`;
-  return `${when} · ${range}${a.recipients?.perMarketer ? " · per marketer" : ""}`;
+  const extra = (a.recipients?.kind || "jobs") === "tech"
+    ? " · per technician"
+    : a.recipients?.perMarketer ? " · per marketer" : "";
+  return `${when} · ${range}${extra}`;
 }
 
 
 function AutomationCenter({
-  automations, setAutomations, reportTemplates, companies, statuses,
+  automations, setAutomations, reportTemplates, companies, statuses, techNames,
 }: {
   automations: ReportAutomation[];
   setAutomations: (a: ReportAutomation[]) => void;
   reportTemplates: ReportTemplate[];
   companies: string[];
   statuses: StatusDef[];
+  techNames: string[];
 }) {
   const [editing, setEditing] = useState<ReportAutomation | null>(null);
   const [open, setOpen] = useState(false);
@@ -550,7 +565,7 @@ function AutomationCenter({
       enabled: true,
       template: { ...DEFAULT_REPORT_SPEC },
       schedule: { freq: "weekly", weekday: 1, monthDay: 1, time: "08:00", tz },
-      recipients: { roles: [], marketers: [], emails: [], perMarketer: false, sendToMarketer: false },
+      recipients: { roles: [], marketers: [], emails: [], perMarketer: false, sendToMarketer: false, kind: "jobs", techs: [], sendToTech: false },
       last_run_at: null,
     };
   }
@@ -619,7 +634,7 @@ function AutomationCenter({
         <DialogContent className="max-w-lg max-h-[88vh] overflow-y-auto w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)]">
           <DialogHeader><DialogTitle>{editing?.id ? "Edit automation" : "New automation"}</DialogTitle></DialogHeader>
           {editing && (
-            <AutomationForm editing={editing} setEditing={setEditing} reportTemplates={reportTemplates} companies={companies} statuses={statuses} />
+            <AutomationForm editing={editing} setEditing={setEditing} reportTemplates={reportTemplates} companies={companies} statuses={statuses} techNames={techNames} />
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -632,13 +647,14 @@ function AutomationCenter({
 }
 
 function AutomationForm({
-  editing, setEditing, reportTemplates, companies, statuses,
+  editing, setEditing, reportTemplates, companies, statuses, techNames,
 }: {
   editing: ReportAutomation;
   setEditing: (a: ReportAutomation) => void;
   reportTemplates: ReportTemplate[];
   companies: string[];
   statuses: StatusDef[];
+  techNames: string[];
 }) {
   const sched = editing.schedule;
   const rec = editing.recipients;
@@ -667,6 +683,11 @@ function AutomationForm({
     const t = reportTemplates.find((x) => x.id === id);
     if (t?.spec) setEditing({ ...editing, template: { ...DEFAULT_REPORT_SPEC, ...(t.spec as ReportSpec) } });
   }
+  const kind: AutomationKind = rec.kind || "jobs";
+  const techList = rec.techs || [];
+  function toggleTech(name: string) {
+    setRec({ techs: techList.includes(name) ? techList.filter((t) => t !== name) : [...techList, name] });
+  }
 
   return (
     <div className="space-y-4 py-1">
@@ -676,18 +697,56 @@ function AutomationForm({
       </div>
 
       <div>
-        <Label className="text-xs">What to send (saved report template)</Label>
-        <Select value="" onValueChange={applyTemplate}>
-          <SelectTrigger className="h-9"><SelectValue placeholder="Apply a report template…" /></SelectTrigger>
+        <Label className="text-xs">Report type</Label>
+        <Select value={kind} onValueChange={(v) => setRec({ kind: v as AutomationKind })}>
+          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {reportTemplates.length === 0 && <SelectItem value="none" disabled>No templates — save one in Report Builder</SelectItem>}
-            {reportTemplates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+            <SelectItem value="jobs">Custom jobs report</SelectItem>
+            <SelectItem value="tech">Technician reports (tech cut + owed to office)</SelectItem>
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground mt-1">
-          Sections: {editing.template.sections.filter((s) => s.enabled).map((s) => REPORT_SECTION_LABELS[s.id]).join(", ") || "none"}
-        </p>
       </div>
+
+      {kind === "jobs" && (
+        <div>
+          <Label className="text-xs">What to send (saved report template)</Label>
+          <Select value="" onValueChange={applyTemplate}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Apply a report template…" /></SelectTrigger>
+            <SelectContent>
+              {reportTemplates.length === 0 && <SelectItem value="none" disabled>No templates — save one in Report Builder</SelectItem>}
+              {reportTemplates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Sections: {editing.template.sections.filter((s) => s.enabled).map((s) => REPORT_SECTION_LABELS[s.id]).join(", ") || "none"}
+          </p>
+        </div>
+      )}
+
+      {kind === "tech" && (
+        <div className="space-y-2">
+          <div>
+            <span className="text-xs text-muted-foreground">Technicians ({techList.length === 0 ? "all" : techList.length})</span>
+            <div className="grid grid-cols-2 gap-1.5 mt-1 max-h-32 overflow-y-auto border rounded p-2">
+              {techNames.length === 0 && <span className="text-xs text-muted-foreground col-span-2">No technicians found in jobs.</span>}
+              {techNames.map((name) => (
+                <label key={name} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox checked={techList.includes(name)} onCheckedChange={() => toggleTech(name)} />
+                  <span className="truncate">{name}</span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">No selection = every technician with jobs in the period.</p>
+          </div>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <Switch checked={!!rec.sendToTech} onCheckedChange={(v) => setRec({ sendToTech: v })} />
+            <span>
+              Also send each technician their own report
+              <span className="block text-xs text-muted-foreground">to the email on their linked account</span>
+            </span>
+          </label>
+        </div>
+      )}
 
       <div>
         <Label className="text-xs">Report time range</Label>
@@ -784,12 +843,14 @@ function AutomationForm({
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
-          <Switch checked={rec.perMarketer} onCheckedChange={(v) => setRec({ perMarketer: v })} />
-          Create a separate report for each marketer
-        </label>
+        {kind === "jobs" && (
+          <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
+            <Switch checked={rec.perMarketer} onCheckedChange={(v) => setRec({ perMarketer: v })} />
+            Create a separate report for each marketer
+          </label>
+        )}
 
-        {rec.perMarketer && (
+        {kind === "jobs" && rec.perMarketer && (
           <label className="flex items-center gap-2 text-sm cursor-pointer pl-1 pt-1">
             <Switch checked={!!rec.sendToMarketer} onCheckedChange={(v) => setRec({ sendToMarketer: v })} />
             <span>
@@ -799,7 +860,7 @@ function AutomationForm({
           </label>
         )}
 
-        {rec.perMarketer && (
+        {kind === "jobs" && rec.perMarketer && (
           <p className="text-xs text-muted-foreground">
             {rec.sendToMarketer
               ? "Each marketer gets their own report, plus the recipients below receive a copy of every marketer's report."
@@ -807,20 +868,30 @@ function AutomationForm({
           </p>
         )}
 
-        <div>
-          <span className="text-xs text-muted-foreground">
-            {rec.perMarketer ? "Specific marketers to also receive their report (uses company email)" : "Specific marketers (uses company email)"}
-          </span>
-          <div className="grid grid-cols-2 gap-1.5 mt-1 max-h-32 overflow-y-auto border rounded p-2">
-            {companies.length === 0 && <span className="text-xs text-muted-foreground col-span-2">No marketers.</span>}
-            {companies.map((name) => (
-              <label key={name} className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={rec.marketers.includes(name)} onCheckedChange={() => toggleMarketer(name)} />
-                <span className="truncate">{name}</span>
-              </label>
-            ))}
+        {kind === "tech" && (
+          <p className="text-xs text-muted-foreground">
+            {rec.sendToTech
+              ? "Each technician gets their own statement, plus the recipients here receive a copy of every technician's statement."
+              : "A statement is built per technician and sent only to the recipients you choose here (technicians get nothing)."}
+          </p>
+        )}
+
+        {kind === "jobs" && (
+          <div>
+            <span className="text-xs text-muted-foreground">
+              {rec.perMarketer ? "Specific marketers to also receive their report (uses company email)" : "Specific marketers (uses company email)"}
+            </span>
+            <div className="grid grid-cols-2 gap-1.5 mt-1 max-h-32 overflow-y-auto border rounded p-2">
+              {companies.length === 0 && <span className="text-xs text-muted-foreground col-span-2">No marketers.</span>}
+              {companies.map((name) => (
+                <label key={name} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox checked={rec.marketers.includes(name)} onCheckedChange={() => toggleMarketer(name)} />
+                  <span className="truncate">{name}</span>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div>
           <span className="text-xs text-muted-foreground">Custom emails (one per line)</span>

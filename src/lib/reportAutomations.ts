@@ -11,6 +11,9 @@ export type AutomationSchedule = {
   tz?: string; // IANA timezone, e.g. "America/New_York"; falls back to UTC
 };
 
+/** "jobs" = the custom report builder output; "tech" = per-technician statements. */
+export type AutomationKind = "jobs" | "tech";
+
 export type AutomationRecipients = {
   roles: string[];
   marketers: string[];
@@ -18,6 +21,12 @@ export type AutomationRecipients = {
   perMarketer: boolean;
   /** When perMarketer is on, also email each marketer their own report at their contact email. */
   sendToMarketer?: boolean;
+  /** Kind of report this automation sends. Stored in the recipients jsonb so no schema change is needed. */
+  kind?: AutomationKind;
+  /** Technician names to include ("tech" kind). Empty = every technician with jobs. */
+  techs?: string[];
+  /** Also email each technician their own statement at their linked account email. */
+  sendToTech?: boolean;
 };
 
 export type ReportAutomation = {
