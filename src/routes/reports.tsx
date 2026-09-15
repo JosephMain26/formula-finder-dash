@@ -511,6 +511,7 @@ function ReportsPage() {
               reportTemplates={reportTemplates}
               companies={companies}
               statuses={statuses}
+              techNames={techNames}
             />
           </TabsContent>
         </Tabs>
