@@ -680,6 +680,11 @@ function AutomationForm({
     const t = reportTemplates.find((x) => x.id === id);
     if (t?.spec) setEditing({ ...editing, template: { ...DEFAULT_REPORT_SPEC, ...(t.spec as ReportSpec) } });
   }
+  const kind: AutomationKind = rec.kind || "jobs";
+  const techList = rec.techs || [];
+  function toggleTech(name: string) {
+    setRec({ techs: techList.includes(name) ? techList.filter((t) => t !== name) : [...techList, name] });
+  }
 
   return (
     <div className="space-y-4 py-1">
@@ -689,18 +694,56 @@ function AutomationForm({
       </div>
 
       <div>
-        <Label className="text-xs">What to send (saved report template)</Label>
-        <Select value="" onValueChange={applyTemplate}>
-          <SelectTrigger className="h-9"><SelectValue placeholder="Apply a report template…" /></SelectTrigger>
+        <Label className="text-xs">Report type</Label>
+        <Select value={kind} onValueChange={(v) => setRec({ kind: v as AutomationKind })}>
+          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {reportTemplates.length === 0 && <SelectItem value="none" disabled>No templates — save one in Report Builder</SelectItem>}
-            {reportTemplates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+            <SelectItem value="jobs">Custom jobs report</SelectItem>
+            <SelectItem value="tech">Technician reports (tech cut + owed to office)</SelectItem>
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground mt-1">
-          Sections: {editing.template.sections.filter((s) => s.enabled).map((s) => REPORT_SECTION_LABELS[s.id]).join(", ") || "none"}
-        </p>
       </div>
+
+      {kind === "jobs" && (
+        <div>
+          <Label className="text-xs">What to send (saved report template)</Label>
+          <Select value="" onValueChange={applyTemplate}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Apply a report template…" /></SelectTrigger>
+            <SelectContent>
+              {reportTemplates.length === 0 && <SelectItem value="none" disabled>No templates — save one in Report Builder</SelectItem>}
+              {reportTemplates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Sections: {editing.template.sections.filter((s) => s.enabled).map((s) => REPORT_SECTION_LABELS[s.id]).join(", ") || "none"}
+          </p>
+        </div>
+      )}
+
+      {kind === "tech" && (
+        <div className="space-y-2">
+          <div>
+            <span className="text-xs text-muted-foreground">Technicians ({techList.length === 0 ? "all" : techList.length})</span>
+            <div className="grid grid-cols-2 gap-1.5 mt-1 max-h-32 overflow-y-auto border rounded p-2">
+              {techNames.length === 0 && <span className="text-xs text-muted-foreground col-span-2">No technicians found in jobs.</span>}
+              {techNames.map((name) => (
+                <label key={name} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox checked={techList.includes(name)} onCheckedChange={() => toggleTech(name)} />
+                  <span className="truncate">{name}</span>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">No selection = every technician with jobs in the period.</p>
+          </div>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <Switch checked={!!rec.sendToTech} onCheckedChange={(v) => setRec({ sendToTech: v })} />
+            <span>
+              Also send each technician their own report
+              <span className="block text-xs text-muted-foreground">to the email on their linked account</span>
+            </span>
+          </label>
+        </div>
+      )}
 
       <div>
         <Label className="text-xs">Report time range</Label>
