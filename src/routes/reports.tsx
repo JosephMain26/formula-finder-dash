@@ -644,13 +644,14 @@ function AutomationCenter({
 }
 
 function AutomationForm({
-  editing, setEditing, reportTemplates, companies, statuses,
+  editing, setEditing, reportTemplates, companies, statuses, techNames,
 }: {
   editing: ReportAutomation;
   setEditing: (a: ReportAutomation) => void;
   reportTemplates: ReportTemplate[];
   companies: string[];
   statuses: StatusDef[];
+  techNames: string[];
 }) {
   const sched = editing.schedule;
   const rec = editing.recipients;
