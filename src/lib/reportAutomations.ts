@@ -20,10 +20,15 @@ export type AutomationRecipients = {
   sendToMarketer?: boolean;
 };
 
+/** "jobs" = the custom report builder output; "tech" = per-technician statements. */
+export type AutomationKind = "jobs" | "tech";
+
 export type ReportAutomation = {
   id: string;
   name: string;
   enabled: boolean;
+  /** Stored inside `recipients` (jsonb) so no schema change is needed. */
+  kind?: AutomationKind;
   template: ReportSpec;
   schedule: AutomationSchedule;
   recipients: AutomationRecipients;
