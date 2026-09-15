@@ -39,6 +39,7 @@ import {
 } from "@/lib/reportAutomations";
 import { BalancesPanel } from "@/components/BalancesPanel";
 import { PartsChargesPanel } from "@/components/PartsChargesPanel";
+import { TechReportsPanel } from "@/components/TechReportsPanel";
 
 
 
