@@ -218,6 +218,8 @@ function ReportsPage() {
       setJobs(list);
       const co = [...new Set(list.map((j) => (j.company_1 || j.company || "").trim()).filter(Boolean))].sort();
       setCompanies(co);
+      const tn = [...new Set(list.map((j) => (j.tech_name || "").trim()).filter(Boolean))].sort();
+      setTechNames(tn);
       setLoading(false);
     })();
     loadTemplates().then(setTemplates);
