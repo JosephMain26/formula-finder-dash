@@ -840,12 +840,14 @@ function AutomationForm({
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
-          <Switch checked={rec.perMarketer} onCheckedChange={(v) => setRec({ perMarketer: v })} />
-          Create a separate report for each marketer
-        </label>
+        {kind === "jobs" && (
+          <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
+            <Switch checked={rec.perMarketer} onCheckedChange={(v) => setRec({ perMarketer: v })} />
+            Create a separate report for each marketer
+          </label>
+        )}
 
-        {rec.perMarketer && (
+        {kind === "jobs" && rec.perMarketer && (
           <label className="flex items-center gap-2 text-sm cursor-pointer pl-1 pt-1">
             <Switch checked={!!rec.sendToMarketer} onCheckedChange={(v) => setRec({ sendToMarketer: v })} />
             <span>
