@@ -123,6 +123,21 @@ async function resolveMarketerEmails(admin: any, names: string[]): Promise<Map<s
   return map;
 }
 
+/** Technician name -> email of their linked login account. */
+async function resolveTechEmails(admin: any): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const { data: techs } = await admin.from("technicians").select("tech_name, user_id");
+  const ids = [...new Set((techs || []).map((t: any) => t.user_id).filter(Boolean))];
+  if (!ids.length) return map;
+  const { data: profs } = await admin.from("profiles").select("id, email").in("id", ids);
+  const byId = new Map((profs || []).map((p: any) => [p.id, p.email]));
+  for (const t of techs || []) {
+    const email = t.user_id ? byId.get(t.user_id) : null;
+    if (email && t.tech_name) map.set(String(t.tech_name).trim(), String(email));
+  }
+  return map;
+}
+
 async function sendEmail(admin: any, to: string, subject: string, html: string, autoId: string) {
   await admin.rpc("enqueue_email", {
     queue_name: "transactional_emails",
