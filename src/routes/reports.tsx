@@ -857,7 +857,7 @@ function AutomationForm({
           </label>
         )}
 
-        {rec.perMarketer && (
+        {kind === "jobs" && rec.perMarketer && (
           <p className="text-xs text-muted-foreground">
             {rec.sendToMarketer
               ? "Each marketer gets their own report, plus the recipients below receive a copy of every marketer's report."
@@ -865,20 +865,30 @@ function AutomationForm({
           </p>
         )}
 
-        <div>
-          <span className="text-xs text-muted-foreground">
-            {rec.perMarketer ? "Specific marketers to also receive their report (uses company email)" : "Specific marketers (uses company email)"}
-          </span>
-          <div className="grid grid-cols-2 gap-1.5 mt-1 max-h-32 overflow-y-auto border rounded p-2">
-            {companies.length === 0 && <span className="text-xs text-muted-foreground col-span-2">No marketers.</span>}
-            {companies.map((name) => (
-              <label key={name} className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={rec.marketers.includes(name)} onCheckedChange={() => toggleMarketer(name)} />
-                <span className="truncate">{name}</span>
-              </label>
-            ))}
+        {kind === "tech" && (
+          <p className="text-xs text-muted-foreground">
+            {rec.sendToTech
+              ? "Each technician gets their own statement, plus the recipients here receive a copy of every technician's statement."
+              : "A statement is built per technician and sent only to the recipients you choose here (technicians get nothing)."}
+          </p>
+        )}
+
+        {kind === "jobs" && (
+          <div>
+            <span className="text-xs text-muted-foreground">
+              {rec.perMarketer ? "Specific marketers to also receive their report (uses company email)" : "Specific marketers (uses company email)"}
+            </span>
+            <div className="grid grid-cols-2 gap-1.5 mt-1 max-h-32 overflow-y-auto border rounded p-2">
+              {companies.length === 0 && <span className="text-xs text-muted-foreground col-span-2">No marketers.</span>}
+              {companies.map((name) => (
+                <label key={name} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox checked={rec.marketers.includes(name)} onCheckedChange={() => toggleMarketer(name)} />
+                  <span className="truncate">{name}</span>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div>
           <span className="text-xs text-muted-foreground">Custom emails (one per line)</span>
