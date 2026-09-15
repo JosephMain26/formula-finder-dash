@@ -35,7 +35,7 @@ import { loadPartsCharges, type PartsCharge } from "@/lib/partsCharges";
 import { loadStatuses, type StatusDef } from "@/lib/jobSchema";
 import {
   loadAutomations, upsertAutomation, deleteAutomation,
-  type ReportAutomation, type AutomationFreq,
+  type ReportAutomation, type AutomationFreq, type AutomationKind,
 } from "@/lib/reportAutomations";
 import { BalancesPanel } from "@/components/BalancesPanel";
 import { PartsChargesPanel } from "@/components/PartsChargesPanel";
