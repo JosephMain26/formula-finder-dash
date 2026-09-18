@@ -29,6 +29,24 @@ export function getJobPayments(job: any): JobPayment[] {
   return raw.filter((p) => p && typeof p === "object") as JobPayment[];
 }
 
+/**
+ * Resolve who is assumed to have collected a job's payment, using the
+ * per-marketer rule first, then the per-technician rule, then the global
+ * default from Settings → Payment Collection.
+ */
+export function resolveDefaultRecipient(
+  settings: { default: PaymentRecipient; byMarketer: Record<string, PaymentRecipient>; byTech: Record<string, PaymentRecipient> } | null,
+  marketer?: string | null,
+  tech?: string | null
+): PaymentRecipient {
+  if (!settings) return "Office";
+  const m = (marketer || "").trim();
+  const t = (tech || "").trim();
+  if (m && settings.byMarketer?.[m]) return settings.byMarketer[m];
+  if (t && settings.byTech?.[t]) return settings.byTech[t];
+  return settings.default || "Office";
+}
+
 /** Sum of payment amounts received by a given recipient. */
 export function sumCollectedBy(payments: JobPayment[], recipient: PaymentRecipient): number {
   return payments.reduce(
