@@ -28,7 +28,8 @@ import { CheckPhotoField } from "@/components/CheckPhotoField";
 import { JobPhotosField } from "@/components/JobPhotosField";
 
 import { Send } from "lucide-react";
-import { PAYMENT_RECIPIENTS, getJobPayments, type JobPayment } from "@/lib/jobPayments";
+import { PAYMENT_RECIPIENTS, getJobPayments, resolveDefaultRecipient, type JobPayment, type PaymentRecipient } from "@/lib/jobPayments";
+import { loadPaymentDefaults, type PaymentDefaultsSetting } from "@/lib/settings";
 
 type Company = Tables<"companies">;
 type Technician = {
