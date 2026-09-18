@@ -293,6 +293,10 @@ function SettingsPage() {
             <TypeGroupsManager />
           </TabsContent>
 
+          <TabsContent value="payment-defaults" className="mt-4">
+            <PaymentDefaultsManager />
+          </TabsContent>
+
           <TabsContent value="payment" className="mt-4">
             <Card>
               <CardHeader><CardTitle>Payment Methods</CardTitle></CardHeader>
