@@ -19,6 +19,7 @@ type Technician = {
   percentage: number | null;
   user_id: string | null;
   pincode: string | null;
+  report_email: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -168,7 +169,9 @@ function TechnicianDialog({
     percentage: technician?.percentage?.toString() || "50",
     user_id: technician?.user_id || "",
     pincode: technician?.pincode || "",
+    report_email: technician?.report_email || "",
   });
+  const [altEmail, setAltEmail] = useState(!!technician?.report_email);
 
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -178,6 +181,11 @@ function TechnicianDialog({
     const pin = String(Math.floor(100000 + Math.random() * 900000));
     update("pincode", pin);
   }
+
+  const accountEmail = useMemo(
+    () => profiles.find((p) => p.id === form.user_id)?.email || "",
+    [profiles, form.user_id],
+  );
 
   const profileOptions = useMemo(
     () => profiles.map((p) => ({ id: p.id, label: p.display_name || p.email || p.id.slice(0, 8) })),
@@ -200,6 +208,7 @@ function TechnicianDialog({
       percentage: form.percentage ? parseFloat(form.percentage) : 50,
       user_id: form.user_id || null,
       pincode: form.pincode || null,
+      report_email: altEmail && form.report_email.trim() ? form.report_email.trim() : null,
     };
 
     const { error } = isEdit && technician
@@ -247,6 +256,32 @@ function TechnicianDialog({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">Roles are managed in Settings → Users.</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Account email</label>
+            <Input value={accountEmail} readOnly disabled placeholder="— link a user to see their email —" />
+          </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={altEmail}
+                onChange={(e) => setAltEmail(e.target.checked)}
+              />
+              Different email address to receive email?
+            </label>
+            {altEmail && (
+              <div>
+                <Input
+                  type="email"
+                  value={form.report_email}
+                  onChange={(e) => update("report_email", e.target.value)}
+                  placeholder="reports@example.com"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Reports for this technician will be sent here instead.</p>
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Remote Pincode (6 digits)</label>

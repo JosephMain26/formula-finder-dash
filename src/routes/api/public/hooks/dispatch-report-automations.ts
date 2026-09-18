@@ -126,13 +126,15 @@ async function resolveMarketerEmails(admin: any, names: string[]): Promise<Map<s
 /** Technician name -> email of their linked login account. */
 async function resolveTechEmails(admin: any): Promise<Map<string, string>> {
   const map = new Map<string, string>();
-  const { data: techs } = await admin.from("technicians").select("tech_name, user_id");
+  const { data: techs } = await admin.from("technicians").select("tech_name, user_id, report_email");
   const ids = [...new Set((techs || []).map((t: any) => t.user_id).filter(Boolean))];
-  if (!ids.length) return map;
-  const { data: profs } = await admin.from("profiles").select("id, email").in("id", ids);
-  const byId = new Map((profs || []).map((p: any) => [p.id, p.email]));
+  const byId = new Map<string, string>();
+  if (ids.length) {
+    const { data: profs } = await admin.from("profiles").select("id, email").in("id", ids);
+    for (const p of profs || []) if (p.email) byId.set(p.id, p.email);
+  }
   for (const t of techs || []) {
-    const email = t.user_id ? byId.get(t.user_id) : null;
+    const email = t.report_email || (t.user_id ? byId.get(t.user_id) : null);
     if (email && t.tech_name) map.set(String(t.tech_name).trim(), String(email));
   }
   return map;
