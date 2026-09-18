@@ -278,7 +278,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       {
         id: crypto.randomUUID(),
         amount: 0,
-        recipient: "Office",
+        recipient: form.collected_by,
         method: form.payment || "",
         check_no: "",
         check_front_url: "",
