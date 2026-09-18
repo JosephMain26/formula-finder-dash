@@ -67,6 +67,7 @@ const SETTINGS_NAV = [
       { value: "form", label: "Job Form & Statuses", icon: FormInput },
       { value: "types", label: "Job & Comp Types", icon: Shapes },
       { value: "payment", label: "Payment Methods", icon: CreditCard },
+      { value: "payment-defaults", label: "Payment Collection", icon: Wallet },
     ],
   },
   {
