@@ -413,7 +413,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       office_parts: officeParts,
       parts,
       payment: form.payment || null,
-      marketer_collected: !!form.marketer_collected,
+      marketer_collected: form.collected_by === "Marketer",
       check_no: form.check_no || null,
       tip,
       cost,
