@@ -102,6 +102,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [editJobTypeName, setEditJobTypeName] = useState("");
   const [managingJobTypes, setManagingJobTypes] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [paymentDefaults, setPaymentDefaults] = useState<PaymentDefaultsSetting | null>(null);
   const [marketerTypes, setMarketerTypes] = useState<string[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [coreOverrides, setCoreOverrides] = useState<CoreFieldOverride[] | null>(null);
