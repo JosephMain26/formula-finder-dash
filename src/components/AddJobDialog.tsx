@@ -162,6 +162,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           parts: job.parts?.toString() || "",
           payment: job.payment || "",
           marketer_collected: !!(job as any).marketer_collected,
+          collected_by: (((job as any).extra_fields?.collected_by as PaymentRecipient) ||
+            ((job as any).marketer_collected ? "Marketer" : "Office")) as PaymentRecipient,
           check_no: job.check_no || "",
           tip: job.tip?.toString() || "",
           cost: job.cost?.toString() || "",
