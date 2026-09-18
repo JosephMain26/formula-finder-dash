@@ -249,6 +249,20 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     }
   }, [canAddForOthers, isEdit, open, technicians, displayName]);
 
+  // New jobs: pre-fill who collects based on Settings → Payment Collection
+  // (marketer rule → technician rule → general default).
+  useEffect(() => {
+    if (isEdit || !open || !paymentDefaults) return;
+    const marketer = companies.find((c) => c.id === form.company_id)?.company_name || "";
+    const rec = resolveDefaultRecipient(paymentDefaults, marketer, form.tech_name);
+    setForm((prev) =>
+      prev.collected_by === rec
+        ? prev
+        : { ...prev, collected_by: rec, marketer_collected: rec === "Marketer" }
+    );
+  }, [isEdit, open, paymentDefaults, companies, form.company_id, form.tech_name]);
+
+
   async function fetchJobTypes() {
     const { data } = await supabase.from("job_types").select("*").order("name");
     setJobTypes((data as JobType[]) || []);
