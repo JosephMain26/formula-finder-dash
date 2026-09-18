@@ -16,6 +16,7 @@ import { TypeGroupsManager } from "@/components/settings/TypeGroupsManager";
 import { InstallationCatalogManager } from "@/components/settings/InstallationCatalogManager";
 import { ProductCatalogManager } from "@/components/settings/ProductCatalogManager";
 import { DoorCentersManager } from "@/components/settings/DoorCentersManager";
+import { PaymentDefaultsManager } from "@/components/settings/PaymentDefaultsManager";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { UsersManager } from "@/components/UsersManager";
 import { AIRuleBuilder } from "@/components/settings/AIRuleBuilder";
