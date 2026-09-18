@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText, Zap, CreditCard, LayoutTemplate, Package, Store, Shapes, Receipt } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText, Zap, CreditCard, LayoutTemplate, Package, Store, Shapes, Receipt, Wallet } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { JobFormBuilder } from "@/components/settings/JobFormBuilder";
 import { MessageTemplatesManager } from "@/components/settings/MessageTemplatesManager";
