@@ -137,6 +137,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       });
       fetchJobTypes();
       loadPaymentMethods().then((m) => setPaymentMethods(m));
+      loadPaymentDefaults().then(setPaymentDefaults).catch(() => {});
       loadFormSchema().then((s) => { setCustomFields(s.fields); setCoreOverrides(s.core); });
       loadStatuses().then((s) => setStatuses(s));
       loadTypeGroups().then((g) => setTypeGroups(g));
