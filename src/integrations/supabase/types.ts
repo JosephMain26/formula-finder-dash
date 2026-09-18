@@ -1656,6 +1656,7 @@ export type Database = {
           percentage: number | null
           phone_number: string | null
           pincode: string | null
+          report_email: string | null
           tech_name: string
           updated_at: string
           user_id: string | null
@@ -1667,6 +1668,7 @@ export type Database = {
           percentage?: number | null
           phone_number?: string | null
           pincode?: string | null
+          report_email?: string | null
           tech_name: string
           updated_at?: string
           user_id?: string | null
@@ -1678,6 +1680,7 @@ export type Database = {
           percentage?: number | null
           phone_number?: string | null
           pincode?: string | null
+          report_email?: string | null
           tech_name?: string
           updated_at?: string
           user_id?: string | null
