@@ -47,6 +47,7 @@ const emptyForm = {
   po_number: "", phone_no: "", address: "", comp_type: "", job_type: "",
   status: "Pending", price: "", co_parts: "", office_parts: "", parts: "", payment: "",
   marketer_collected: false,
+  collected_by: "Office" as PaymentRecipient,
   check_no: "", tip: "", cost: "", notes: "", cc_fee: "",
   manual_percentage: "", marketer_percentage: "", created_by: "", maps: "", paid: false,
   installer_id: "", installer_name: "",
