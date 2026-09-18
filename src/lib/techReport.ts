@@ -104,45 +104,83 @@ export function techRangeText(from?: string, to?: string): string {
   return `${f} – ${t}`;
 }
 
+/** Summary boxes a report can show. */
+export const TECH_BOXES: { key: string; label: string; emailLabel: string }[] = [
+  { key: "techCut", label: "Tech cut", emailLabel: "Your cut" },
+  { key: "officeCut", label: "Owed to office", emailLabel: "Owed to office" },
+  { key: "revenue", label: "Revenue", emailLabel: "Total revenue" },
+];
+
+/** Table columns a report can show. */
+export const TECH_COLUMNS: { key: string; label: string; numeric?: boolean }[] = [
+  { key: "date", label: "Date" },
+  { key: "marketer", label: "Marketer" },
+  { key: "type", label: "Type" },
+  { key: "status", label: "Status" },
+  { key: "price", label: "Price", numeric: true },
+  { key: "techCut", label: "Tech cut", numeric: true },
+  { key: "officeCut", label: "Office cut", numeric: true },
+];
+
+export const DEFAULT_TECH_BOXES = TECH_BOXES.map((b) => b.key);
+export const DEFAULT_TECH_COLUMNS = TECH_COLUMNS.map((c) => c.key);
+export const DEFAULT_TECH_TITLE = "Technician Report";
+
+/** Cell value for one row/column pair (shared by the table, PDF and email). */
+export function techCellValue(r: TechReportRow, key: string): string {
+  switch (key) {
+    case "date": return r.job.job_date || "—";
+    case "marketer": return (r.job.company_1 || r.job.company || "—").trim() || "—";
+    case "type": return r.job.job_type || "—";
+    case "status": return r.job.status || "—";
+    case "price": return money(r.revenue);
+    case "techCut": return money(r.techCut);
+    case "officeCut": return money(r.officeCut);
+    default: return "";
+  }
+}
+
+export type TechReportLook = { title?: string; boxes?: string[]; columns?: string[] };
+
 /** Email-safe HTML statement for a single technician. */
-export function renderTechReportHtml(s: TechReportSummary, rangeText: string, title = "Technician Report"): string {
-  const box = (label: string, value: string, color: string) =>
-    `<td style="padding:10px 14px;border:1px solid #e5e7eb;border-radius:6px;">
-       <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;">${esc(label)}</div>
-       <div style="font-size:18px;font-weight:700;color:${color};">${esc(value)}</div>
-     </td>`;
+export function renderTechReportHtml(s: TechReportSummary, rangeText: string, look: TechReportLook = {}): string {
+  const title = look.title || DEFAULT_TECH_TITLE;
+  const boxKeys = look.boxes?.length ? look.boxes : DEFAULT_TECH_BOXES;
+  const colKeys = look.columns?.length ? look.columns : DEFAULT_TECH_COLUMNS;
+  const cols = TECH_COLUMNS.filter((c) => colKeys.includes(c.key));
+
+  const boxColor: Record<string, string> = { techCut: "#047857", officeCut: "#b91c1c", revenue: "#111827" };
+  const boxValue: Record<string, number> = { techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue };
+
+  const boxes = TECH_BOXES.filter((b) => boxKeys.includes(b.key))
+    .map(
+      (b) => `<td style="padding:10px 14px;border:1px solid #e5e7eb;border-radius:6px;">
+       <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;">${esc(b.emailLabel)}</div>
+       <div style="font-size:18px;font-weight:700;color:${boxColor[b.key]};">${esc(money(boxValue[b.key]))}</div>
+     </td>`
+    )
+    .join("");
 
   const rows = s.rows
     .map(
-      (r) => `<tr>
-        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">${esc(r.job.job_date || "—")}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">${esc((r.job.company_1 || r.job.company || "—").trim() || "—")}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">${esc(r.job.job_type || "—")}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">${esc(r.job.status || "—")}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:right;">${esc(money(r.revenue))}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:right;">${esc(money(r.techCut))}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;text-align:right;">${esc(money(r.officeCut))}</td>
-      </tr>`
+      (r) => `<tr>${cols
+        .map(
+          (c) =>
+            `<td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;${c.numeric ? "text-align:right;" : ""}">${esc(techCellValue(r, c.key))}</td>`
+        )
+        .join("")}</tr>`
     )
     .join("");
 
   return `<div style="font-family:Arial,Helvetica,sans-serif;color:#111827;max-width:720px;">
     <h2 style="margin:0 0 2px;font-size:20px;">${esc(title)} — ${esc(s.tech)}</h2>
     <div style="color:#6b7280;font-size:13px;margin-bottom:14px;">${esc(rangeText)} · ${s.jobsCount} job${s.jobsCount === 1 ? "" : "s"}</div>
-    <table style="border-collapse:separate;border-spacing:8px 0;margin-bottom:16px;"><tr>
-      ${box("Your cut", money(s.techCut), "#047857")}
-      ${box("Owed to office", money(s.officeCut), "#b91c1c")}
-      ${box("Total revenue", money(s.revenue), "#111827")}
-    </tr></table>
+    ${boxes ? `<table style="border-collapse:separate;border-spacing:8px 0;margin-bottom:16px;"><tr>${boxes}</tr></table>` : ""}
     <table style="width:100%;border-collapse:collapse;font-size:12px;">
       <thead><tr style="background:#f3f4f6;text-align:left;">
-        <th style="padding:6px 8px;">Date</th><th style="padding:6px 8px;">Marketer</th>
-        <th style="padding:6px 8px;">Type</th><th style="padding:6px 8px;">Status</th>
-        <th style="padding:6px 8px;text-align:right;">Price</th>
-        <th style="padding:6px 8px;text-align:right;">Tech cut</th>
-        <th style="padding:6px 8px;text-align:right;">Office cut</th>
+        ${cols.map((c) => `<th style="padding:6px 8px;${c.numeric ? "text-align:right;" : ""}">${esc(c.label)}</th>`).join("")}
       </tr></thead>
-      <tbody>${rows || `<tr><td colspan="7" style="padding:10px;color:#6b7280;">No jobs in this period.</td></tr>`}</tbody>
+      <tbody>${rows || `<tr><td colspan="${cols.length}" style="padding:10px;color:#6b7280;">No jobs in this period.</td></tr>`}</tbody>
     </table>
   </div>`;
 }

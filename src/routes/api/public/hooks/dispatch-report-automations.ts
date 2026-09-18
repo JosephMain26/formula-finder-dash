@@ -219,7 +219,7 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-report-automati
               const techEmails = rec.sendToTech ? await resolveTechEmails(admin) : new Map<string, string>();
 
               for (const s of summaries) {
-                const html = renderTechReportHtml(s, rangeText, spec.title || "Technician Report");
+                const html = renderTechReportHtml(s, rangeText, { title: spec.title || "Technician Report" });
                 const recipients = new Set<string>(chosen);
                 const own = techEmails.get(s.tech);
                 if (own) recipients.add(own);

@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText, Zap, CreditCard, LayoutTemplate, Package, Store, Shapes, Receipt } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText, Zap, CreditCard, LayoutTemplate, Package, Store, Shapes, Receipt, Wallet } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { JobFormBuilder } from "@/components/settings/JobFormBuilder";
 import { MessageTemplatesManager } from "@/components/settings/MessageTemplatesManager";
@@ -16,6 +16,7 @@ import { TypeGroupsManager } from "@/components/settings/TypeGroupsManager";
 import { InstallationCatalogManager } from "@/components/settings/InstallationCatalogManager";
 import { ProductCatalogManager } from "@/components/settings/ProductCatalogManager";
 import { DoorCentersManager } from "@/components/settings/DoorCentersManager";
+import { PaymentDefaultsManager } from "@/components/settings/PaymentDefaultsManager";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { UsersManager } from "@/components/UsersManager";
 import { AIRuleBuilder } from "@/components/settings/AIRuleBuilder";
@@ -67,6 +68,7 @@ const SETTINGS_NAV = [
       { value: "form", label: "Job Form & Statuses", icon: FormInput },
       { value: "types", label: "Job & Comp Types", icon: Shapes },
       { value: "payment", label: "Payment Methods", icon: CreditCard },
+      { value: "payment-defaults", label: "Payment Collection", icon: Wallet },
     ],
   },
   {
@@ -290,6 +292,10 @@ function SettingsPage() {
 
           <TabsContent value="types" className="mt-4">
             <TypeGroupsManager />
+          </TabsContent>
+
+          <TabsContent value="payment-defaults" className="mt-4">
+            <PaymentDefaultsManager />
           </TabsContent>
 
           <TabsContent value="payment" className="mt-4">

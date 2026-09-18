@@ -171,3 +171,82 @@ export async function saveBillingTemplates(templates: BillingTemplate[]) {
 export function newBillingTemplate(kind: "notes" | "terms"): BillingTemplate {
   return { id: uid(), name: kind === "notes" ? "New note template" : "New terms template", kind, appliesTo: "both", body: "" };
 }
+
+// ---------- Technician report templates ----------
+export type TechReportTemplateSpec = {
+  tech: string;              // "__all__" or a technician name
+  dateMode: string;
+  dateFrom: string;
+  dateTo: string;
+  statuses: string[];
+  title: string;
+  boxes: string[];           // subset of techCut | officeCut | revenue
+  columns: string[];         // subset of date | marketer | type | status | price | techCut | officeCut
+};
+
+export type TechReportTemplate = { id: string; name: string; spec: TechReportTemplateSpec };
+
+const TECH_REPORT_TEMPLATES_KEY = "tech_report_templates";
+
+export async function loadTechReportTemplates(): Promise<TechReportTemplate[]> {
+  const { data } = await (supabase as any)
+    .from("app_settings")
+    .select("value")
+    .eq("key", TECH_REPORT_TEMPLATES_KEY)
+    .maybeSingle();
+  const list = data?.value?.templates;
+  return Array.isArray(list) ? (list as TechReportTemplate[]) : [];
+}
+
+export async function saveTechReportTemplates(templates: TechReportTemplate[]) {
+  await (supabase as any).from("app_settings").upsert({
+    key: TECH_REPORT_TEMPLATES_KEY,
+    value: { templates },
+    updated_at: new Date().toISOString(),
+  });
+}
+
+// ---------- Payment collection defaults ----------
+export type CollectorRecipient = "Marketer" | "Office" | "Tech";
+
+export type PaymentDefaultsSetting = {
+  default: CollectorRecipient;
+  byMarketer: Record<string, CollectorRecipient>;
+  byTech: Record<string, CollectorRecipient>;
+};
+
+const PAYMENT_DEFAULTS_KEY = "payment_defaults";
+
+export const EMPTY_PAYMENT_DEFAULTS: PaymentDefaultsSetting = {
+  default: "Office",
+  byMarketer: {},
+  byTech: {},
+};
+
+export async function loadPaymentDefaults(): Promise<PaymentDefaultsSetting> {
+  const { data } = await (supabase as any)
+    .from("app_settings")
+    .select("value")
+    .eq("key", PAYMENT_DEFAULTS_KEY)
+    .maybeSingle();
+  const v = data?.value || {};
+  const ok = (r: any): r is CollectorRecipient => r === "Marketer" || r === "Office" || r === "Tech";
+  const clean = (o: any): Record<string, CollectorRecipient> => {
+    const out: Record<string, CollectorRecipient> = {};
+    for (const [k, val] of Object.entries(o || {})) if (k && ok(val)) out[k] = val;
+    return out;
+  };
+  return {
+    default: ok(v.default) ? v.default : "Office",
+    byMarketer: clean(v.byMarketer),
+    byTech: clean(v.byTech),
+  };
+}
+
+export async function savePaymentDefaults(s: PaymentDefaultsSetting) {
+  await (supabase as any).from("app_settings").upsert({
+    key: PAYMENT_DEFAULTS_KEY,
+    value: s,
+    updated_at: new Date().toISOString(),
+  });
+}

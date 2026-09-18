@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePickerField } from "@/components/DatePickerField";
-import { FileDown, Mail, Loader2 } from "lucide-react";
+import { FileDown, Mail, Loader2, Save, Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -14,10 +15,15 @@ import type { Tables } from "@/integrations/supabase/types";
 import { money, resolveSpecRange, DEFAULT_REPORT_SPEC, type ReportDateMode } from "@/lib/reportSpec";
 import { loadStatuses, type StatusDef } from "@/lib/jobSchema";
 import {
-  summarizeByTech, renderTechReportHtml, techRangeText, TECH_DATE_MODES,
+  summarizeByTech, renderTechReportHtml, techRangeText, techCellValue, TECH_DATE_MODES,
+  TECH_BOXES, TECH_COLUMNS, DEFAULT_TECH_BOXES, DEFAULT_TECH_COLUMNS, DEFAULT_TECH_TITLE,
   type TechReportSummary,
 } from "@/lib/techReport";
 import { sendAutomationEmail } from "@/lib/automationEmail.functions";
+import {
+  loadTechReportTemplates, saveTechReportTemplates,
+  type TechReportTemplate, type TechReportTemplateSpec,
+} from "@/lib/settings";
 
 type Job = Tables<"jobs">;
 
@@ -34,7 +40,13 @@ export function TechReportsPanel() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [statuses, setStatuses] = useState<string[]>(["Completed"]);
+  const [title, setTitle] = useState(DEFAULT_TECH_TITLE);
+  const [boxes, setBoxes] = useState<string[]>(DEFAULT_TECH_BOXES);
+  const [columns, setColumns] = useState<string[]>(DEFAULT_TECH_COLUMNS);
   const [sending, setSending] = useState<string>("");
+
+  const [templates, setTemplates] = useState<TechReportTemplate[]>([]);
+  const [templateId, setTemplateId] = useState<string>("__none__");
 
   useEffect(() => {
     (async () => {
@@ -59,6 +71,7 @@ export function TechReportsPanel() {
       setLoading(false);
     })();
     loadStatuses().then(setStatusDefs).catch(() => {});
+    loadTechReportTemplates().then(setTemplates).catch(() => {});
   }, []);
 
   const range = useMemo(
@@ -78,10 +91,82 @@ export function TechReportsPanel() {
     [jobs, range, statuses, selectedTech]
   );
 
+  const visibleColumns = TECH_COLUMNS.filter((c) => columns.includes(c.key));
+  const visibleBoxes = TECH_BOXES.filter((b) => boxes.includes(b.key));
+  const boxValues = (s: TechReportSummary): Record<string, number> => ({
+    techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue,
+  });
+
   const emailFor = (tech: string) => techs.find((t) => t.tech_name === tech)?.email || null;
 
   function toggleStatus(name: string) {
     setStatuses((cur) => (cur.includes(name) ? cur.filter((x) => x !== name) : [...cur, name]));
+  }
+  function toggleIn(list: string[], set: (v: string[]) => void, key: string) {
+    set(list.includes(key) ? list.filter((x) => x !== key) : [...list, key]);
+  }
+
+  // ---------- templates ----------
+  const currentSpec = (): TechReportTemplateSpec => ({
+    tech: selectedTech, dateMode, dateFrom, dateTo, statuses, title, boxes, columns,
+  });
+
+  function applySpec(spec: TechReportTemplateSpec) {
+    setSelectedTech(spec.tech || "__all__");
+    setDateMode((spec.dateMode || "last-week") as ReportDateMode);
+    setDateFrom(spec.dateFrom || "");
+    setDateTo(spec.dateTo || "");
+    setStatuses(Array.isArray(spec.statuses) ? spec.statuses : []);
+    setTitle(spec.title || DEFAULT_TECH_TITLE);
+    setBoxes(spec.boxes?.length ? spec.boxes : DEFAULT_TECH_BOXES);
+    setColumns(spec.columns?.length ? spec.columns : DEFAULT_TECH_COLUMNS);
+  }
+
+  async function persist(list: TechReportTemplate[]) {
+    setTemplates(list);
+    try {
+      await saveTechReportTemplates(list);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save templates");
+    }
+  }
+
+  function pickTemplate(id: string) {
+    setTemplateId(id);
+    if (id === "__none__") return;
+    const t = templates.find((x) => x.id === id);
+    if (t) applySpec(t.spec);
+  }
+
+  async function saveAsNew() {
+    const name = window.prompt("Template name")?.trim();
+    if (!name) return;
+    const t: TechReportTemplate = { id: crypto.randomUUID(), name, spec: currentSpec() };
+    await persist([...templates, t]);
+    setTemplateId(t.id);
+    toast.success("Template saved");
+  }
+
+  async function saveCurrent() {
+    const t = templates.find((x) => x.id === templateId);
+    if (!t) return saveAsNew();
+    await persist(templates.map((x) => (x.id === t.id ? { ...x, spec: currentSpec() } : x)));
+    toast.success("Template updated");
+  }
+
+  async function renameCurrent() {
+    const t = templates.find((x) => x.id === templateId);
+    if (!t) return;
+    const name = window.prompt("New name", t.name)?.trim();
+    if (!name) return;
+    await persist(templates.map((x) => (x.id === t.id ? { ...x, name } : x)));
+  }
+
+  async function deleteCurrent() {
+    const t = templates.find((x) => x.id === templateId);
+    if (!t || !window.confirm(`Delete template "${t.name}"?`)) return;
+    await persist(templates.filter((x) => x.id !== t.id));
+    setTemplateId("__none__");
   }
 
   function downloadPdf(list: TechReportSummary[]) {
@@ -91,27 +176,19 @@ export function TechReportsPanel() {
       if (idx > 0) doc.addPage();
       let y = 16;
       doc.setFontSize(16); doc.setFont("helvetica", "bold");
-      doc.text(`Technician Report — ${s.tech}`, 14, y); y += 6;
+      doc.text(`${title} — ${s.tech}`, 14, y); y += 6;
       doc.setFontSize(10); doc.setFont("helvetica", "normal");
       doc.text(`${rangeText} · ${s.jobsCount} job${s.jobsCount === 1 ? "" : "s"}`, 14, y); y += 7;
-      doc.setFontSize(11); doc.setFont("helvetica", "bold");
-      doc.text(
-        `Tech cut: ${money(s.techCut)}     Owed to office: ${money(s.officeCut)}     Revenue: ${money(s.revenue)}`,
-        14, y
-      );
-      doc.setFont("helvetica", "normal"); y += 6;
+      const vals = boxValues(s);
+      if (visibleBoxes.length) {
+        doc.setFontSize(11); doc.setFont("helvetica", "bold");
+        doc.text(visibleBoxes.map((b) => `${b.label}: ${money(vals[b.key])}`).join("     "), 14, y);
+        doc.setFont("helvetica", "normal"); y += 6;
+      }
       autoTable(doc, {
         startY: y,
-        head: [["Date", "Marketer", "Type", "Status", "Price", "Tech cut", "Office cut"]],
-        body: s.rows.map((r) => [
-          r.job.job_date || "—",
-          (r.job.company_1 || r.job.company || "—").trim() || "—",
-          r.job.job_type || "—",
-          r.job.status || "—",
-          money(r.revenue),
-          money(r.techCut),
-          money(r.officeCut),
-        ]),
+        head: [visibleColumns.map((c) => c.label)],
+        body: s.rows.map((r) => visibleColumns.map((c) => techCellValue(r, c.key))),
         styles: { fontSize: 8, cellPadding: 1.5 },
         headStyles: { fillColor: [60, 60, 60] },
         margin: { left: 8, right: 8 },
@@ -129,8 +206,8 @@ export function TechReportsPanel() {
       await sendAutomationEmail({
         data: {
           to,
-          subject: `Your report — ${rangeText}`,
-          html: renderTechReportHtml(s, rangeText),
+          subject: `${title} — ${rangeText}`,
+          html: renderTechReportHtml(s, rangeText, { title, boxes, columns }),
         },
       });
       toast.success(`Sent to ${to}`);
@@ -146,6 +223,32 @@ export function TechReportsPanel() {
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Report settings</CardTitle></CardHeader>
         <CardContent className="space-y-3">
+          {/* Template bar */}
+          <div className="flex flex-wrap items-end gap-2 rounded-md border bg-muted/30 p-2">
+            <div className="min-w-[180px] flex-1">
+              <Label className="text-xs">Template</Label>
+              <Select value={templateId} onValueChange={pickTemplate}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No template</SelectItem>
+                  {templates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button size="sm" variant="outline" onClick={saveCurrent} disabled={templateId === "__none__"}>
+              <Save className="h-4 w-4 mr-1" /> Save
+            </Button>
+            <Button size="sm" variant="outline" onClick={saveAsNew}>
+              <Plus className="h-4 w-4 mr-1" /> Save as new
+            </Button>
+            <Button size="sm" variant="outline" onClick={renameCurrent} disabled={templateId === "__none__"}>
+              <Pencil className="h-4 w-4 mr-1" /> Rename
+            </Button>
+            <Button size="sm" variant="outline" className="text-destructive" onClick={deleteCurrent} disabled={templateId === "__none__"}>
+              <Trash2 className="h-4 w-4 mr-1" /> Delete
+            </Button>
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label className="text-xs">Technician</Label>
@@ -182,6 +285,36 @@ export function TechReportsPanel() {
           )}
 
           <div>
+            <Label className="text-xs">Report title</Label>
+            <Input className="h-9" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={DEFAULT_TECH_TITLE} />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label className="text-xs">Summary boxes</Label>
+              <div className="grid gap-1.5 mt-1 border rounded p-2">
+                {TECH_BOXES.map((b) => (
+                  <label key={b.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={boxes.includes(b.key)} onCheckedChange={() => toggleIn(boxes, setBoxes, b.key)} />
+                    <span>{b.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Table columns</Label>
+              <div className="grid grid-cols-2 gap-1.5 mt-1 border rounded p-2">
+                {TECH_COLUMNS.map((c) => (
+                  <label key={c.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={columns.includes(c.key)} onCheckedChange={() => toggleIn(columns, setColumns, c.key)} />
+                    <span className="truncate">{c.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div>
             <div className="flex items-center justify-between">
               <Label className="text-xs">Job statuses ({statuses.length === 0 ? "All" : statuses.length})</Label>
               <div className="flex gap-2 text-xs">
@@ -216,6 +349,10 @@ export function TechReportsPanel() {
       ) : (
         summaries.map((s) => {
           const to = emailFor(s.tech);
+          const vals = boxValues(s);
+          const boxColor: Record<string, string> = {
+            techCut: "text-emerald-600", officeCut: "text-destructive", revenue: "",
+          };
           return (
             <Card key={s.tech}>
               <CardHeader className="pb-2">
@@ -237,43 +374,33 @@ export function TechReportsPanel() {
                 {!to && <p className="text-xs text-muted-foreground">No linked account email — connect this technician to a login to email their report.</p>}
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded border p-2">
-                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Tech cut</div>
-                    <div className="text-lg font-semibold text-emerald-600">{money(s.techCut)}</div>
+                {visibleBoxes.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {visibleBoxes.map((b) => (
+                      <div key={b.key} className="rounded border p-2">
+                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{b.label}</div>
+                        <div className={`text-lg font-semibold ${boxColor[b.key]}`}>{money(vals[b.key])}</div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="rounded border p-2">
-                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Owed to office</div>
-                    <div className="text-lg font-semibold text-destructive">{money(s.officeCut)}</div>
-                  </div>
-                  <div className="rounded border p-2">
-                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Revenue</div>
-                    <div className="text-lg font-semibold">{money(s.revenue)}</div>
-                  </div>
-                </div>
+                )}
                 <div className="-mx-4 px-4 overflow-x-auto sm:mx-0 sm:px-0">
                   <table className="w-full text-sm min-w-[600px]">
                     <thead>
                       <tr className="text-left text-xs text-muted-foreground border-b">
-                        <th className="py-1.5 pr-2">Date</th>
-                        <th className="py-1.5 pr-2">Marketer</th>
-                        <th className="py-1.5 pr-2">Type</th>
-                        <th className="py-1.5 pr-2">Status</th>
-                        <th className="py-1.5 pr-2 text-right">Price</th>
-                        <th className="py-1.5 pr-2 text-right">Tech cut</th>
-                        <th className="py-1.5 text-right">Office cut</th>
+                        {visibleColumns.map((c) => (
+                          <th key={c.key} className={`py-1.5 pr-2 ${c.numeric ? "text-right" : ""}`}>{c.label}</th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
                       {s.rows.map((r) => (
                         <tr key={r.job.id} className="border-b last:border-0">
-                          <td className="py-1.5 pr-2">{r.job.job_date || "—"}</td>
-                          <td className="py-1.5 pr-2">{(r.job.company_1 || r.job.company || "—").trim() || "—"}</td>
-                          <td className="py-1.5 pr-2">{r.job.job_type || "—"}</td>
-                          <td className="py-1.5 pr-2">{r.job.status || "—"}</td>
-                          <td className="py-1.5 pr-2 text-right">{money(r.revenue)}</td>
-                          <td className="py-1.5 pr-2 text-right">{money(r.techCut)}</td>
-                          <td className="py-1.5 text-right">{money(r.officeCut)}</td>
+                          {visibleColumns.map((c) => (
+                            <td key={c.key} className={`py-1.5 pr-2 ${c.numeric ? "text-right" : ""}`}>
+                              {techCellValue(r, c.key)}
+                            </td>
+                          ))}
                         </tr>
                       ))}
                     </tbody>

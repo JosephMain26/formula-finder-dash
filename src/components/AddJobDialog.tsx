@@ -28,7 +28,8 @@ import { CheckPhotoField } from "@/components/CheckPhotoField";
 import { JobPhotosField } from "@/components/JobPhotosField";
 
 import { Send } from "lucide-react";
-import { PAYMENT_RECIPIENTS, getJobPayments, type JobPayment } from "@/lib/jobPayments";
+import { PAYMENT_RECIPIENTS, getJobPayments, resolveDefaultRecipient, type JobPayment, type PaymentRecipient } from "@/lib/jobPayments";
+import { loadPaymentDefaults, type PaymentDefaultsSetting } from "@/lib/settings";
 
 type Company = Tables<"companies">;
 type Technician = {
@@ -47,6 +48,7 @@ const emptyForm = {
   po_number: "", phone_no: "", address: "", comp_type: "", job_type: "",
   status: "Pending", price: "", co_parts: "", office_parts: "", parts: "", payment: "",
   marketer_collected: false,
+  collected_by: "Office" as PaymentRecipient,
   check_no: "", tip: "", cost: "", notes: "", cc_fee: "",
   manual_percentage: "", marketer_percentage: "", created_by: "", maps: "", paid: false,
   installer_id: "", installer_name: "",
@@ -100,6 +102,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
   const [editJobTypeName, setEditJobTypeName] = useState("");
   const [managingJobTypes, setManagingJobTypes] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [paymentDefaults, setPaymentDefaults] = useState<PaymentDefaultsSetting | null>(null);
   const [marketerTypes, setMarketerTypes] = useState<string[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [coreOverrides, setCoreOverrides] = useState<CoreFieldOverride[] | null>(null);
@@ -134,6 +137,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       });
       fetchJobTypes();
       loadPaymentMethods().then((m) => setPaymentMethods(m));
+      loadPaymentDefaults().then(setPaymentDefaults).catch(() => {});
       loadFormSchema().then((s) => { setCustomFields(s.fields); setCoreOverrides(s.core); });
       loadStatuses().then((s) => setStatuses(s));
       loadTypeGroups().then((g) => setTypeGroups(g));
@@ -160,6 +164,8 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           parts: job.parts?.toString() || "",
           payment: job.payment || "",
           marketer_collected: !!(job as any).marketer_collected,
+          collected_by: (((job as any).extra_fields?.collected_by as PaymentRecipient) ||
+            ((job as any).marketer_collected ? "Marketer" : "Office")) as PaymentRecipient,
           check_no: job.check_no || "",
           tip: job.tip?.toString() || "",
           cost: job.cost?.toString() || "",
@@ -243,6 +249,20 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
     }
   }, [canAddForOthers, isEdit, open, technicians, displayName]);
 
+  // New jobs: pre-fill who collects based on Settings → Payment Collection
+  // (marketer rule → technician rule → general default).
+  useEffect(() => {
+    if (isEdit || !open || !paymentDefaults) return;
+    const marketer = companies.find((c) => c.id === form.company_id)?.company_name || "";
+    const rec = resolveDefaultRecipient(paymentDefaults, marketer, form.tech_name);
+    setForm((prev) =>
+      prev.collected_by === rec
+        ? prev
+        : { ...prev, collected_by: rec, marketer_collected: rec === "Marketer" }
+    );
+  }, [isEdit, open, paymentDefaults, companies, form.company_id, form.tech_name]);
+
+
   async function fetchJobTypes() {
     const { data } = await supabase.from("job_types").select("*").order("name");
     setJobTypes((data as JobType[]) || []);
@@ -258,7 +278,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       {
         id: crypto.randomUUID(),
         amount: 0,
-        recipient: "Office",
+        recipient: form.collected_by,
         method: form.payment || "",
         check_no: "",
         check_front_url: "",
@@ -393,7 +413,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
       office_parts: officeParts,
       parts,
       payment: form.payment || null,
-      marketer_collected: !!form.marketer_collected,
+      marketer_collected: form.collected_by === "Marketer",
       check_no: form.check_no || null,
       tip,
       cost,
@@ -421,6 +441,7 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
           ? { check_front_url: form.check_front_url || null, check_back_url: form.check_back_url || null }
           : { check_front_url: null, check_back_url: null }),
         payments: cleanPayments(payments),
+        collected_by: form.collected_by,
       },
       deposit_received: !!form.deposit_received,
       deposit_amount: form.deposit_amount ? parseFloat(form.deposit_amount) : 0,
@@ -893,9 +914,23 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 </div>
               ),
               marketer_collected: () => (
-                <div key="marketer_collected" className="md:col-span-2 flex items-center gap-3">
-                  <Checkbox id="marketer-collected-check" checked={form.marketer_collected} onCheckedChange={(v) => update("marketer_collected", !!v)} />
-                  <label htmlFor="marketer-collected-check" className="text-sm cursor-pointer">{labelOf("marketer_collected")}</label>
+                <div key="marketer_collected" className="md:col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground">Payment collected by</label>
+                  <Select
+                    value={form.collected_by}
+                    onValueChange={(v) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        collected_by: v as PaymentRecipient,
+                        marketer_collected: v === "Marketer",
+                      }))
+                    }
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_RECIPIENTS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               ),
               check_no: () => form.payment.toLowerCase().includes("check") ? (
