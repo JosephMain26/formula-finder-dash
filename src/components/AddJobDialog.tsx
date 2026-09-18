@@ -914,9 +914,23 @@ export function JobDialog({ onJobSaved, job, trigger, open: controlledOpen, onOp
                 </div>
               ),
               marketer_collected: () => (
-                <div key="marketer_collected" className="md:col-span-2 flex items-center gap-3">
-                  <Checkbox id="marketer-collected-check" checked={form.marketer_collected} onCheckedChange={(v) => update("marketer_collected", !!v)} />
-                  <label htmlFor="marketer-collected-check" className="text-sm cursor-pointer">{labelOf("marketer_collected")}</label>
+                <div key="marketer_collected" className="md:col-span-2">
+                  <label className="text-xs font-medium text-muted-foreground">Payment collected by</label>
+                  <Select
+                    value={form.collected_by}
+                    onValueChange={(v) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        collected_by: v as PaymentRecipient,
+                        marketer_collected: v === "Marketer",
+                      }))
+                    }
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_RECIPIENTS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               ),
               check_no: () => form.payment.toLowerCase().includes("check") ? (
