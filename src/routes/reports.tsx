@@ -810,6 +810,18 @@ function AutomationForm({
         <p className="text-xs text-muted-foreground mt-1">No selection = include all statuses.</p>
       </div>
 
+      <div>
+        <Label className="text-xs">Payment</Label>
+        <Select value={tpl.paidFilter || "all"} onValueChange={(v) => setTpl({ paidFilter: v as "all" | "paid" | "unpaid" })}>
+          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All jobs</SelectItem>
+            <SelectItem value="paid">Paid jobs only</SelectItem>
+            <SelectItem value="unpaid">Unpaid jobs only</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Frequency</Label>
