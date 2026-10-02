@@ -78,6 +78,7 @@ export interface ReportSpec {
   totals: Record<TotalKey, boolean>;
   marketers: string[]; // empty = all
   statuses?: string[]; // empty/undefined = all statuses
+  paidFilter?: "all" | "paid" | "unpaid";
   dateMode: ReportDateMode;
   dateFrom?: string; // used when dateMode === "custom"
   dateTo?: string;
@@ -97,6 +98,7 @@ export const DEFAULT_REPORT_SPEC: ReportSpec = {
   totals: { revenue: true, tech: true, office: true, marketer: true },
   marketers: [],
   statuses: [],
+  paidFilter: "all",
   dateMode: "all",
 };
 
@@ -216,6 +218,7 @@ export function computeReportData(
   const to = range?.to || "";
   const marketerSet = new Set(spec.marketers);
   const statusSet = new Set((spec.statuses || []).map((s) => s.toLowerCase()));
+  const paidFilter = spec.paidFilter || "all";
 
   const filtered = jobs.filter((j) => {
     if (from && (!j.job_date || j.job_date < from)) return false;
@@ -227,6 +230,8 @@ export function computeReportData(
     if (statusSet.size > 0) {
       if (!statusSet.has((j.status || "").toLowerCase())) return false;
     }
+    if (paidFilter === "paid" && !j.paid) return false;
+    if (paidFilter === "unpaid" && !!j.paid) return false;
     return true;
   });
 
@@ -257,9 +262,11 @@ export function computeReportData(
   const balanceSummaries = summarizeByMarketer(filtered, from || undefined, to || undefined, charges);
   const balanceGrandNet = Math.round(balanceSummaries.reduce((a, s) => a + s.net, 0) * 100) / 100;
 
+  const paidLabel =
+    paidFilter === "paid" ? " · Paid jobs only" : paidFilter === "unpaid" ? " · Unpaid jobs only" : "";
   const rangeText = range
-    ? `Time range: ${from || "Beginning"}  →  ${to || "Today"}`
-    : "Time range: All dates";
+    ? `Time range: ${from || "Beginning"}  →  ${to || "Today"}${paidLabel}`
+    : `Time range: All dates${paidLabel}`;
 
   return {
     range,
