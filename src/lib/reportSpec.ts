@@ -78,6 +78,7 @@ export interface ReportSpec {
   totals: Record<TotalKey, boolean>;
   marketers: string[]; // empty = all
   statuses?: string[]; // empty/undefined = all statuses
+  paidFilter?: "all" | "paid" | "unpaid";
   dateMode: ReportDateMode;
   dateFrom?: string; // used when dateMode === "custom"
   dateTo?: string;
@@ -97,6 +98,7 @@ export const DEFAULT_REPORT_SPEC: ReportSpec = {
   totals: { revenue: true, tech: true, office: true, marketer: true },
   marketers: [],
   statuses: [],
+  paidFilter: "all",
   dateMode: "all",
 };
 
