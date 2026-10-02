@@ -496,6 +496,22 @@ function ReportsPage() {
               </CardContent>
             </Card>
 
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Payment ({spec.paidFilter === "paid" ? "Paid only" : spec.paidFilter === "unpaid" ? "Unpaid only" : "All"})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={spec.paidFilter || "all"} onValueChange={(v) => patch({ paidFilter: v as "all" | "paid" | "unpaid" })}>
+                  <SelectTrigger className="h-9 w-full sm:w-56"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All jobs</SelectItem>
+                    <SelectItem value="paid">Paid jobs only</SelectItem>
+                    <SelectItem value="unpaid">Unpaid jobs only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+
             <div className="flex justify-end">
               <Button onClick={() => pdfFromSpec(jobs, spec, partsCharges)} disabled={loading}>
                 <FileDown className="h-4 w-4 mr-2" /> Generate PDF
