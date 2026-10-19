@@ -358,6 +358,12 @@ function ReportsPage() {
                     </SelectContent>
                   </Select>
                   {activeTemplateId && (
+                    <Button variant="outline" size="sm" className="h-9" onClick={async () => {
+                      const next = { ...templates, reportTemplates: reportTemplates.map((t) => t.id === activeTemplateId ? { ...t, spec } : t) };
+                      setTemplates(next);
+                      await saveTemplates(next);
+                      toast.success("Template updated");
+                    }}>Update</Button>
                     <Button variant="ghost" size="icon" className="h-9 w-9" onClick={deleteTemplate}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>

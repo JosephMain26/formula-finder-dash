@@ -154,6 +154,11 @@ export function ColumnToggle({ visibleColumns, onToggle, onShowAll, onSetVisible
               </SelectContent>
             </Select>
             {activeId && (
+              <Button variant="outline" size="sm" className="h-8" title="Update template" onClick={async () => {
+                const next = { ...templates, dashboardViews: templates.dashboardViews.map(v => v.id === activeId ? { ...v, visibleColumns: Array.from(visibleColumns) } : v) };
+                setTemplates(next);
+                await saveTemplates(next);
+              }}>Update</Button>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={deleteActive} title="Delete template">
                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
               </Button>

@@ -153,6 +153,13 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
     setName("");
   }
 
+  function updateTemplate() {
+    if (!activeId) return;
+    persist(templates.map((t) => t.id === activeId ? {
+      ...t, sections, columns: columns as string[], kpiColumns: kpiCols as string[], attachJobs, pageSize, orientation,
+    } : t));
+  }
+
   function deleteTemplate() {
     if (!activeId) return;
     persist(templates.filter((t) => t.id !== activeId));
@@ -316,6 +323,7 @@ export function ExportBoardDialog({ greeting, jobs, filters, range, boardElement
               </SelectContent>
             </Select>
             {activeId && (
+              <Button variant="outline" size="sm" className="h-9" onClick={updateTemplate}>Update</Button>
               <Button variant="ghost" size="icon" className="h-9 w-9" onClick={deleteTemplate}>
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>

@@ -316,6 +316,21 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
               </Select>
             </div>
             <div className="flex gap-2">
+              {activeTemplateId && activeTemplateId !== "none" && (
+                <Button variant="outline" size="sm" className="h-9" onClick={async () => {
+                  const next = { ...templates, exportTemplates: templates.exportTemplates.map(t => t.id === activeTemplateId ? {
+                    ...t,
+                    columns: Array.from(selectedColumns),
+                    marketers: Array.from(selectedCompanies),
+                    sections: sections.map(s => ({ id: s.id, enabled: enabledSections.has(s.id) })),
+                  } : t) };
+                  setTemplates(next);
+                  await saveTemplates(next);
+                  toast.success("Template updated");
+                }}>
+                  <Save className="h-4 w-4 mr-2" /> Update
+                </Button>
+              )}
               <Input
                 placeholder="Save current as template…"
                 value={newTemplateName}
