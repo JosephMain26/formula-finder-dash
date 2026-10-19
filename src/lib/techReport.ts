@@ -160,7 +160,7 @@ export const TECH_BOXES: { key: string; label: string; emailLabel: string }[] = 
   { key: "officeParts", label: "Office parts", emailLabel: "Office parts" },
   { key: "companyParts", label: "Company parts", emailLabel: "Company parts" },
   { key: "collectedByTech", label: "Collected by tech", emailLabel: "Cash you collected" },
-  { key: "netBalance", label: "Net balance (+ tech owes office)", emailLabel: "Net balance (+ you owe office / − office owes you)" },
+  { key: "netBalance", label: "Net balance", emailLabel: "Net balance" },
 ];
 
 /** Table columns a report can show. */
@@ -240,7 +240,7 @@ export function renderTechReportHtml(s: TechReportSummary, rangeText: string, lo
     .map(
       (b) => `<td style="padding:10px 14px;border:1px solid #e5e7eb;border-radius:6px;">
        <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;">${esc(b.emailLabel)}</div>
-       <div style="font-size:18px;font-weight:700;color:${boxColor[b.key]};">${esc(money(boxValue[b.key]))}</div>
+       <div style="font-size:18px;font-weight:700;color:${boxColor[b.key]};">${esc(b.key === "netBalance" ? netBalanceText(s.netBalance) : money(boxValue[b.key]))}</div>
      </td>`
     )
     .join("");
