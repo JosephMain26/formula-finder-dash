@@ -9,84 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UploadRouteImport } from './routes/upload'
-import { Route as TechniciansRouteImport } from './routes/technicians'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ScheduleRouteImport } from './routes/schedule'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as InstallersRouteImport } from './routes/installers'
-import { Route as ExpensesRouteImport } from './routes/expenses'
-import { Route as DataboardRouteImport } from './routes/databoard'
-import { Route as CompaniesRouteImport } from './routes/companies'
-import { Route as ClientsRouteImport } from './routes/clients'
-import { Route as BillingRouteImport } from './routes/billing'
-import { Route as BalancesRouteImport } from './routes/balances'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BalancesRouteImport } from './routes/balances'
+import { Route as BillingRouteImport } from './routes/billing'
+import { Route as ClientsRouteImport } from './routes/clients'
+import { Route as CompaniesRouteImport } from './routes/companies'
+import { Route as DataboardRouteImport } from './routes/databoard'
+import { Route as ExpensesRouteImport } from './routes/expenses'
+import { Route as InstallersRouteImport } from './routes/installers'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as ScheduleRouteImport } from './routes/schedule'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as TechniciansRouteImport } from './routes/technicians'
+import { Route as UploadRouteImport } from './routes/upload'
 import { Route as SignTokenRouteImport } from './routes/sign.$token'
-import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
-import { Route as ApiPublicHooksDispatchReportAutomationsRouteImport } from './routes/api/public/hooks/dispatch-report-automations'
-import { Route as ApiPublicHooksDispatchJobRemindersRouteImport } from './routes/api/public/hooks/dispatch-job-reminders'
 import { Route as ApiPublicHooksDispatchAutomationsRouteImport } from './routes/api/public/hooks/dispatch-automations'
+import { Route as ApiPublicHooksDispatchJobRemindersRouteImport } from './routes/api/public/hooks/dispatch-job-reminders'
+import { Route as ApiPublicHooksDispatchReportAutomationsRouteImport } from './routes/api/public/hooks/dispatch-report-automations'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 
-const UploadRoute = UploadRouteImport.update({
-  id: '/upload',
-  path: '/upload',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TechniciansRoute = TechniciansRouteImport.update({
-  id: '/technicians',
-  path: '/technicians',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ScheduleRoute = ScheduleRouteImport.update({
-  id: '/schedule',
-  path: '/schedule',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InstallersRoute = InstallersRouteImport.update({
-  id: '/installers',
-  path: '/installers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExpensesRoute = ExpensesRouteImport.update({
-  id: '/expenses',
-  path: '/expenses',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DataboardRoute = DataboardRouteImport.update({
-  id: '/databoard',
-  path: '/databoard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CompaniesRoute = CompaniesRouteImport.update({
-  id: '/companies',
-  path: '/companies',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClientsRoute = ClientsRouteImport.update({
-  id: '/clients',
-  path: '/clients',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BillingRoute = BillingRouteImport.update({
-  id: '/billing',
-  path: '/billing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BalancesRoute = BalancesRouteImport.update({
-  id: '/balances',
-  path: '/balances',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -94,9 +39,64 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const BalancesRoute = BalancesRouteImport.update({
+  id: '/balances',
+  path: '/balances',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingRoute = BillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientsRoute = ClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompaniesRoute = CompaniesRouteImport.update({
+  id: '/companies',
+  path: '/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataboardRoute = DataboardRouteImport.update({
+  id: '/databoard',
+  path: '/databoard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExpensesRoute = ExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstallersRoute = InstallersRouteImport.update({
+  id: '/installers',
+  path: '/installers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScheduleRoute = ScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TechniciansRoute = TechniciansRouteImport.update({
+  id: '/technicians',
+  path: '/technicians',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UploadRoute = UploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignTokenRoute = SignTokenRouteImport.update({
@@ -104,16 +104,10 @@ const SignTokenRoute = SignTokenRouteImport.update({
   path: '/sign/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LovableEmailQueueProcessRoute =
-  LovableEmailQueueProcessRouteImport.update({
-    id: '/lovable/email/queue/process',
-    path: '/lovable/email/queue/process',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksDispatchReportAutomationsRoute =
-  ApiPublicHooksDispatchReportAutomationsRouteImport.update({
-    id: '/api/public/hooks/dispatch-report-automations',
-    path: '/api/public/hooks/dispatch-report-automations',
+const ApiPublicHooksDispatchAutomationsRoute =
+  ApiPublicHooksDispatchAutomationsRouteImport.update({
+    id: '/api/public/hooks/dispatch-automations',
+    path: '/api/public/hooks/dispatch-automations',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksDispatchJobRemindersRoute =
@@ -122,10 +116,16 @@ const ApiPublicHooksDispatchJobRemindersRoute =
     path: '/api/public/hooks/dispatch-job-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicHooksDispatchAutomationsRoute =
-  ApiPublicHooksDispatchAutomationsRouteImport.update({
-    id: '/api/public/hooks/dispatch-automations',
-    path: '/api/public/hooks/dispatch-automations',
+const ApiPublicHooksDispatchReportAutomationsRoute =
+  ApiPublicHooksDispatchReportAutomationsRouteImport.update({
+    id: '/api/public/hooks/dispatch-report-automations',
+    path: '/api/public/hooks/dispatch-report-automations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -283,88 +283,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/upload': {
-      id: '/upload'
-      path: '/upload'
-      fullPath: '/upload'
-      preLoaderRoute: typeof UploadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/technicians': {
-      id: '/technicians'
-      path: '/technicians'
-      fullPath: '/technicians'
-      preLoaderRoute: typeof TechniciansRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/schedule': {
-      id: '/schedule'
-      path: '/schedule'
-      fullPath: '/schedule'
-      preLoaderRoute: typeof ScheduleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/installers': {
-      id: '/installers'
-      path: '/installers'
-      fullPath: '/installers'
-      preLoaderRoute: typeof InstallersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/expenses': {
-      id: '/expenses'
-      path: '/expenses'
-      fullPath: '/expenses'
-      preLoaderRoute: typeof ExpensesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/databoard': {
-      id: '/databoard'
-      path: '/databoard'
-      fullPath: '/databoard'
-      preLoaderRoute: typeof DataboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/companies': {
-      id: '/companies'
-      path: '/companies'
-      fullPath: '/companies'
-      preLoaderRoute: typeof CompaniesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/clients': {
-      id: '/clients'
-      path: '/clients'
-      fullPath: '/clients'
-      preLoaderRoute: typeof ClientsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/billing': {
-      id: '/billing'
-      path: '/billing'
-      fullPath: '/billing'
-      preLoaderRoute: typeof BillingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/balances': {
-      id: '/balances'
-      path: '/balances'
-      fullPath: '/balances'
-      preLoaderRoute: typeof BalancesRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -374,11 +297,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/balances': {
+      id: '/balances'
+      path: '/balances'
+      fullPath: '/balances'
+      preLoaderRoute: typeof BalancesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/billing': {
+      id: '/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof BillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clients': {
+      id: '/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof ClientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/companies': {
+      id: '/companies'
+      path: '/companies'
+      fullPath: '/companies'
+      preLoaderRoute: typeof CompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/databoard': {
+      id: '/databoard'
+      path: '/databoard'
+      fullPath: '/databoard'
+      preLoaderRoute: typeof DataboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/expenses': {
+      id: '/expenses'
+      path: '/expenses'
+      fullPath: '/expenses'
+      preLoaderRoute: typeof ExpensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/installers': {
+      id: '/installers'
+      path: '/installers'
+      fullPath: '/installers'
+      preLoaderRoute: typeof InstallersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedule': {
+      id: '/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof ScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/technicians': {
+      id: '/technicians'
+      path: '/technicians'
+      fullPath: '/technicians'
+      preLoaderRoute: typeof TechniciansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/upload': {
+      id: '/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof UploadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sign/$token': {
@@ -388,18 +388,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/queue/process': {
-      id: '/lovable/email/queue/process'
-      path: '/lovable/email/queue/process'
-      fullPath: '/lovable/email/queue/process'
-      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/dispatch-report-automations': {
-      id: '/api/public/hooks/dispatch-report-automations'
-      path: '/api/public/hooks/dispatch-report-automations'
-      fullPath: '/api/public/hooks/dispatch-report-automations'
-      preLoaderRoute: typeof ApiPublicHooksDispatchReportAutomationsRouteImport
+    '/api/public/hooks/dispatch-automations': {
+      id: '/api/public/hooks/dispatch-automations'
+      path: '/api/public/hooks/dispatch-automations'
+      fullPath: '/api/public/hooks/dispatch-automations'
+      preLoaderRoute: typeof ApiPublicHooksDispatchAutomationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/dispatch-job-reminders': {
@@ -409,11 +402,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDispatchJobRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/dispatch-automations': {
-      id: '/api/public/hooks/dispatch-automations'
-      path: '/api/public/hooks/dispatch-automations'
-      fullPath: '/api/public/hooks/dispatch-automations'
-      preLoaderRoute: typeof ApiPublicHooksDispatchAutomationsRouteImport
+    '/api/public/hooks/dispatch-report-automations': {
+      id: '/api/public/hooks/dispatch-report-automations'
+      path: '/api/public/hooks/dispatch-report-automations'
+      fullPath: '/api/public/hooks/dispatch-report-automations'
+      preLoaderRoute: typeof ApiPublicHooksDispatchReportAutomationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
