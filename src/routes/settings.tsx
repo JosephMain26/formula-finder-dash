@@ -50,6 +50,10 @@ export const Route = createFileRoute("/settings")({
     meta: [
       { title: "Settings - Jobs Dashboard" },
       { name: "description", content: "Configure payment methods, templates, and AI training" },
+      { property: "og:title", content: "Settings - Jobs Dashboard" },
+      { property: "og:description", content: "Configure payment methods, templates, and AI training" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

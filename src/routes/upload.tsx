@@ -23,6 +23,10 @@ export const Route = createFileRoute("/upload")({
     meta: [
       { title: "Submit a Job" },
       { name: "description", content: "Submit a new job remotely." },
+      { property: "og:title", content: "Submit a Job" },
+      { property: "og:description", content: "Submit a new job remotely." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),

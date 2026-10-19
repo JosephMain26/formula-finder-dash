@@ -29,6 +29,10 @@ export const Route = createFileRoute("/schedule")({
     meta: [
       { title: "Schedule — Jobs" },
       { name: "description", content: "Schedule, reschedule, and control reminders for upcoming jobs." },
+      { property: "og:title", content: "Schedule — Jobs" },
+      { property: "og:description", content: "Schedule, reschedule, and control reminders for upcoming jobs." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

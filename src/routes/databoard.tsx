@@ -29,6 +29,10 @@ export const Route = createFileRoute("/databoard")({
     meta: [
       { title: "DataBoard — Live performance" },
       { name: "description", content: "Customizable live performance dashboard with draggable widgets" },
+      { property: "og:title", content: "DataBoard — Live performance" },
+      { property: "og:description", content: "Customizable live performance dashboard with draggable widgets" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

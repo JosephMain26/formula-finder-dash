@@ -47,6 +47,10 @@ export const Route = createFileRoute("/clients")({
     meta: [
       { title: "Clients - Jobs Dashboard" },
       { name: "description", content: "Manage clients and customers reused across jobs" },
+      { property: "og:title", content: "Clients - Jobs Dashboard" },
+      { property: "og:description", content: "Manage clients and customers reused across jobs" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
