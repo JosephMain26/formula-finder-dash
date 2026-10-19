@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import { describe, it as test } from "node:test";
+import { strict as assert } from "node:assert";
 import type { Tables } from "@/integrations/supabase/types";
 import { summarizeByTech } from "./techReport";
 
@@ -11,10 +12,10 @@ describe("Technician report parts costs", () => {
       job({ parts: 20, office_parts: 30, co_parts: 40, total_tech: 150, total_office: 60, total_marketer: 90 }),
       job({ parts: 5.25, office_parts: null, co_parts: null }),
     ]);
-    expect(summary?.partsCost).toBe(95.25);
-    expect(summary?.rows[0]?.partsCost).toBe(90);
-    expect(summary?.techCut).toBe(150);
-    expect(summary?.officeCut).toBe(150);
+    assert.equal(summary?.partsCost, 95.25);
+    assert.equal(summary?.rows[0]?.partsCost, 90);
+    assert.equal(summary?.techCut, 150);
+    assert.equal(summary?.officeCut, 150);
   });
 
   test("only totals parts from jobs matching the report filters", () => {
@@ -24,7 +25,7 @@ describe("Technician report parts costs", () => {
       job({ parts: 200, job_date: "2026-10-01" }),
       job({ parts: 300, tech_name: "Other" }),
     ], { from: "2026-10-12", to: "2026-10-18", statuses: ["Completed"], techNames: ["Alex"] });
-    expect(summary?.partsCost).toBe(10);
-    expect(summary?.jobsCount).toBe(1);
+    assert.equal(summary?.partsCost, 10);
+    assert.equal(summary?.jobsCount, 1);
   });
 });
