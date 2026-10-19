@@ -28,6 +28,10 @@ export type TechReportRow = {
   techParts: number;
   officeParts: number;
   companyParts: number;
+  /** Customer money the tech physically holds for this job. */
+  collectedByTech: number;
+  /** collectedByTech − techCut. Positive = tech owes office; negative = office owes tech. */
+  netBalance: number;
 };
 
 export type TechReportSummary = {
@@ -35,12 +39,14 @@ export type TechReportSummary = {
   jobsCount: number;
   revenue: number;
   techCut: number;
-  /** Marketer share + office share — what the tech turns in to the office. */
+  /** Marketer share + office share (the office's side of the split). */
   officeCut: number;
   partsCost: number;
   techParts: number;
   officeParts: number;
   companyParts: number;
+  collectedByTech: number;
+  netBalance: number;
   rows: TechReportRow[];
 };
 
@@ -54,6 +60,21 @@ export type TechReportOptions = {
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * How much of the customer's payment the tech holds. Uses recorded payments
+ * (recipient "Tech") when present; otherwise the job's collected-by choice
+ * (legacy marketer_collected = Marketer; unset = Tech) applied to the full price.
+ */
+export function techCollectedAmount(j: Job): number {
+  const ef: any = (j as any).extra_fields || {};
+  const payments = Array.isArray(ef.payments) ? ef.payments.filter((p: any) => p && typeof p === "object") : [];
+  if (payments.length > 0) {
+    return round2(payments.reduce((a: number, p: any) => a + (p.recipient === "Tech" ? num(p.amount) : 0), 0));
+  }
+  const by = ef.collected_by || ((j as any).marketer_collected ? "Marketer" : "Tech");
+  return by === "Tech" ? num(j.price) : 0;
+}
 
 /**
  * Group jobs by technician and compute each tech's cut plus the office cut
@@ -81,10 +102,12 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     const officeParts = num(j.office_parts);
     const companyParts = num(j.co_parts);
     const partsCost = techParts + officeParts + companyParts;
+    const collectedByTech = techCollectedAmount(j);
+    const netBalance = round2(collectedByTech - techCut);
 
     let g = groups.get(tech);
     if (!g) {
-      g = { tech, jobsCount: 0, revenue: 0, techCut: 0, officeCut: 0, partsCost: 0, techParts: 0, officeParts: 0, companyParts: 0, rows: [] };
+      g = { tech, jobsCount: 0, revenue: 0, techCut: 0, officeCut: 0, partsCost: 0, techParts: 0, officeParts: 0, companyParts: 0, collectedByTech: 0, netBalance: 0, rows: [] };
       groups.set(tech, g);
     }
     g.jobsCount += 1;
@@ -95,7 +118,9 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     g.techParts += techParts;
     g.officeParts += officeParts;
     g.companyParts += companyParts;
-    g.rows.push({ job: j, revenue, techCut, officeCut, partsCost, techParts, officeParts, companyParts });
+    g.collectedByTech += collectedByTech;
+    g.netBalance += netBalance;
+    g.rows.push({ job: j, revenue, techCut, officeCut, partsCost, techParts, officeParts, companyParts, collectedByTech, netBalance });
   }
 
   const out = Array.from(groups.values());
