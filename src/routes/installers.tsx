@@ -28,6 +28,10 @@ export const Route = createFileRoute("/installers")({
     meta: [
       { title: "Installers - Jobs Dashboard" },
       { name: "description", content: "Manage installers for door and opener jobs" },
+      { property: "og:title", content: "Installers - Jobs Dashboard" },
+      { property: "og:description", content: "Manage installers for door and opener jobs" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

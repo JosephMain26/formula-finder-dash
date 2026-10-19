@@ -32,6 +32,10 @@ export const Route = createFileRoute("/technicians")({
     meta: [
       { title: "Technicians - Jobs Dashboard" },
       { name: "description", content: "Manage technicians and their revenue percentages" },
+      { property: "og:title", content: "Technicians - Jobs Dashboard" },
+      { property: "og:description", content: "Manage technicians and their revenue percentages" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

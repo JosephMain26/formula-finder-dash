@@ -21,6 +21,10 @@ export const Route = createFileRoute("/companies")({
     meta: [
       { title: "Marketers - Jobs Dashboard" },
       { name: "description", content: "Manage marketers and their revenue percentages" },
+      { property: "og:title", content: "Marketers - Jobs Dashboard" },
+      { property: "og:description", content: "Manage marketers and their revenue percentages" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

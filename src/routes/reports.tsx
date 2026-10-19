@@ -74,6 +74,10 @@ export const Route = createFileRoute("/reports")({
     meta: [
       { title: "Reports & Balances - Jobs Dashboard" },
       { name: "description", content: "Build custom job reports, review marketer balances, and schedule automated report delivery." },
+      { property: "og:title", content: "Reports & Balances - Jobs Dashboard" },
+      { property: "og:description", content: "Build custom job reports, review marketer balances, and schedule automated report delivery." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

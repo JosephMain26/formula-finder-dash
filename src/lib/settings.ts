@@ -180,8 +180,8 @@ export type TechReportTemplateSpec = {
   dateTo: string;
   statuses: string[];
   title: string;
-  boxes: string[];           // subset of techCut | officeCut | revenue
-  columns: string[];         // subset of date | marketer | type | status | price | techCut | officeCut
+  boxes: string[];           // subset of techCut | officeCut | revenue | partsCost
+  columns: string[];         // subset of date | marketer | type | status | price | techCut | officeCut | partsCost
 };
 
 export type TechReportTemplate = { id: string; name: string; spec: TechReportTemplateSpec };

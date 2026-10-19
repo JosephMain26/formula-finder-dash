@@ -31,6 +31,10 @@ export const Route = createFileRoute("/")({
     meta: [
       { title: "Jobs Dashboard" },
       { name: "description", content: "Track and manage service jobs with real-time calculations" },
+      { property: "og:title", content: "Jobs Dashboard" },
+      { property: "og:description", content: "Track and manage service jobs with real-time calculations" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });

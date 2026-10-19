@@ -94,7 +94,7 @@ export function TechReportsPanel() {
   const visibleColumns = TECH_COLUMNS.filter((c) => columns.includes(c.key));
   const visibleBoxes = TECH_BOXES.filter((b) => boxes.includes(b.key));
   const boxValues = (s: TechReportSummary): Record<string, number> => ({
-    techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue,
+    techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue, partsCost: s.partsCost,
   });
 
   const emailFor = (tech: string) => techs.find((t) => t.tech_name === tech)?.email || null;
@@ -351,7 +351,7 @@ export function TechReportsPanel() {
           const to = emailFor(s.tech);
           const vals = boxValues(s);
           const boxColor: Record<string, string> = {
-            techCut: "text-emerald-600", officeCut: "text-destructive", revenue: "",
+            techCut: "text-emerald-600", officeCut: "text-destructive", revenue: "", partsCost: "",
           };
           return (
             <Card key={s.tech}>
@@ -375,7 +375,7 @@ export function TechReportsPanel() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {visibleBoxes.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {visibleBoxes.map((b) => (
                       <div key={b.key} className="rounded border p-2">
                         <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{b.label}</div>
