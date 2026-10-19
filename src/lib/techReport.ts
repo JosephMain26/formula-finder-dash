@@ -189,6 +189,15 @@ export function expandTechPartsKeys(keys: string[]): string[] {
 }
 export const DEFAULT_TECH_TITLE = "Technician Report";
 
+/** Who owes whom for a net balance (positive = tech owes office). */
+export function netBalanceLabel(n: number): string {
+  if (Math.abs(n) < 0.005) return "Settled";
+  return n > 0 ? "Tech owes office" : "Office owes tech";
+}
+export function netBalanceText(n: number): string {
+  return Math.abs(n) < 0.005 ? `${money(0)} (Settled)` : `${money(Math.abs(n))} (${netBalanceLabel(n)})`;
+}
+
 /** Cell value for one row/column pair (shared by the table, PDF and email). */
 export function techCellValue(r: TechReportRow, key: string): string {
   switch (key) {
@@ -210,7 +219,7 @@ export function techCellValue(r: TechReportRow, key: string): string {
       return ef.collected_by || ((r.job as any).marketer_collected ? "Marketer" : "Tech");
     }
     case "collectedByTech": return money(r.collectedByTech);
-    case "netBalance": return money(r.netBalance);
+    case "netBalance": return netBalanceText(r.netBalance);
     default: return "";
   }
 }
