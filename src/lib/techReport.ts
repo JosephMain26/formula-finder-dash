@@ -132,6 +132,8 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     g.techParts = round2(g.techParts);
     g.officeParts = round2(g.officeParts);
     g.companyParts = round2(g.companyParts);
+    g.collectedByTech = round2(g.collectedByTech);
+    g.netBalance = round2(g.netBalance);
     g.rows.sort((a, b) => (a.job.job_date || "").localeCompare(b.job.job_date || ""));
   }
   out.sort((a, b) => a.tech.localeCompare(b.tech));
@@ -157,6 +159,8 @@ export const TECH_BOXES: { key: string; label: string; emailLabel: string }[] = 
   { key: "techParts", label: "Tech parts", emailLabel: "Tech parts" },
   { key: "officeParts", label: "Office parts", emailLabel: "Office parts" },
   { key: "companyParts", label: "Company parts", emailLabel: "Company parts" },
+  { key: "collectedByTech", label: "Collected by tech", emailLabel: "Cash you collected" },
+  { key: "netBalance", label: "Net balance (+ tech owes office)", emailLabel: "Net balance (+ you owe office / − office owes you)" },
 ];
 
 /** Table columns a report can show. */
@@ -171,6 +175,9 @@ export const TECH_COLUMNS: { key: string; label: string; numeric?: boolean }[] =
   { key: "techParts", label: "Tech parts", numeric: true },
   { key: "officeParts", label: "Office parts", numeric: true },
   { key: "companyParts", label: "Company parts", numeric: true },
+  { key: "collectedBy", label: "Collected by" },
+  { key: "collectedByTech", label: "Collected by tech", numeric: true },
+  { key: "netBalance", label: "Net balance", numeric: true },
 ];
 
 const PART_KEYS = ["techParts", "officeParts", "companyParts"];
@@ -196,6 +203,14 @@ export function techCellValue(r: TechReportRow, key: string): string {
     case "techParts": return money(r.techParts);
     case "officeParts": return money(r.officeParts);
     case "companyParts": return money(r.companyParts);
+    case "collectedBy": {
+      const ef: any = (r.job as any).extra_fields || {};
+      const ps = Array.isArray(ef.payments) ? ef.payments : [];
+      if (ps.length) return [...new Set(ps.map((p: any) => p?.recipient).filter(Boolean))].join(", ") || "—";
+      return ef.collected_by || ((r.job as any).marketer_collected ? "Marketer" : "Tech");
+    }
+    case "collectedByTech": return money(r.collectedByTech);
+    case "netBalance": return money(r.netBalance);
     default: return "";
   }
 }
@@ -209,8 +224,8 @@ export function renderTechReportHtml(s: TechReportSummary, rangeText: string, lo
   const colKeys = expandTechPartsKeys(look.columns?.length ? look.columns : DEFAULT_TECH_COLUMNS);
   const cols = colKeys.map((k) => TECH_COLUMNS.find((c) => c.key === k)).filter(Boolean) as typeof TECH_COLUMNS;
 
-  const boxColor: Record<string, string> = { techCut: "#047857", officeCut: "#b91c1c", revenue: "#111827", techParts: "#111827", officeParts: "#111827", companyParts: "#111827" };
-  const boxValue: Record<string, number> = { techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue, techParts: s.techParts, officeParts: s.officeParts, companyParts: s.companyParts };
+  const boxColor: Record<string, string> = { techCut: "#047857", officeCut: "#b91c1c", revenue: "#111827", techParts: "#111827", officeParts: "#111827", companyParts: "#111827", collectedByTech: "#111827", netBalance: s.netBalance >= 0 ? "#b91c1c" : "#047857" };
+  const boxValue: Record<string, number> = { techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue, techParts: s.techParts, officeParts: s.officeParts, companyParts: s.companyParts, collectedByTech: s.collectedByTech, netBalance: s.netBalance };
 
   const boxes = (boxKeys.map((k) => TECH_BOXES.find((b) => b.key === k)).filter(Boolean) as typeof TECH_BOXES)
     .map(
