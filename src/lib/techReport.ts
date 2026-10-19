@@ -160,7 +160,7 @@ export const TECH_BOXES: { key: string; label: string; emailLabel: string }[] = 
   { key: "officeParts", label: "Office parts", emailLabel: "Office parts" },
   { key: "companyParts", label: "Company parts", emailLabel: "Company parts" },
   { key: "collectedByTech", label: "Collected by tech", emailLabel: "Cash you collected" },
-  { key: "netBalance", label: "Net balance (+ tech owes office)", emailLabel: "Net balance (+ you owe office / − office owes you)" },
+  { key: "netBalance", label: "Net balance", emailLabel: "Net balance" },
 ];
 
 /** Table columns a report can show. */
@@ -189,6 +189,15 @@ export function expandTechPartsKeys(keys: string[]): string[] {
 }
 export const DEFAULT_TECH_TITLE = "Technician Report";
 
+/** Who owes whom for a net balance (positive = tech owes office). */
+export function netBalanceLabel(n: number): string {
+  if (Math.abs(n) < 0.005) return "Settled";
+  return n > 0 ? "Tech owes office" : "Office owes tech";
+}
+export function netBalanceText(n: number): string {
+  return Math.abs(n) < 0.005 ? `${money(0)} (Settled)` : `${money(Math.abs(n))} (${netBalanceLabel(n)})`;
+}
+
 /** Cell value for one row/column pair (shared by the table, PDF and email). */
 export function techCellValue(r: TechReportRow, key: string): string {
   switch (key) {
@@ -210,7 +219,7 @@ export function techCellValue(r: TechReportRow, key: string): string {
       return ef.collected_by || ((r.job as any).marketer_collected ? "Marketer" : "Tech");
     }
     case "collectedByTech": return money(r.collectedByTech);
-    case "netBalance": return money(r.netBalance);
+    case "netBalance": return netBalanceText(r.netBalance);
     default: return "";
   }
 }
@@ -231,7 +240,7 @@ export function renderTechReportHtml(s: TechReportSummary, rangeText: string, lo
     .map(
       (b) => `<td style="padding:10px 14px;border:1px solid #e5e7eb;border-radius:6px;">
        <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;">${esc(b.emailLabel)}</div>
-       <div style="font-size:18px;font-weight:700;color:${boxColor[b.key]};">${esc(money(boxValue[b.key]))}</div>
+       <div style="font-size:18px;font-weight:700;color:${boxColor[b.key]};">${esc(b.key === "netBalance" ? netBalanceText(s.netBalance) : money(boxValue[b.key]))}</div>
      </td>`
     )
     .join("");
