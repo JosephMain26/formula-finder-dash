@@ -1,12 +1,26 @@
 import { describe, it as test } from "node:test";
 import { strict as assert } from "node:assert";
 import type { Tables } from "@/integrations/supabase/types";
-import { summarizeByTech } from "./techReport";
+import { summarizeByTech, expandTechPartsKeys } from "./techReport";
 
 type Job = Tables<"jobs">;
 const job = (values: Partial<Job>) => ({ tech_name: "Alex", job_date: "2026-10-18", status: "Completed", ...values } as Job);
 
 describe("Technician report parts costs", () => {
+  for (const [key, field, value] of [
+    ["techParts", "parts", 20],
+    ["officeParts", "office_parts", 30],
+    ["companyParts", "co_parts", 40],
+  ] as const) {
+    test(`${key} reads only ${field}`, () => {
+      const [summary] = summarizeByTech([job({ parts: 20, office_parts: 30, co_parts: 40 })]);
+      assert.equal(summary?.[key], value);
+      assert.equal(summary?.rows[0]?.[key], value);
+    });
+  }
+  test("previous combined parts selections become three separate selections", () => {
+    assert.deepEqual(expandTechPartsKeys(["techCut", "partsCost"]), ["techCut", "techParts", "officeParts", "companyParts"]);
+  });
   test("includes all three stored parts costs without changing either cut", () => {
     const [summary] = summarizeByTech([
       job({ parts: 20, office_parts: 30, co_parts: 40, total_tech: 150, total_office: 60, total_marketer: 90 }),

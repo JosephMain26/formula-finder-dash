@@ -17,7 +17,7 @@ import { loadStatuses, type StatusDef } from "@/lib/jobSchema";
 import {
   summarizeByTech, renderTechReportHtml, techRangeText, techCellValue, TECH_DATE_MODES,
   TECH_BOXES, TECH_COLUMNS, DEFAULT_TECH_BOXES, DEFAULT_TECH_COLUMNS, DEFAULT_TECH_TITLE,
-  type TechReportSummary,
+  type TechReportSummary, expandTechPartsKeys,
 } from "@/lib/techReport";
 import { sendAutomationEmail } from "@/lib/automationEmail.functions";
 import {
@@ -94,7 +94,8 @@ export function TechReportsPanel() {
   const visibleColumns = TECH_COLUMNS.filter((c) => columns.includes(c.key));
   const visibleBoxes = TECH_BOXES.filter((b) => boxes.includes(b.key));
   const boxValues = (s: TechReportSummary): Record<string, number> => ({
-    techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue, partsCost: s.partsCost,
+    techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue,
+    techParts: s.techParts, officeParts: s.officeParts, companyParts: s.companyParts,
   });
 
   const emailFor = (tech: string) => techs.find((t) => t.tech_name === tech)?.email || null;
@@ -118,8 +119,8 @@ export function TechReportsPanel() {
     setDateTo(spec.dateTo || "");
     setStatuses(Array.isArray(spec.statuses) ? spec.statuses : []);
     setTitle(spec.title || DEFAULT_TECH_TITLE);
-    setBoxes(spec.boxes?.length ? spec.boxes : DEFAULT_TECH_BOXES);
-    setColumns(spec.columns?.length ? spec.columns : DEFAULT_TECH_COLUMNS);
+    setBoxes(expandTechPartsKeys(spec.boxes?.length ? spec.boxes : DEFAULT_TECH_BOXES));
+    setColumns(expandTechPartsKeys(spec.columns?.length ? spec.columns : DEFAULT_TECH_COLUMNS));
   }
 
   async function persist(list: TechReportTemplate[]) {
@@ -182,8 +183,9 @@ export function TechReportsPanel() {
       const vals = boxValues(s);
       if (visibleBoxes.length) {
         doc.setFontSize(11); doc.setFont("helvetica", "bold");
-        doc.text(visibleBoxes.map((b) => `${b.label}: ${money(vals[b.key])}`).join("     "), 14, y);
-        doc.setFont("helvetica", "normal"); y += 6;
+        const summaryLines = doc.splitTextToSize(visibleBoxes.map((b) => `${b.label}: ${money(vals[b.key])}`).join("     "), 269);
+        doc.text(summaryLines, 14, y);
+        doc.setFont("helvetica", "normal"); y += summaryLines.length * 5 + 1;
       }
       autoTable(doc, {
         startY: y,
@@ -351,7 +353,8 @@ export function TechReportsPanel() {
           const to = emailFor(s.tech);
           const vals = boxValues(s);
           const boxColor: Record<string, string> = {
-            techCut: "text-emerald-600", officeCut: "text-destructive", revenue: "", partsCost: "",
+            techCut: "text-emerald-600", officeCut: "text-destructive", revenue: "",
+            techParts: "", officeParts: "", companyParts: "",
           };
           return (
             <Card key={s.tech}>

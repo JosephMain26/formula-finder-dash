@@ -25,6 +25,9 @@ export type TechReportRow = {
   techCut: number;
   officeCut: number;
   partsCost: number;
+  techParts: number;
+  officeParts: number;
+  companyParts: number;
 };
 
 export type TechReportSummary = {
@@ -35,6 +38,9 @@ export type TechReportSummary = {
   /** Marketer share + office share — what the tech turns in to the office. */
   officeCut: number;
   partsCost: number;
+  techParts: number;
+  officeParts: number;
+  companyParts: number;
   rows: TechReportRow[];
 };
 
@@ -71,11 +77,14 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     const revenue = num(j.price);
     const techCut = num(j.total_tech);
     const officeCut = num((j as any).total_marketer) + num((j as any).total_office);
-    const partsCost = num(j.parts) + num(j.office_parts) + num(j.co_parts);
+    const techParts = num(j.parts);
+    const officeParts = num(j.office_parts);
+    const companyParts = num(j.co_parts);
+    const partsCost = techParts + officeParts + companyParts;
 
     let g = groups.get(tech);
     if (!g) {
-      g = { tech, jobsCount: 0, revenue: 0, techCut: 0, officeCut: 0, partsCost: 0, rows: [] };
+      g = { tech, jobsCount: 0, revenue: 0, techCut: 0, officeCut: 0, partsCost: 0, techParts: 0, officeParts: 0, companyParts: 0, rows: [] };
       groups.set(tech, g);
     }
     g.jobsCount += 1;
@@ -83,7 +92,10 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     g.techCut += techCut;
     g.officeCut += officeCut;
     g.partsCost += partsCost;
-    g.rows.push({ job: j, revenue, techCut, officeCut, partsCost });
+    g.techParts += techParts;
+    g.officeParts += officeParts;
+    g.companyParts += companyParts;
+    g.rows.push({ job: j, revenue, techCut, officeCut, partsCost, techParts, officeParts, companyParts });
   }
 
   const out = Array.from(groups.values());
@@ -92,6 +104,9 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     g.techCut = round2(g.techCut);
     g.officeCut = round2(g.officeCut);
     g.partsCost = round2(g.partsCost);
+    g.techParts = round2(g.techParts);
+    g.officeParts = round2(g.officeParts);
+    g.companyParts = round2(g.companyParts);
     g.rows.sort((a, b) => (a.job.job_date || "").localeCompare(b.job.job_date || ""));
   }
   out.sort((a, b) => a.tech.localeCompare(b.tech));
@@ -114,7 +129,9 @@ export const TECH_BOXES: { key: string; label: string; emailLabel: string }[] = 
   { key: "techCut", label: "Tech cut", emailLabel: "Your cut" },
   { key: "officeCut", label: "Owed to office", emailLabel: "Owed to office" },
   { key: "revenue", label: "Revenue", emailLabel: "Total revenue" },
-  { key: "partsCost", label: "Parts cost", emailLabel: "Parts cost" },
+  { key: "techParts", label: "Tech parts", emailLabel: "Tech parts" },
+  { key: "officeParts", label: "Office parts", emailLabel: "Office parts" },
+  { key: "companyParts", label: "Company parts", emailLabel: "Company parts" },
 ];
 
 /** Table columns a report can show. */
@@ -126,11 +143,18 @@ export const TECH_COLUMNS: { key: string; label: string; numeric?: boolean }[] =
   { key: "price", label: "Price", numeric: true },
   { key: "techCut", label: "Tech cut", numeric: true },
   { key: "officeCut", label: "Office cut", numeric: true },
-  { key: "partsCost", label: "Parts cost", numeric: true },
+  { key: "techParts", label: "Tech parts", numeric: true },
+  { key: "officeParts", label: "Office parts", numeric: true },
+  { key: "companyParts", label: "Company parts", numeric: true },
 ];
 
-export const DEFAULT_TECH_BOXES = TECH_BOXES.filter((b) => b.key !== "partsCost").map((b) => b.key);
-export const DEFAULT_TECH_COLUMNS = TECH_COLUMNS.filter((c) => c.key !== "partsCost").map((c) => c.key);
+const PART_KEYS = ["techParts", "officeParts", "companyParts"];
+export const DEFAULT_TECH_BOXES = TECH_BOXES.filter((b) => !PART_KEYS.includes(b.key)).map((b) => b.key);
+export const DEFAULT_TECH_COLUMNS = TECH_COLUMNS.filter((c) => !PART_KEYS.includes(c.key)).map((c) => c.key);
+/** Preserve the parts selection in templates saved with the previous combined field. */
+export function expandTechPartsKeys(keys: string[]): string[] {
+  return [...new Set(keys.flatMap((key) => key === "partsCost" ? PART_KEYS : [key]))];
+}
 export const DEFAULT_TECH_TITLE = "Technician Report";
 
 /** Cell value for one row/column pair (shared by the table, PDF and email). */
@@ -144,6 +168,9 @@ export function techCellValue(r: TechReportRow, key: string): string {
     case "techCut": return money(r.techCut);
     case "officeCut": return money(r.officeCut);
     case "partsCost": return money(r.partsCost);
+    case "techParts": return money(r.techParts);
+    case "officeParts": return money(r.officeParts);
+    case "companyParts": return money(r.companyParts);
     default: return "";
   }
 }
@@ -153,12 +180,12 @@ export type TechReportLook = { title?: string; boxes?: string[]; columns?: strin
 /** Email-safe HTML statement for a single technician. */
 export function renderTechReportHtml(s: TechReportSummary, rangeText: string, look: TechReportLook = {}): string {
   const title = look.title || DEFAULT_TECH_TITLE;
-  const boxKeys = look.boxes?.length ? look.boxes : DEFAULT_TECH_BOXES;
-  const colKeys = look.columns?.length ? look.columns : DEFAULT_TECH_COLUMNS;
+  const boxKeys = expandTechPartsKeys(look.boxes?.length ? look.boxes : DEFAULT_TECH_BOXES);
+  const colKeys = expandTechPartsKeys(look.columns?.length ? look.columns : DEFAULT_TECH_COLUMNS);
   const cols = TECH_COLUMNS.filter((c) => colKeys.includes(c.key));
 
-  const boxColor: Record<string, string> = { techCut: "#047857", officeCut: "#b91c1c", revenue: "#111827", partsCost: "#111827" };
-  const boxValue: Record<string, number> = { techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue, partsCost: s.partsCost };
+  const boxColor: Record<string, string> = { techCut: "#047857", officeCut: "#b91c1c", revenue: "#111827", techParts: "#111827", officeParts: "#111827", companyParts: "#111827" };
+  const boxValue: Record<string, number> = { techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue, techParts: s.techParts, officeParts: s.officeParts, companyParts: s.companyParts };
 
   const boxes = TECH_BOXES.filter((b) => boxKeys.includes(b.key))
     .map(
