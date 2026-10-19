@@ -28,6 +28,10 @@ export type TechReportRow = {
   techParts: number;
   officeParts: number;
   companyParts: number;
+  /** Customer money the tech physically holds for this job. */
+  collectedByTech: number;
+  /** collectedByTech − techCut. Positive = tech owes office; negative = office owes tech. */
+  netBalance: number;
 };
 
 export type TechReportSummary = {
@@ -35,12 +39,14 @@ export type TechReportSummary = {
   jobsCount: number;
   revenue: number;
   techCut: number;
-  /** Marketer share + office share — what the tech turns in to the office. */
+  /** Marketer share + office share (the office's side of the split). */
   officeCut: number;
   partsCost: number;
   techParts: number;
   officeParts: number;
   companyParts: number;
+  collectedByTech: number;
+  netBalance: number;
   rows: TechReportRow[];
 };
 
@@ -54,6 +60,21 @@ export type TechReportOptions = {
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * How much of the customer's payment the tech holds. Uses recorded payments
+ * (recipient "Tech") when present; otherwise the job's collected-by choice
+ * (legacy marketer_collected = Marketer; unset = Tech) applied to the full price.
+ */
+export function techCollectedAmount(j: Job): number {
+  const ef: any = (j as any).extra_fields || {};
+  const payments = Array.isArray(ef.payments) ? ef.payments.filter((p: any) => p && typeof p === "object") : [];
+  if (payments.length > 0) {
+    return round2(payments.reduce((a: number, p: any) => a + (p.recipient === "Tech" ? num(p.amount) : 0), 0));
+  }
+  const by = ef.collected_by || ((j as any).marketer_collected ? "Marketer" : "Tech");
+  return by === "Tech" ? num(j.price) : 0;
+}
 
 /**
  * Group jobs by technician and compute each tech's cut plus the office cut
@@ -81,10 +102,12 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     const officeParts = num(j.office_parts);
     const companyParts = num(j.co_parts);
     const partsCost = techParts + officeParts + companyParts;
+    const collectedByTech = techCollectedAmount(j);
+    const netBalance = round2(collectedByTech - techCut);
 
     let g = groups.get(tech);
     if (!g) {
-      g = { tech, jobsCount: 0, revenue: 0, techCut: 0, officeCut: 0, partsCost: 0, techParts: 0, officeParts: 0, companyParts: 0, rows: [] };
+      g = { tech, jobsCount: 0, revenue: 0, techCut: 0, officeCut: 0, partsCost: 0, techParts: 0, officeParts: 0, companyParts: 0, collectedByTech: 0, netBalance: 0, rows: [] };
       groups.set(tech, g);
     }
     g.jobsCount += 1;
@@ -95,7 +118,9 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     g.techParts += techParts;
     g.officeParts += officeParts;
     g.companyParts += companyParts;
-    g.rows.push({ job: j, revenue, techCut, officeCut, partsCost, techParts, officeParts, companyParts });
+    g.collectedByTech += collectedByTech;
+    g.netBalance += netBalance;
+    g.rows.push({ job: j, revenue, techCut, officeCut, partsCost, techParts, officeParts, companyParts, collectedByTech, netBalance });
   }
 
   const out = Array.from(groups.values());
@@ -107,6 +132,8 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     g.techParts = round2(g.techParts);
     g.officeParts = round2(g.officeParts);
     g.companyParts = round2(g.companyParts);
+    g.collectedByTech = round2(g.collectedByTech);
+    g.netBalance = round2(g.netBalance);
     g.rows.sort((a, b) => (a.job.job_date || "").localeCompare(b.job.job_date || ""));
   }
   out.sort((a, b) => a.tech.localeCompare(b.tech));
@@ -132,6 +159,8 @@ export const TECH_BOXES: { key: string; label: string; emailLabel: string }[] = 
   { key: "techParts", label: "Tech parts", emailLabel: "Tech parts" },
   { key: "officeParts", label: "Office parts", emailLabel: "Office parts" },
   { key: "companyParts", label: "Company parts", emailLabel: "Company parts" },
+  { key: "collectedByTech", label: "Collected by tech", emailLabel: "Cash you collected" },
+  { key: "netBalance", label: "Net balance (+ tech owes office)", emailLabel: "Net balance (+ you owe office / − office owes you)" },
 ];
 
 /** Table columns a report can show. */
@@ -146,6 +175,9 @@ export const TECH_COLUMNS: { key: string; label: string; numeric?: boolean }[] =
   { key: "techParts", label: "Tech parts", numeric: true },
   { key: "officeParts", label: "Office parts", numeric: true },
   { key: "companyParts", label: "Company parts", numeric: true },
+  { key: "collectedBy", label: "Collected by" },
+  { key: "collectedByTech", label: "Collected by tech", numeric: true },
+  { key: "netBalance", label: "Net balance", numeric: true },
 ];
 
 const PART_KEYS = ["techParts", "officeParts", "companyParts"];
@@ -171,6 +203,14 @@ export function techCellValue(r: TechReportRow, key: string): string {
     case "techParts": return money(r.techParts);
     case "officeParts": return money(r.officeParts);
     case "companyParts": return money(r.companyParts);
+    case "collectedBy": {
+      const ef: any = (r.job as any).extra_fields || {};
+      const ps = Array.isArray(ef.payments) ? ef.payments : [];
+      if (ps.length) return [...new Set(ps.map((p: any) => p?.recipient).filter(Boolean))].join(", ") || "—";
+      return ef.collected_by || ((r.job as any).marketer_collected ? "Marketer" : "Tech");
+    }
+    case "collectedByTech": return money(r.collectedByTech);
+    case "netBalance": return money(r.netBalance);
     default: return "";
   }
 }
@@ -184,8 +224,8 @@ export function renderTechReportHtml(s: TechReportSummary, rangeText: string, lo
   const colKeys = expandTechPartsKeys(look.columns?.length ? look.columns : DEFAULT_TECH_COLUMNS);
   const cols = colKeys.map((k) => TECH_COLUMNS.find((c) => c.key === k)).filter(Boolean) as typeof TECH_COLUMNS;
 
-  const boxColor: Record<string, string> = { techCut: "#047857", officeCut: "#b91c1c", revenue: "#111827", techParts: "#111827", officeParts: "#111827", companyParts: "#111827" };
-  const boxValue: Record<string, number> = { techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue, techParts: s.techParts, officeParts: s.officeParts, companyParts: s.companyParts };
+  const boxColor: Record<string, string> = { techCut: "#047857", officeCut: "#b91c1c", revenue: "#111827", techParts: "#111827", officeParts: "#111827", companyParts: "#111827", collectedByTech: "#111827", netBalance: s.netBalance >= 0 ? "#b91c1c" : "#047857" };
+  const boxValue: Record<string, number> = { techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue, techParts: s.techParts, officeParts: s.officeParts, companyParts: s.companyParts, collectedByTech: s.collectedByTech, netBalance: s.netBalance };
 
   const boxes = (boxKeys.map((k) => TECH_BOXES.find((b) => b.key === k)).filter(Boolean) as typeof TECH_BOXES)
     .map(

@@ -43,3 +43,14 @@ describe("Technician report parts costs", () => {
     assert.equal(summary?.jobsCount, 1);
   });
 });
+import { techCollectedAmount } from "./techReport";
+test("net balance: tech collected owes office, office collected is owed to tech", () => {
+  const base: any = { tech_name: "T", price: 500, total_tech: 200, total_marketer: 100, total_office: 200, job_date: "2026-01-01", status: "Completed" };
+  const s = summarizeByTech([
+    { ...base, id: "a", extra_fields: { collected_by: "Tech" } },
+    { ...base, id: "b", extra_fields: { collected_by: "Office" } },
+  ] as any)[0];
+  assert.equal(s.collectedByTech, 500);
+  assert.equal(s.netBalance, 100); // 300 owed - 200 owed to tech
+  assert.equal(techCollectedAmount({ price: 500, extra_fields: { payments: [{ amount: 120, recipient: "Tech" }, { amount: 380, recipient: "Office" }] } } as any), 120);
+});

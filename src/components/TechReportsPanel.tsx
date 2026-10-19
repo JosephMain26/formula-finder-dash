@@ -109,7 +109,7 @@ export function TechReportsPanel() {
     ) : null;
   const boxValues = (s: TechReportSummary): Record<string, number> => ({
     techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue,
-    techParts: s.techParts, officeParts: s.officeParts, companyParts: s.companyParts,
+    techParts: s.techParts, officeParts: s.officeParts, companyParts: s.companyParts, collectedByTech: s.collectedByTech, netBalance: s.netBalance,
   });
 
   const emailFor = (tech: string) => techs.find((t) => t.tech_name === tech)?.email || null;
@@ -370,7 +370,7 @@ export function TechReportsPanel() {
           const vals = boxValues(s);
           const boxColor: Record<string, string> = {
             techCut: "text-emerald-600", officeCut: "text-destructive", revenue: "",
-            techParts: "", officeParts: "", companyParts: "",
+            techParts: "", officeParts: "", companyParts: "", collectedByTech: "", netBalance: "",
           };
           return (
             <Card key={s.tech}>
