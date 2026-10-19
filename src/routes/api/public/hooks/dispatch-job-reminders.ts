@@ -107,6 +107,23 @@ export const Route = createFileRoute("/api/public/hooks/dispatch-job-reminders")
           }).eq("id", (job as any).id);
         }
 
+        // Quote follow-up alerts: one per job per day when due/overdue.
+        try {
+          const today = new Date().toISOString().slice(0, 10);
+          const { data: ds } = await admin.from("app_settings").select("value").eq("key", "quote_followup_days").maybeSingle();
+          const delay = Number((ds as any)?.value?.days) > 0 ? Number((ds as any).value.days) : 2;
+          const { data: quotes } = await admin.from("jobs").select("id, company, address, created_at, extra_fields").eq("status", "Quote");
+          for (const q of (quotes || []) as any[]) {
+            const ef = q.extra_fields || {};
+            const base = (ef.quoted_at || q.created_at || "").slice(0, 10);
+            let next = ef.followup_next;
+            if (!next && base) { const d = new Date(base + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + delay); next = d.toISOString().slice(0, 10); }
+            if (!next || next > today || ef.followup_alerted === today) continue;
+            await admin.from("app_alerts").insert({ title: "Quote follow-up due", body: `${q.company || "Client"} · ${q.address || ""} (due ${next})`, job_id: q.id });
+            await admin.from("jobs").update({ extra_fields: { ...ef, followup_alerted: today } }).eq("id", q.id);
+          }
+        } catch (e) { console.error("quote followups", e); }
+
         return Response.json({ processed: (jobs || []).length, sent });
       },
     },

@@ -20,6 +20,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/lib/auth-context";
 import { MobileNav } from "@/components/MobileNav";
 import { AlertsBell } from "@/components/AlertsBell";
+import { QuoteCards, QuotesPanel, type QuotesMode } from "@/components/QuotesPanel";
 import { loadUserPrefs, saveUserPrefs, getPref } from "@/lib/userPrefs";
 import { loadStatuses } from "@/lib/jobSchema";
 
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
   head: () => ({
     meta: [
-      { title: "Jobs Dashboard" },
+      { title: "Jobs Dashboard — open jobs & quote follow-ups" },
       { name: "description", content: "Track and manage service jobs with real-time calculations" },
       { property: "og:title", content: "Jobs Dashboard" },
       { property: "og:description", content: "Track and manage service jobs with real-time calculations" },
@@ -75,6 +76,7 @@ function Dashboard() {
   const [sortBy, setSortBy] = useState<SortKey>("job_date_desc");
   const [analyticsHidden, setAnalyticsHidden] = useState(false);
   const [managedStatuses, setManagedStatuses] = useState<string[]>([]);
+  const [quotesMode, setQuotesMode] = useState<QuotesMode | null>(null);
 
   useEffect(() => { loadStatuses().then((s) => setManagedStatuses(s.map(x => x.name))); }, []);
 
@@ -288,6 +290,8 @@ function Dashboard() {
       </header>
 
       <main className="max-w-[1400px] mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        <QuoteCards jobs={jobs} onOpen={setQuotesMode} />
+        <QuotesPanel mode={quotesMode} onClose={() => setQuotesMode(null)} jobs={jobs} onChanged={fetchJobs} />
         <StatsCards jobs={filtered} />
 
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
