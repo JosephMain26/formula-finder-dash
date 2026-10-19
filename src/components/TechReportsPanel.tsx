@@ -91,8 +91,22 @@ export function TechReportsPanel() {
     [jobs, range, statuses, selectedTech]
   );
 
-  const visibleColumns = TECH_COLUMNS.filter((c) => columns.includes(c.key));
-  const visibleBoxes = TECH_BOXES.filter((b) => boxes.includes(b.key));
+  const visibleColumns = columns.map((k) => TECH_COLUMNS.find((c) => c.key === k)).filter(Boolean) as typeof TECH_COLUMNS;
+  const visibleBoxes = boxes.map((k) => TECH_BOXES.find((b) => b.key === k)).filter(Boolean) as typeof TECH_BOXES;
+  const ordered = <T extends { key: string }>(all: T[], sel: string[]) =>
+    [...sel.map((k) => all.find((x) => x.key === k)).filter(Boolean) as T[], ...all.filter((x) => !sel.includes(x.key))];
+  const move = (list: string[], set: (v: string[]) => void, key: string, dir: -1 | 1) => {
+    const i = list.indexOf(key), j = i + dir;
+    if (i < 0 || j < 0 || j >= list.length) return;
+    const n = [...list]; [n[i], n[j]] = [n[j], n[i]]; set(n);
+  };
+  const Arrows = ({ list, set, k }: { list: string[]; set: (v: string[]) => void; k: string }) =>
+    list.includes(k) ? (
+      <span className="ml-auto flex shrink-0">
+        <button type="button" className="px-1 text-muted-foreground hover:text-foreground" onClick={(e) => { e.preventDefault(); move(list, set, k, -1); }} aria-label="Move up">▲</button>
+        <button type="button" className="px-1 text-muted-foreground hover:text-foreground" onClick={(e) => { e.preventDefault(); move(list, set, k, 1); }} aria-label="Move down">▼</button>
+      </span>
+    ) : null;
   const boxValues = (s: TechReportSummary): Record<string, number> => ({
     techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue,
     techParts: s.techParts, officeParts: s.officeParts, companyParts: s.companyParts,
@@ -295,21 +309,23 @@ export function TechReportsPanel() {
             <div>
               <Label className="text-xs">Summary boxes</Label>
               <div className="grid gap-1.5 mt-1 border rounded p-2">
-                {TECH_BOXES.map((b) => (
+                {ordered(TECH_BOXES, boxes).map((b) => (
                   <label key={b.key} className="flex items-center gap-2 text-sm cursor-pointer">
                     <Checkbox checked={boxes.includes(b.key)} onCheckedChange={() => toggleIn(boxes, setBoxes, b.key)} />
                     <span>{b.label}</span>
+                    <Arrows list={boxes} set={setBoxes} k={b.key} />
                   </label>
                 ))}
               </div>
             </div>
             <div>
-              <Label className="text-xs">Table columns</Label>
-              <div className="grid grid-cols-2 gap-1.5 mt-1 border rounded p-2">
-                {TECH_COLUMNS.map((c) => (
+              <Label className="text-xs">Table columns (use ▲▼ to arrange)</Label>
+              <div className="grid gap-1.5 mt-1 border rounded p-2">
+                {ordered(TECH_COLUMNS, columns).map((c) => (
                   <label key={c.key} className="flex items-center gap-2 text-sm cursor-pointer">
                     <Checkbox checked={columns.includes(c.key)} onCheckedChange={() => toggleIn(columns, setColumns, c.key)} />
                     <span className="truncate">{c.label}</span>
+                    <Arrows list={columns} set={setColumns} k={c.key} />
                   </label>
                 ))}
               </div>

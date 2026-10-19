@@ -182,12 +182,12 @@ export function renderTechReportHtml(s: TechReportSummary, rangeText: string, lo
   const title = look.title || DEFAULT_TECH_TITLE;
   const boxKeys = expandTechPartsKeys(look.boxes?.length ? look.boxes : DEFAULT_TECH_BOXES);
   const colKeys = expandTechPartsKeys(look.columns?.length ? look.columns : DEFAULT_TECH_COLUMNS);
-  const cols = TECH_COLUMNS.filter((c) => colKeys.includes(c.key));
+  const cols = colKeys.map((k) => TECH_COLUMNS.find((c) => c.key === k)).filter(Boolean) as typeof TECH_COLUMNS;
 
   const boxColor: Record<string, string> = { techCut: "#047857", officeCut: "#b91c1c", revenue: "#111827", techParts: "#111827", officeParts: "#111827", companyParts: "#111827" };
   const boxValue: Record<string, number> = { techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue, techParts: s.techParts, officeParts: s.officeParts, companyParts: s.companyParts };
 
-  const boxes = TECH_BOXES.filter((b) => boxKeys.includes(b.key))
+  const boxes = (boxKeys.map((k) => TECH_BOXES.find((b) => b.key === k)).filter(Boolean) as typeof TECH_BOXES)
     .map(
       (b) => `<td style="padding:10px 14px;border:1px solid #e5e7eb;border-radius:6px;">
        <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;">${esc(b.emailLabel)}</div>

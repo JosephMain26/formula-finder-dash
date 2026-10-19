@@ -357,11 +357,17 @@ function ReportsPage() {
                       {reportTemplates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  {activeTemplateId && (
+                  {activeTemplateId && (<>
+                    <Button variant="outline" size="sm" className="h-9" onClick={async () => {
+                      const next = { ...templates, reportTemplates: reportTemplates.map((t) => t.id === activeTemplateId ? { ...t, spec } : t) };
+                      setTemplates(next);
+                      await saveTemplates(next);
+                      toast.success("Template updated");
+                    }}>Update</Button>
                     <Button variant="ghost" size="icon" className="h-9 w-9" onClick={deleteTemplate}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
-                  )}
+                  </>)}
                 </div>
                 <div className="flex gap-2">
                   <Input placeholder="Save current as template…" value={newTemplateName} onChange={(e) => setNewTemplateName(e.target.value)} className="h-9 flex-1" />
