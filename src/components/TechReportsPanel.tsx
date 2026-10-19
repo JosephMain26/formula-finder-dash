@@ -17,7 +17,7 @@ import { loadStatuses, type StatusDef } from "@/lib/jobSchema";
 import {
   summarizeByTech, renderTechReportHtml, techRangeText, techCellValue, TECH_DATE_MODES,
   TECH_BOXES, TECH_COLUMNS, DEFAULT_TECH_BOXES, DEFAULT_TECH_COLUMNS, DEFAULT_TECH_TITLE,
-  type TechReportSummary, expandTechPartsKeys, netBalanceLabel,
+  type TechReportSummary, expandTechPartsKeys, netBalanceLabel, netBalanceText,
 } from "@/lib/techReport";
 import { sendAutomationEmail } from "@/lib/automationEmail.functions";
 import {
@@ -197,7 +197,7 @@ export function TechReportsPanel() {
       const vals = boxValues(s);
       if (visibleBoxes.length) {
         doc.setFontSize(11); doc.setFont("helvetica", "bold");
-        const summaryLines = doc.splitTextToSize(visibleBoxes.map((b) => `${b.label}: ${money(vals[b.key])}`).join("     "), 269);
+        const summaryLines = doc.splitTextToSize(visibleBoxes.map((b) => `${b.label}: ${b.key === "netBalance" ? netBalanceText(vals[b.key]) : money(vals[b.key])}`).join("     "), 269);
         doc.text(summaryLines, 14, y);
         doc.setFont("helvetica", "normal"); y += summaryLines.length * 5 + 1;
       }
