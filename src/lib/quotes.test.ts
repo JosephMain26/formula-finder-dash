@@ -1,19 +1,20 @@
-import { describe, it, expect } from "vitest";
+import { describe, it } from "node:test";
+import { strict as assert } from "node:assert";
 import { isOpenJob, isQuoteJob, followupState, nextFollowup } from "./quotes";
 
 describe("quotes", () => {
   it("open = not completed/cancelled", () => {
-    expect(isOpenJob({ status: "Scheduled" })).toBe(true);
-    expect(isOpenJob({ status: "Completed" })).toBe(false);
-    expect(isOpenJob({ status: "Cancelled" })).toBe(false);
+    assert.equal(isOpenJob({ status: "Scheduled" }), true);
+    assert.equal(isOpenJob({ status: "Completed" }), false);
+    assert.equal(isOpenJob({ status: "Cancelled" }), false);
   });
-  it("quote status", () => expect(isQuoteJob({ status: "Quote" })).toBe(true));
+  it("quote status", () => assert.equal(isQuoteJob({ status: "Quote" }), true));
   it("follow-up state", () => {
-    expect(followupState("2026-01-01", "2026-01-02")).toBe("overdue");
-    expect(followupState("2026-01-02", "2026-01-02")).toBe("today");
-    expect(followupState("2026-01-03", "2026-01-02")).toBe("upcoming");
+    assert.equal(followupState("2026-01-01", "2026-01-02"), "overdue");
+    assert.equal(followupState("2026-01-02", "2026-01-02"), "today");
+    assert.equal(followupState("2026-01-03", "2026-01-02"), "upcoming");
   });
   it("default follow-up is 2 days after quote", () => {
-    expect(nextFollowup({ created_at: "2026-01-01T10:00:00Z" }, 2)).toBe("2026-01-03");
+    assert.equal(nextFollowup({ created_at: "2026-01-01T10:00:00Z" }, 2), "2026-01-03");
   });
 });
