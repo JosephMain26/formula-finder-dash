@@ -24,6 +24,7 @@ export type TechReportRow = {
   revenue: number;
   techCut: number;
   officeCut: number;
+  partsCost: number;
 };
 
 export type TechReportSummary = {
@@ -33,6 +34,7 @@ export type TechReportSummary = {
   techCut: number;
   /** Marketer share + office share — what the tech turns in to the office. */
   officeCut: number;
+  partsCost: number;
   rows: TechReportRow[];
 };
 
@@ -69,17 +71,19 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     const revenue = num(j.price);
     const techCut = num(j.total_tech);
     const officeCut = num((j as any).total_marketer) + num((j as any).total_office);
+    const partsCost = num(j.parts) + num(j.office_parts) + num(j.co_parts);
 
     let g = groups.get(tech);
     if (!g) {
-      g = { tech, jobsCount: 0, revenue: 0, techCut: 0, officeCut: 0, rows: [] };
+      g = { tech, jobsCount: 0, revenue: 0, techCut: 0, officeCut: 0, partsCost: 0, rows: [] };
       groups.set(tech, g);
     }
     g.jobsCount += 1;
     g.revenue += revenue;
     g.techCut += techCut;
     g.officeCut += officeCut;
-    g.rows.push({ job: j, revenue, techCut, officeCut });
+    g.partsCost += partsCost;
+    g.rows.push({ job: j, revenue, techCut, officeCut, partsCost });
   }
 
   const out = Array.from(groups.values());
@@ -87,6 +91,7 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     g.revenue = round2(g.revenue);
     g.techCut = round2(g.techCut);
     g.officeCut = round2(g.officeCut);
+    g.partsCost = round2(g.partsCost);
     g.rows.sort((a, b) => (a.job.job_date || "").localeCompare(b.job.job_date || ""));
   }
   out.sort((a, b) => a.tech.localeCompare(b.tech));
@@ -109,6 +114,7 @@ export const TECH_BOXES: { key: string; label: string; emailLabel: string }[] = 
   { key: "techCut", label: "Tech cut", emailLabel: "Your cut" },
   { key: "officeCut", label: "Owed to office", emailLabel: "Owed to office" },
   { key: "revenue", label: "Revenue", emailLabel: "Total revenue" },
+  { key: "partsCost", label: "Parts cost", emailLabel: "Parts cost" },
 ];
 
 /** Table columns a report can show. */
@@ -120,10 +126,11 @@ export const TECH_COLUMNS: { key: string; label: string; numeric?: boolean }[] =
   { key: "price", label: "Price", numeric: true },
   { key: "techCut", label: "Tech cut", numeric: true },
   { key: "officeCut", label: "Office cut", numeric: true },
+  { key: "partsCost", label: "Parts cost", numeric: true },
 ];
 
-export const DEFAULT_TECH_BOXES = TECH_BOXES.map((b) => b.key);
-export const DEFAULT_TECH_COLUMNS = TECH_COLUMNS.map((c) => c.key);
+export const DEFAULT_TECH_BOXES = TECH_BOXES.filter((b) => b.key !== "partsCost").map((b) => b.key);
+export const DEFAULT_TECH_COLUMNS = TECH_COLUMNS.filter((c) => c.key !== "partsCost").map((c) => c.key);
 export const DEFAULT_TECH_TITLE = "Technician Report";
 
 /** Cell value for one row/column pair (shared by the table, PDF and email). */
@@ -136,6 +143,7 @@ export function techCellValue(r: TechReportRow, key: string): string {
     case "price": return money(r.revenue);
     case "techCut": return money(r.techCut);
     case "officeCut": return money(r.officeCut);
+    case "partsCost": return money(r.partsCost);
     default: return "";
   }
 }
@@ -149,8 +157,8 @@ export function renderTechReportHtml(s: TechReportSummary, rangeText: string, lo
   const colKeys = look.columns?.length ? look.columns : DEFAULT_TECH_COLUMNS;
   const cols = TECH_COLUMNS.filter((c) => colKeys.includes(c.key));
 
-  const boxColor: Record<string, string> = { techCut: "#047857", officeCut: "#b91c1c", revenue: "#111827" };
-  const boxValue: Record<string, number> = { techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue };
+  const boxColor: Record<string, string> = { techCut: "#047857", officeCut: "#b91c1c", revenue: "#111827", partsCost: "#111827" };
+  const boxValue: Record<string, number> = { techCut: s.techCut, officeCut: s.officeCut, revenue: s.revenue, partsCost: s.partsCost };
 
   const boxes = TECH_BOXES.filter((b) => boxKeys.includes(b.key))
     .map(
