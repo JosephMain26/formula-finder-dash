@@ -1,10 +1,43 @@
 import { describe, it as test } from "node:test";
 import { strict as assert } from "node:assert";
 import type { Tables } from "@/integrations/supabase/types";
-import { summarizeByTech, expandTechPartsKeys } from "./techReport";
+import { summarizeByTech, expandTechPartsKeys, techCellValue } from "./techReport";
 
 type Job = Tables<"jobs">;
 const job = (values: Partial<Job>) => ({ tech_name: "Alex", job_date: "2026-10-18", status: "Completed", ...values } as Job);
+
+describe("Technician report job values", () => {
+  const row = (values: Partial<Job>) => {
+    const result = summarizeByTech([job(values)])[0]?.rows[0];
+    if (!result) throw new Error("Expected a technician report row");
+    return result;
+  };
+  test("uses the stored technician percentage", () => {
+    assert.equal(techCellValue(row({ manual_percentage: 37.5 }), "techPercentage"), "37.5%");
+    assert.equal(techCellValue(row({ manual_percentage: 0 }), "techPercentage"), "0%");
+  });
+  test("uses the stored card fee", () => {
+    assert.equal(techCellValue(row({ cc_fee: 12.5 }), "ccFee"), "$12.50");
+  });
+  test("uses the job paid flag for Yes or No", () => {
+    assert.equal(techCellValue(row({ paid: true }), "paid"), "Yes");
+    assert.equal(techCellValue(row({ paid: false }), "paid"), "No");
+  });
+  test("uses the job payment method", () => {
+    assert.equal(techCellValue(row({ payment: "Check" }), "payment"), "Check");
+  });
+  test("preserves the job PO number", () => {
+    assert.equal(techCellValue(row({ po_number: "PO-00123" }), "po"), "PO-00123");
+  });
+  test("uses the payment receiver and supports split receipts", () => {
+    for (const recipient of ["Tech", "Office", "Marketer"]) {
+      assert.equal(techCellValue(row({ extra_fields: { collected_by: recipient } }), "collectedBy"), recipient);
+    }
+    assert.equal(techCellValue(row({ extra_fields: { payments: [
+      { amount: 100, recipient: "Tech" }, { amount: 200, recipient: "Office" },
+    ] } }), "collectedBy"), "Tech, Office");
+  });
+});
 
 describe("Technician report parts costs", () => {
   for (const [key, field, value] of [
