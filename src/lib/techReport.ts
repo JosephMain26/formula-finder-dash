@@ -175,14 +175,20 @@ export const TECH_COLUMNS: { key: string; label: string; numeric?: boolean }[] =
   { key: "techParts", label: "Tech parts", numeric: true },
   { key: "officeParts", label: "Office parts", numeric: true },
   { key: "companyParts", label: "Company parts", numeric: true },
-  { key: "collectedBy", label: "Collected by" },
+  { key: "techPercentage", label: "Tech %", numeric: true },
+  { key: "ccFee", label: "CC Fee", numeric: true },
+  { key: "paid", label: "Paid" },
+  { key: "payment", label: "Payment" },
+  { key: "po", label: "PO" },
+  { key: "collectedBy", label: "Payment Receiver" },
   { key: "collectedByTech", label: "Collected by tech", numeric: true },
   { key: "netBalance", label: "Net balance", numeric: true },
 ];
 
 const PART_KEYS = ["techParts", "officeParts", "companyParts"];
 export const DEFAULT_TECH_BOXES = TECH_BOXES.filter((b) => !PART_KEYS.includes(b.key)).map((b) => b.key);
-export const DEFAULT_TECH_COLUMNS = TECH_COLUMNS.filter((c) => !PART_KEYS.includes(c.key)).map((c) => c.key);
+const OPTIONAL_JOB_COLUMN_KEYS = ["techPercentage", "ccFee", "paid", "payment", "po"];
+export const DEFAULT_TECH_COLUMNS = TECH_COLUMNS.filter((c) => !PART_KEYS.includes(c.key) && !OPTIONAL_JOB_COLUMN_KEYS.includes(c.key)).map((c) => c.key);
 /** Preserve the parts selection in templates saved with the previous combined field. */
 export function expandTechPartsKeys(keys: string[]): string[] {
   return [...new Set(keys.flatMap((key) => key === "partsCost" ? PART_KEYS : [key]))];
@@ -212,6 +218,11 @@ export function techCellValue(r: TechReportRow, key: string): string {
     case "techParts": return money(r.techParts);
     case "officeParts": return money(r.officeParts);
     case "companyParts": return money(r.companyParts);
+    case "techPercentage": return r.job.manual_percentage == null ? "—" : `${num(r.job.manual_percentage)}%`;
+    case "ccFee": return money(num(r.job.cc_fee));
+    case "paid": return r.job.paid ? "Yes" : "No";
+    case "payment": return r.job.payment || "—";
+    case "po": return r.job.po_number || "—";
     case "collectedBy": {
       const ef: any = (r.job as any).extra_fields || {};
       const ps = Array.isArray(ef.payments) ? ef.payments : [];
