@@ -40,6 +40,7 @@ export function TechReportsPanel() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [statuses, setStatuses] = useState<string[]>(["Completed"]);
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
   const [title, setTitle] = useState(DEFAULT_TECH_TITLE);
   const [boxes, setBoxes] = useState<string[]>(DEFAULT_TECH_BOXES);
   const [columns, setColumns] = useState<string[]>(DEFAULT_TECH_COLUMNS);
@@ -87,8 +88,9 @@ export function TechReportsPanel() {
         to: range?.to,
         statuses,
         techNames: selectedTech === "__all__" ? [] : [selectedTech],
+        paidFilter: paymentFilter,
       }),
-    [jobs, range, statuses, selectedTech]
+    [jobs, range, statuses, selectedTech, paymentFilter]
   );
 
   const visibleColumns = columns.map((k) => TECH_COLUMNS.find((c) => c.key === k)).filter(Boolean) as typeof TECH_COLUMNS;
@@ -123,7 +125,7 @@ export function TechReportsPanel() {
 
   // ---------- templates ----------
   const currentSpec = (): TechReportTemplateSpec => ({
-    tech: selectedTech, dateMode, dateFrom, dateTo, statuses, title, boxes, columns,
+    tech: selectedTech, dateMode, dateFrom, dateTo, statuses, paidFilter: paymentFilter, title, boxes, columns,
   });
 
   function applySpec(spec: TechReportTemplateSpec) {
@@ -132,6 +134,7 @@ export function TechReportsPanel() {
     setDateFrom(spec.dateFrom || "");
     setDateTo(spec.dateTo || "");
     setStatuses(Array.isArray(spec.statuses) ? spec.statuses : []);
+    setPaymentFilter(spec.paidFilter || "all");
     setTitle(spec.title || DEFAULT_TECH_TITLE);
     setBoxes(expandTechPartsKeys(spec.boxes?.length ? spec.boxes : DEFAULT_TECH_BOXES));
     setColumns(expandTechPartsKeys(spec.columns?.length ? spec.columns : DEFAULT_TECH_COLUMNS));
@@ -285,6 +288,18 @@ export function TechReportsPanel() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">Payment</Label>
+            <Select value={paymentFilter} onValueChange={(v) => setPaymentFilter(v as "all" | "paid" | "unpaid")}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All jobs</SelectItem>
+                <SelectItem value="paid">Paid jobs only</SelectItem>
+                <SelectItem value="unpaid">Unpaid jobs only</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {dateMode === "custom" && (

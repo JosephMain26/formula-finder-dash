@@ -179,6 +179,8 @@ export type TechReportTemplateSpec = {
   dateFrom: string;
   dateTo: string;
   statuses: string[];
+  /** "all" | "paid" | "unpaid" — which jobs to include by payment status. */
+  paidFilter?: "all" | "paid" | "unpaid";
   title: string;
   boxes: string[];           // subset of techCut | officeCut | revenue | partsCost
   columns: string[];         // subset of date | marketer | type | status | price | techCut | officeCut | partsCost

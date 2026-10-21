@@ -57,6 +57,8 @@ export type TechReportOptions = {
   statuses?: string[];
   /** Empty / omitted = every technician found in the jobs. */
   techNames?: string[];
+  /** Filter by paid status: "all" (default) | "paid" | "unpaid". */
+  paidFilter?: "all" | "paid" | "unpaid";
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -84,6 +86,7 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
   const { from, to } = opts;
   const statusSet = new Set((opts.statuses || []).map((s) => s.toLowerCase()));
   const techSet = new Set((opts.techNames || []).map((t) => t.trim()).filter(Boolean));
+  const paidFilter = opts.paidFilter || "all";
 
   const groups = new Map<string, TechReportSummary>();
 
@@ -94,6 +97,8 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     if (from && (!j.job_date || j.job_date < from)) continue;
     if (to && (!j.job_date || j.job_date > to)) continue;
     if (statusSet.size > 0 && !statusSet.has((j.status || "").toLowerCase())) continue;
+    if (paidFilter === "paid" && !j.paid) continue;
+    if (paidFilter === "unpaid" && !!j.paid) continue;
 
     const revenue = num(j.price);
     const techCut = num(j.total_tech);
