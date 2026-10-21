@@ -290,6 +290,18 @@ export function TechReportsPanel() {
             </div>
           </div>
 
+          <div>
+            <Label className="text-xs">Payment</Label>
+            <Select value={paymentFilter} onValueChange={(v) => setPaymentFilter(v as "all" | "paid" | "unpaid")}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All jobs</SelectItem>
+                <SelectItem value="paid">Paid jobs only</SelectItem>
+                <SelectItem value="unpaid">Unpaid jobs only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {dateMode === "custom" && (
             <div className="grid grid-cols-2 gap-3">
               <div>
