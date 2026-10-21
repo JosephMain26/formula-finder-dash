@@ -77,6 +77,21 @@ describe("Technician report parts costs", () => {
   });
 });
 import { techCollectedAmount } from "./techReport";
+
+describe("Technician report payment filter", () => {
+  test("all includes every job; paid and unpaid keep only matching jobs", () => {
+    const jobs = [job({ id: "1" as any, paid: true }), job({ id: "2" as any, paid: false })];
+    assert.equal(summarizeByTech(jobs, { paidFilter: "all" })[0]?.jobsCount, 2);
+    assert.equal(summarizeByTech(jobs, { paidFilter: "paid" })[0]?.jobsCount, 1);
+    assert.equal(summarizeByTech(jobs, { paidFilter: "unpaid" })[0]?.jobsCount, 1);
+  });
+  test("unpaid also includes jobs with no paid flag recorded", () => {
+    const [summary] = summarizeByTech([job({ id: "3" as any })], { paidFilter: "unpaid" });
+    assert.equal(summary?.jobsCount, 1);
+    assert.equal(summarizeByTech([job({ id: "4" as any })], { paidFilter: "paid" }).length, 0);
+  });
+});
+
 test("net balance: tech collected owes office, office collected is owed to tech", () => {
   const base: any = { tech_name: "T", price: 500, total_tech: 200, total_marketer: 100, total_office: 200, job_date: "2026-01-01", status: "Completed" };
   const s = summarizeByTech([
