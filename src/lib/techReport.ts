@@ -97,6 +97,8 @@ export function summarizeByTech(jobs: Job[], opts: TechReportOptions = {}): Tech
     if (from && (!j.job_date || j.job_date < from)) continue;
     if (to && (!j.job_date || j.job_date > to)) continue;
     if (statusSet.size > 0 && !statusSet.has((j.status || "").toLowerCase())) continue;
+    if (paidFilter === "paid" && !j.paid) continue;
+    if (paidFilter === "unpaid" && !!j.paid) continue;
 
     const revenue = num(j.price);
     const techCut = num(j.total_tech);
