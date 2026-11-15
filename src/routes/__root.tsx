@@ -1,3 +1,4 @@
+import { MessagesDock } from "@/components/MessagesDock";
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth-context";
 import { AuthGate } from "@/components/AuthGate";
@@ -77,6 +78,7 @@ function RootComponent() {
     <AuthProvider>
       <AuthGate>
         <Outlet />
+        <MessagesDock />
       </AuthGate>
     </AuthProvider>
   );
