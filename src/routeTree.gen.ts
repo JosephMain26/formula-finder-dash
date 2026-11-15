@@ -16,6 +16,7 @@ import { Route as BillingRouteImport } from './routes/billing'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as DataboardRouteImport } from './routes/databoard'
+import { Route as DispatchRouteImport } from './routes/dispatch'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as InstallersRouteImport } from './routes/installers'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -63,6 +64,11 @@ const CompaniesRoute = CompaniesRouteImport.update({
 const DataboardRoute = DataboardRouteImport.update({
   id: '/databoard',
   path: '/databoard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DispatchRoute = DispatchRouteImport.update({
+  id: '/dispatch',
+  path: '/dispatch',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExpensesRoute = ExpensesRouteImport.update({
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
+  '/dispatch': typeof DispatchRoute
   '/expenses': typeof ExpensesRoute
   '/installers': typeof InstallersRoute
   '/reports': typeof ReportsRoute
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
+  '/dispatch': typeof DispatchRoute
   '/expenses': typeof ExpensesRoute
   '/installers': typeof InstallersRoute
   '/reports': typeof ReportsRoute
@@ -188,6 +196,7 @@ export interface FileRoutesById {
   '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
+  '/dispatch': typeof DispatchRoute
   '/expenses': typeof ExpensesRoute
   '/installers': typeof InstallersRoute
   '/reports': typeof ReportsRoute
@@ -212,6 +221,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/companies'
     | '/databoard'
+    | '/dispatch'
     | '/expenses'
     | '/installers'
     | '/reports'
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/companies'
     | '/databoard'
+    | '/dispatch'
     | '/expenses'
     | '/installers'
     | '/reports'
@@ -256,6 +267,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/companies'
     | '/databoard'
+    | '/dispatch'
     | '/expenses'
     | '/installers'
     | '/reports'
@@ -279,6 +291,7 @@ export interface RootRouteChildren {
   ClientsRoute: typeof ClientsRoute
   CompaniesRoute: typeof CompaniesRoute
   DataboardRoute: typeof DataboardRoute
+  DispatchRoute: typeof DispatchRoute
   ExpensesRoute: typeof ExpensesRoute
   InstallersRoute: typeof InstallersRoute
   ReportsRoute: typeof ReportsRoute
@@ -343,6 +356,13 @@ declare module '@tanstack/react-router' {
       path: '/databoard'
       fullPath: '/databoard'
       preLoaderRoute: typeof DataboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dispatch': {
+      id: '/dispatch'
+      path: '/dispatch'
+      fullPath: '/dispatch'
+      preLoaderRoute: typeof DispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/expenses': {
@@ -447,6 +467,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsRoute: ClientsRoute,
   CompaniesRoute: CompaniesRoute,
   DataboardRoute: DataboardRoute,
+  DispatchRoute: DispatchRoute,
   ExpensesRoute: ExpensesRoute,
   InstallersRoute: InstallersRoute,
   ReportsRoute: ReportsRoute,
