@@ -1,3 +1,4 @@
+import { MessageSquare } from "lucide-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -265,6 +266,11 @@ function Dashboard() {
             {isAdmin && (
               <Link to="/billing" className="hidden lg:inline-flex">
                 <Button variant="outline"><Receipt className="h-4 w-4 mr-2" /> Billing</Button>
+              </Link>
+            )}
+            {isAdmin && (
+              <Link to="/dispatch" search={{}} className="hidden lg:inline-flex">
+                <Button variant="outline"><MessageSquare className="h-4 w-4 mr-2" /> Messages</Button>
               </Link>
             )}
             {isAdmin && (

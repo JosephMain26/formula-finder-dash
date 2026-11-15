@@ -16,14 +16,15 @@ import { sendDispatch, agentDraft } from "@/lib/dispatch.functions";
 export const Route = createFileRoute("/dispatch")({
   head: () => ({
     meta: [
-      { title: "Dispatch & Messages | Leadz" },
+      { title: "Messages | Leadz" },
       { name: "description", content: "Two-way SMS and WhatsApp inbox to dispatch leads to technicians and subcontractors with an AI assistant." },
-      { property: "og:title", content: "Dispatch & Messages" },
+      { property: "og:title", content: "Messages" },
       { property: "og:description", content: "Text and WhatsApp technicians, subcontractors and partner companies from one inbox." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>): { phone?: string } => ({ phone: typeof s.phone === "string" ? s.phone : undefined }),
   component: DispatchPage,
 });
 
@@ -33,7 +34,9 @@ type Contact = { name: string; phone: string; type: string };
 function DispatchPage() {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [active, setActive] = useState<string | null>(null);
+  const { phone: qPhone } = Route.useSearch();
+  const [active, setActive] = useState<string | null>(qPhone ?? null);
+  useEffect(() => { if (qPhone) setActive(qPhone); }, [qPhone]);
   const [newPhone, setNewPhone] = useState("");
   const [text, setText] = useState("");
   const [channel, setChannel] = useState<"sms" | "whatsapp">("sms");
@@ -113,7 +116,7 @@ function DispatchPage() {
       <header className="flex items-center gap-2 border-b px-4 py-3">
         <MobileNav />
         <Link to="/"><Button variant="ghost" size="icon" aria-label="Back"><ArrowLeft className="h-4 w-4" /></Button></Link>
-        <h1 className="text-lg font-semibold">Dispatch & Messages</h1>
+        <h1 className="text-lg font-semibold">Messages</h1>
       </header>
       <div className="grid md:grid-cols-[300px_1fr] h-[calc(100vh-57px)]">
         <aside className={`border-r flex flex-col ${active ? "hidden md:flex" : "flex"}`}>
