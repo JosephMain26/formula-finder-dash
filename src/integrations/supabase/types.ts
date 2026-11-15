@@ -429,6 +429,51 @@ export type Database = {
         }
         Relationships: []
       }
+      dispatch_messages: {
+        Row: {
+          body: string
+          channel: string
+          contact_name: string | null
+          contact_type: string
+          created_at: string
+          created_by: string | null
+          direction: string
+          error: string | null
+          id: string
+          job_id: string | null
+          phone: string
+          status: string
+        }
+        Insert: {
+          body: string
+          channel?: string
+          contact_name?: string | null
+          contact_type?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          error?: string | null
+          id?: string
+          job_id?: string | null
+          phone: string
+          status?: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          contact_name?: string | null
+          contact_type?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          error?: string | null
+          id?: string
+          job_id?: string | null
+          phone?: string
+          status?: string
+        }
+        Relationships: []
+      }
       door_centers: {
         Row: {
           address: string | null
