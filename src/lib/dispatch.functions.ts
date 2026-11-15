@@ -63,7 +63,8 @@ export const agentDraft = createServerFn({ method: "POST" })
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "openai/gpt-6-astra",
+        reasoning_effort: "low",
         messages: [
           { role: "system", content: "You are a dispatch assistant for a field-service company (garage doors, locksmith, painting). Write ONE short, clear, friendly text message to the technician or subcontractor. Plain text only, no quotes, under 320 characters. Include job address/time if relevant." },
           { role: "user", content: `Contact: ${data.contact_name ?? "unknown"}\nRecent jobs:\n${data.jobs ?? "n/a"}\n\nConversation:\n${thread || "(none)"}\n\nWhat I want to say: ${data.instruction}` },
