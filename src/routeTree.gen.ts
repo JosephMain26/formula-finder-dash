@@ -16,6 +16,7 @@ import { Route as BillingRouteImport } from './routes/billing'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as DataboardRouteImport } from './routes/databoard'
+import { Route as DispatchRouteImport } from './routes/dispatch'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as InstallersRouteImport } from './routes/installers'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -27,6 +28,7 @@ import { Route as SignTokenRouteImport } from './routes/sign.$token'
 import { Route as ApiPublicHooksDispatchAutomationsRouteImport } from './routes/api/public/hooks/dispatch-automations'
 import { Route as ApiPublicHooksDispatchJobRemindersRouteImport } from './routes/api/public/hooks/dispatch-job-reminders'
 import { Route as ApiPublicHooksDispatchReportAutomationsRouteImport } from './routes/api/public/hooks/dispatch-report-automations'
+import { Route as ApiPublicTwilioInboundRouteImport } from './routes/api/public/twilio/inbound'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 
 const IndexRoute = IndexRouteImport.update({
@@ -62,6 +64,11 @@ const CompaniesRoute = CompaniesRouteImport.update({
 const DataboardRoute = DataboardRouteImport.update({
   id: '/databoard',
   path: '/databoard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DispatchRoute = DispatchRouteImport.update({
+  id: '/dispatch',
+  path: '/dispatch',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExpensesRoute = ExpensesRouteImport.update({
@@ -122,6 +129,11 @@ const ApiPublicHooksDispatchReportAutomationsRoute =
     path: '/api/public/hooks/dispatch-report-automations',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicTwilioInboundRoute = ApiPublicTwilioInboundRouteImport.update({
+  id: '/api/public/twilio/inbound',
+  path: '/api/public/twilio/inbound',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -137,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
+  '/dispatch': typeof DispatchRoute
   '/expenses': typeof ExpensesRoute
   '/installers': typeof InstallersRoute
   '/reports': typeof ReportsRoute
@@ -148,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/dispatch-automations': typeof ApiPublicHooksDispatchAutomationsRoute
   '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
   '/api/public/hooks/dispatch-report-automations': typeof ApiPublicHooksDispatchReportAutomationsRoute
+  '/api/public/twilio/inbound': typeof ApiPublicTwilioInboundRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
@@ -158,6 +172,7 @@ export interface FileRoutesByTo {
   '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
+  '/dispatch': typeof DispatchRoute
   '/expenses': typeof ExpensesRoute
   '/installers': typeof InstallersRoute
   '/reports': typeof ReportsRoute
@@ -169,6 +184,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/dispatch-automations': typeof ApiPublicHooksDispatchAutomationsRoute
   '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
   '/api/public/hooks/dispatch-report-automations': typeof ApiPublicHooksDispatchReportAutomationsRoute
+  '/api/public/twilio/inbound': typeof ApiPublicTwilioInboundRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
@@ -180,6 +196,7 @@ export interface FileRoutesById {
   '/clients': typeof ClientsRoute
   '/companies': typeof CompaniesRoute
   '/databoard': typeof DataboardRoute
+  '/dispatch': typeof DispatchRoute
   '/expenses': typeof ExpensesRoute
   '/installers': typeof InstallersRoute
   '/reports': typeof ReportsRoute
@@ -191,6 +208,7 @@ export interface FileRoutesById {
   '/api/public/hooks/dispatch-automations': typeof ApiPublicHooksDispatchAutomationsRoute
   '/api/public/hooks/dispatch-job-reminders': typeof ApiPublicHooksDispatchJobRemindersRoute
   '/api/public/hooks/dispatch-report-automations': typeof ApiPublicHooksDispatchReportAutomationsRoute
+  '/api/public/twilio/inbound': typeof ApiPublicTwilioInboundRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
@@ -203,6 +221,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/companies'
     | '/databoard'
+    | '/dispatch'
     | '/expenses'
     | '/installers'
     | '/reports'
@@ -214,6 +233,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-automations'
     | '/api/public/hooks/dispatch-job-reminders'
     | '/api/public/hooks/dispatch-report-automations'
+    | '/api/public/twilio/inbound'
     | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -224,6 +244,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/companies'
     | '/databoard'
+    | '/dispatch'
     | '/expenses'
     | '/installers'
     | '/reports'
@@ -235,6 +256,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-automations'
     | '/api/public/hooks/dispatch-job-reminders'
     | '/api/public/hooks/dispatch-report-automations'
+    | '/api/public/twilio/inbound'
     | '/lovable/email/queue/process'
   id:
     | '__root__'
@@ -245,6 +267,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/companies'
     | '/databoard'
+    | '/dispatch'
     | '/expenses'
     | '/installers'
     | '/reports'
@@ -256,6 +279,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-automations'
     | '/api/public/hooks/dispatch-job-reminders'
     | '/api/public/hooks/dispatch-report-automations'
+    | '/api/public/twilio/inbound'
     | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
@@ -267,6 +291,7 @@ export interface RootRouteChildren {
   ClientsRoute: typeof ClientsRoute
   CompaniesRoute: typeof CompaniesRoute
   DataboardRoute: typeof DataboardRoute
+  DispatchRoute: typeof DispatchRoute
   ExpensesRoute: typeof ExpensesRoute
   InstallersRoute: typeof InstallersRoute
   ReportsRoute: typeof ReportsRoute
@@ -278,6 +303,7 @@ export interface RootRouteChildren {
   ApiPublicHooksDispatchAutomationsRoute: typeof ApiPublicHooksDispatchAutomationsRoute
   ApiPublicHooksDispatchJobRemindersRoute: typeof ApiPublicHooksDispatchJobRemindersRoute
   ApiPublicHooksDispatchReportAutomationsRoute: typeof ApiPublicHooksDispatchReportAutomationsRoute
+  ApiPublicTwilioInboundRoute: typeof ApiPublicTwilioInboundRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
@@ -330,6 +356,13 @@ declare module '@tanstack/react-router' {
       path: '/databoard'
       fullPath: '/databoard'
       preLoaderRoute: typeof DataboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dispatch': {
+      id: '/dispatch'
+      path: '/dispatch'
+      fullPath: '/dispatch'
+      preLoaderRoute: typeof DispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/expenses': {
@@ -409,6 +442,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDispatchReportAutomationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/twilio/inbound': {
+      id: '/api/public/twilio/inbound'
+      path: '/api/public/twilio/inbound'
+      fullPath: '/api/public/twilio/inbound'
+      preLoaderRoute: typeof ApiPublicTwilioInboundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -427,6 +467,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsRoute: ClientsRoute,
   CompaniesRoute: CompaniesRoute,
   DataboardRoute: DataboardRoute,
+  DispatchRoute: DispatchRoute,
   ExpensesRoute: ExpensesRoute,
   InstallersRoute: InstallersRoute,
   ReportsRoute: ReportsRoute,
@@ -441,6 +482,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicHooksDispatchJobRemindersRoute,
   ApiPublicHooksDispatchReportAutomationsRoute:
     ApiPublicHooksDispatchReportAutomationsRoute,
+  ApiPublicTwilioInboundRoute: ApiPublicTwilioInboundRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
