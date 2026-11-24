@@ -169,7 +169,7 @@ function Dashboard() {
       : derivedStatuses;
     return {
       techs: get("tech_name"),
-      companies: [...new Set(jobs.flatMap(j => [j.company_1, j.company]).filter(Boolean) as string[])].sort(),
+      companies: [...new Set(jobs.flatMap(j => [j.company_1, j.company]).map(v => (v || "").trim()).filter(Boolean))].sort(),
       jobTypes: get("job_type"),
       statuses,
     };
@@ -184,7 +184,7 @@ function Dashboard() {
       }
       if (statusFilter && statusFilter !== "all" && job.status !== statusFilter) return false;
       if (techFilter && techFilter !== "all" && job.tech_name !== techFilter) return false;
-      if (companyFilter && companyFilter !== "all" && job.company_1 !== companyFilter && job.company !== companyFilter) return false;
+      if (companyFilter && companyFilter !== "all" && (job.company_1 || "").trim() !== companyFilter && (job.company || "").trim() !== companyFilter) return false;
       if (jobTypeFilter && jobTypeFilter !== "all" && job.job_type !== jobTypeFilter) return false;
       if (paidFilter === "yes" && !job.paid) return false;
       if (paidFilter === "no" && job.paid) return false;

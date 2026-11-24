@@ -212,11 +212,12 @@ export function ExportReportDialog({ jobs, companies }: ExportReportDialogProps)
   }
 
   function generatePdf() {
+    const trimmedCompanies = new Set(Array.from(selectedCompanies).map((c) => c.trim()));
     const filtered = jobs.filter(j => {
       if (dateFrom && (!j.job_date || j.job_date < dateFrom)) return false;
       if (dateTo && (!j.job_date || j.job_date > dateTo)) return false;
-      const co = j.company_1 || j.company || "";
-      if (selectedCompanies.size > 0 && !selectedCompanies.has(co)) return false;
+      const co = (j.company_1 || j.company || "").trim();
+      if (trimmedCompanies.size > 0 && !trimmedCompanies.has(co)) return false;
       return true;
     });
 

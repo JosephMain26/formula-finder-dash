@@ -73,7 +73,7 @@ function SchedulePage() {
   const filtered = useMemo(() => jobs.filter((j) => {
     if (techFilter !== "all" && j.tech_name !== techFilter) return false;
     if (statusFilter !== "all" && j.status !== statusFilter) return false;
-    if (companyFilter !== "all" && j.company_1 !== companyFilter && j.company !== companyFilter) return false;
+    if (companyFilter !== "all" && (j.company_1 || "").trim() !== companyFilter && (j.company || "").trim() !== companyFilter) return false;
     return true;
   }), [jobs, techFilter, statusFilter, companyFilter]);
 
@@ -93,7 +93,7 @@ function SchedulePage() {
   const uniques = useMemo(() => ({
     techs: [...new Set(jobs.map((j) => j.tech_name).filter(Boolean) as string[])].sort(),
     statuses: [...new Set(jobs.map((j) => j.status).filter(Boolean) as string[])].sort(),
-    companies: [...new Set(jobs.flatMap((j) => [j.company_1, j.company]).filter(Boolean) as string[])].sort(),
+    companies: [...new Set(jobs.flatMap((j) => [j.company_1, j.company]).map((v) => (v || "").trim()).filter(Boolean))].sort(),
   }), [jobs]);
 
   const scheduledDays = useMemo(() => {

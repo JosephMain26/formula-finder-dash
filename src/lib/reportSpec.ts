@@ -114,7 +114,7 @@ export function money(n: number): string {
 }
 
 export function getCellValue(job: Job, key: ReportColumnKey): unknown {
-  if (key === "company") return job.company_1 || job.company;
+  if (key === "company") return (job.company_1 || job.company || "").trim();
   return (job as any)[key];
 }
 
@@ -216,7 +216,7 @@ export function computeReportData(
   const range = resolveSpecRange(spec, today);
   const from = range?.from || "";
   const to = range?.to || "";
-  const marketerSet = new Set(spec.marketers);
+  const marketerSet = new Set(spec.marketers.map((m) => m.trim()));
   const statusSet = new Set((spec.statuses || []).map((s) => s.toLowerCase()));
   const paidFilter = spec.paidFilter || "all";
 
@@ -224,7 +224,7 @@ export function computeReportData(
     if (from && (!j.job_date || j.job_date < from)) return false;
     if (to && (!j.job_date || j.job_date > to)) return false;
     if (marketerSet.size > 0) {
-      const co = j.company_1 || j.company || "";
+      const co = (j.company_1 || j.company || "").trim();
       if (!marketerSet.has(co)) return false;
     }
     if (statusSet.size > 0) {
