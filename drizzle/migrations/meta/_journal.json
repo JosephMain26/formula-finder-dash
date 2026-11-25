@@ -15,6 +15,13 @@
       "when": 1795560618666,
       "tag": "0001_tighten_rls_and_storage_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795577530136,
+      "tag": "0002_create_messaging_settings",
+      "breakpoints": true
     }
   ]
 }

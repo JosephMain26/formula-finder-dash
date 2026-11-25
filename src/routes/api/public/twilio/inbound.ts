@@ -7,7 +7,13 @@ export const Route = createFileRoute("/api/public/twilio/inbound")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const token = process.env.TWILIO_AUTH_TOKEN;
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: cfg } = await supabaseAdmin
+          .from("messaging_settings")
+          .select("auth_token")
+          .eq("id", "default")
+          .maybeSingle();
+        const token = cfg?.auth_token || process.env["TWILIO_AUTH_TOKEN"];
         const raw = await request.text();
         const params = new URLSearchParams(raw);
         if (!token) return new Response("Not configured", { status: 503 });
@@ -21,7 +27,6 @@ export const Route = createFileRoute("/api/public/twilio/inbound")({
         const body = (params.get("Body") ?? "").slice(0, 4000);
         const channel = fromRaw.startsWith("whatsapp:") ? "whatsapp" : "sms";
         const phone = fromRaw.replace("whatsapp:", "");
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: tech } = await supabaseAdmin.from("technicians").select("tech_name").eq("phone_number", phone).maybeSingle();
         await supabaseAdmin.from("dispatch_messages").insert({
           phone, body, channel, direction: "in", status: "received",

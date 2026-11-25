@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const TWILIO = "https://connector-gateway.lovable.dev/twilio";
+const TWILIO_API = "https://api.twilio.com/2010-04-01";
 
 const SendSchema = z.object({
   phone: z.string().min(5).max(32),
@@ -18,22 +19,41 @@ export const sendDispatch = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => SendSchema.parse(i))
   .handler(async ({ data, context }) => {
     const to = data.phone.replace(/[^\d+]/g, "");
-    const from = process.env.TWILIO_FROM_NUMBER;
-    const lk = process.env.LOVABLE_API_KEY;
-    const tk = process.env.TWILIO_API_KEY;
+    const wa = data.channel === "whatsapp";
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: cfg } = await supabaseAdmin
+      .from("messaging_settings")
+      .select("account_sid, auth_token, from_number, whatsapp_number")
+      .eq("id", "default")
+      .maybeSingle();
     let status = "sent";
     let error: string | null = null;
-    if (!from || !lk || !tk) {
-      status = "pending_number";
-      error = "No sending phone number set up yet — message saved only.";
-    } else {
-      const wa = data.channel === "whatsapp";
-      const res = await fetch(`${TWILIO}/Messages.json`, {
+    if (cfg?.account_sid && cfg?.auth_token && cfg?.from_number) {
+      const fromNum = wa ? cfg.whatsapp_number || cfg.from_number : cfg.from_number;
+      const res = await fetch(`${TWILIO_API}/Accounts/${cfg.account_sid}/Messages.json`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": tk, "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ To: wa ? `whatsapp:${to}` : to, From: wa ? `whatsapp:${from}` : from, Body: data.body }),
+        headers: {
+          Authorization: `Basic ${btoa(`${cfg.account_sid}:${cfg.auth_token}`)}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({ To: wa ? `whatsapp:${to}` : to, From: wa ? `whatsapp:${fromNum}` : fromNum, Body: data.body }),
       });
       if (!res.ok) { status = "failed"; error = `Twilio [${res.status}]: ${await res.text()}`; }
+    } else {
+      const from = process.env["TWILIO_FROM_NUMBER"];
+      const lk = process.env["LOVABLE_API_KEY"];
+      const tk = process.env["TWILIO_API_KEY"];
+      if (!from || !lk || !tk) {
+        status = "pending_number";
+        error = "No sending phone number set up yet — message saved only.";
+      } else {
+        const res = await fetch(`${TWILIO}/Messages.json`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": tk, "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ To: wa ? `whatsapp:${to}` : to, From: wa ? `whatsapp:${from}` : from, Body: data.body }),
+        });
+        if (!res.ok) { status = "failed"; error = `Twilio [${res.status}]: ${await res.text()}`; }
+      }
     }
     const { error: dbErr } = await context.supabase.from("dispatch_messages").insert({
       phone: to, body: data.body, channel: data.channel, direction: "out", status, error,

@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText, Zap, CreditCard, LayoutTemplate, Package, Store, Shapes, Receipt, Wallet } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Building2, Wrench, Brain, Users, User, FormInput, MessageSquare, HelpCircle, Download, FileText, Zap, CreditCard, LayoutTemplate, Package, Store, Shapes, Receipt, Wallet, Phone } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { JobFormBuilder } from "@/components/settings/JobFormBuilder";
 import { MessageTemplatesManager } from "@/components/settings/MessageTemplatesManager";
@@ -17,6 +17,7 @@ import { InstallationCatalogManager } from "@/components/settings/InstallationCa
 import { ProductCatalogManager } from "@/components/settings/ProductCatalogManager";
 import { DoorCentersManager } from "@/components/settings/DoorCentersManager";
 import { PaymentDefaultsManager } from "@/components/settings/PaymentDefaultsManager";
+import { PhoneNumberSetup } from "@/components/settings/PhoneNumberSetup";
 import { RemoteLinkButton } from "@/components/RemoteLinkButton";
 import { UsersManager } from "@/components/UsersManager";
 import { AIRuleBuilder } from "@/components/settings/AIRuleBuilder";
@@ -45,6 +46,9 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({
+  validateSearch: (s: Record<string, unknown>): { tab?: string } => ({
+    tab: typeof s["tab"] === "string" ? s["tab"] : undefined,
+  }),
   component: SettingsPage,
   head: () => ({
     meta: [
@@ -76,6 +80,12 @@ const SETTINGS_NAV = [
     ],
   },
   {
+    label: "Messaging",
+    items: [
+      { value: "phone", label: "Phone number", icon: Phone },
+    ],
+  },
+  {
     label: "Content",
     items: [
       { value: "templates", label: "Templates", icon: LayoutTemplate },
@@ -100,7 +110,9 @@ const SETTINGS_NAV = [
 ] as const;
 
 function SettingsPage() {
-  const [tab, setTab] = useState<string>("profile");
+  const { tab: queryTab } = Route.useSearch();
+  const [tab, setTab] = useState<string>(queryTab ?? "profile");
+  useEffect(() => { if (queryTab) setTab(queryTab); }, [queryTab]);
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
 
   const [templates, setTemplates] = useState<TemplatesSetting>({ dashboardViews: [], exportTemplates: [] });
@@ -300,6 +312,10 @@ function SettingsPage() {
 
           <TabsContent value="payment-defaults" className="mt-4">
             <PaymentDefaultsManager />
+          </TabsContent>
+
+          <TabsContent value="phone" className="mt-4">
+            <PhoneNumberSetup />
           </TabsContent>
 
           <TabsContent value="payment" className="mt-4">

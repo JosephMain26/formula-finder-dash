@@ -1360,6 +1360,51 @@ export type Database = {
         }
         Relationships: []
       }
+      messaging_settings: {
+        Row: {
+          account_name: string | null
+          account_sid: string
+          auth_token: string
+          from_number: string | null
+          id: string
+          phone_number_sid: string | null
+          provider: string
+          updated_at: string
+          updated_by: string | null
+          webhook_set: boolean
+          whatsapp_enabled: boolean
+          whatsapp_number: string | null
+        }
+        Insert: {
+          account_name?: string | null
+          account_sid: string
+          auth_token: string
+          from_number?: string | null
+          id?: string
+          phone_number_sid?: string | null
+          provider?: string
+          updated_at?: string
+          updated_by?: string | null
+          webhook_set?: boolean
+          whatsapp_enabled?: boolean
+          whatsapp_number?: string | null
+        }
+        Update: {
+          account_name?: string | null
+          account_sid?: string
+          auth_token?: string
+          from_number?: string | null
+          id?: string
+          phone_number_sid?: string | null
+          provider?: string
+          updated_at?: string
+          updated_by?: string | null
+          webhook_set?: boolean
+          whatsapp_enabled?: boolean
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
       notification_log: {
         Row: {
           channel: string

@@ -8,10 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Send, Sparkles, Plus, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, Plus, Loader2, Phone } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 import { toast } from "sonner";
 import { sendDispatch, agentDraft } from "@/lib/dispatch.functions";
+import { getMessagingReady } from "@/lib/messaging.functions";
 
 export const Route = createFileRoute("/dispatch")({
   head: () => ({
@@ -43,8 +44,10 @@ function DispatchPage() {
   const [ask, setAsk] = useState("");
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [phoneReady, setPhoneReady] = useState<boolean | null>(null);
   const send = useServerFn(sendDispatch);
   const draft = useServerFn(agentDraft);
+  const checkReady = useServerFn(getMessagingReady);
 
   const load = async () => {
     const { data } = await supabase.from("dispatch_messages").select("*").order("created_at", { ascending: true }).limit(1000);
@@ -52,6 +55,7 @@ function DispatchPage() {
   };
   useEffect(() => {
     load();
+    checkReady().then((r) => setPhoneReady(r.ready)).catch(() => setPhoneReady(false));
     (async () => {
       const [t, i, c] = await Promise.all([
         supabase.from("technicians").select("tech_name, phone_number"),
@@ -117,6 +121,11 @@ function DispatchPage() {
         <MobileNav />
         <Link to="/"><Button variant="ghost" size="icon" aria-label="Back"><ArrowLeft className="h-4 w-4" /></Button></Link>
         <h1 className="text-lg font-semibold">Messages</h1>
+        {phoneReady === false && (
+          <Link to="/settings" search={{ tab: "phone" }} className="ml-auto">
+            <Button variant="outline" size="sm"><Phone className="h-3.5 w-3.5 mr-1.5" /> Set up phone number</Button>
+          </Link>
+        )}
       </header>
       <div className="grid md:grid-cols-[300px_1fr] h-[calc(100vh-57px)]">
         <aside className={`border-r flex flex-col ${active ? "hidden md:flex" : "flex"}`}>
