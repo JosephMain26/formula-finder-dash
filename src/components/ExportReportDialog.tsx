@@ -11,6 +11,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ALL_COLUMNS, type ColumnKey } from "@/components/ColumnToggle";
 import type { Tables } from "@/integrations/supabase/types";
+import { formatLocalDate } from "@/lib/utils";
 import {
   DndContext,
   closestCenter,
@@ -55,7 +56,7 @@ const DEFAULT_SECTIONS: { id: SectionId; label: string }[] = [
 function fmt(val: unknown, key: ColumnKey): string {
   if (val == null || val === "") return "—";
   if (key === "paid") return val ? "Yes" : "No";
-  if (key === "job_date") return new Date(val as string).toLocaleDateString();
+  if (key === "job_date") return formatLocalDate(val as string);
   if (key === "manual_percentage") return `${val}%`;
   if (typeof val === "number") return `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return String(val);

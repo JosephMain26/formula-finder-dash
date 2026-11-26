@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import type { Tables } from "@/integrations/supabase/types";
 import { jobMetric, isCompleted } from "@/lib/databoard/metrics";
+import { parseLocalDate } from "@/lib/utils";
 
 type Job = Tables<"jobs">;
 
@@ -53,7 +54,8 @@ function dimKey(j: Job, d: InsightDimension): string {
   }
   if (d === "day" || d === "week" || d === "month") {
     if (!j.job_date) return "—";
-    const dt = new Date(j.job_date);
+    const dt = parseLocalDate(j.job_date);
+    if (!dt) return "—";
     if (d === "day") return j.job_date;
     if (d === "month") return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
     // week: ISO week-ish

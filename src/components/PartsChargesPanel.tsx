@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { DatePickerField } from "@/components/DatePickerField";
-import { cn } from "@/lib/utils";
+import { cn, formatLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   loadPartsCharges,
@@ -219,7 +219,7 @@ export function PartsChargesPanel() {
                 <TableBody>
                   {filtered.map((c) => (
                     <TableRow key={c.id} className={cn(c.paid && "opacity-60")}>
-                      <TableCell>{c.charge_date ? new Date(c.charge_date).toLocaleDateString() : "—"}</TableCell>
+                      <TableCell>{formatLocalDate(c.charge_date)}</TableCell>
                       <TableCell className="font-medium">{c.marketer || "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{c.description || "—"}</TableCell>
                       <TableCell className="text-right">{money(Number(c.amount || 0))}</TableCell>

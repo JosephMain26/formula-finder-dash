@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileDown } from "lucide-react";
 import { DatePickerField } from "@/components/DatePickerField";
 import { resolvePreset, type DatePreset } from "@/components/DateRangePresets";
-import { cn } from "@/lib/utils";
+import { cn, formatLocalDate } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 import {
   summarizeByMarketer,
@@ -141,7 +141,7 @@ export function BalancesPanel() {
       startY: y,
       head: [["Date", "Job Type", "Price", "Marketer Share", "Collected By", "Net (office view)"]],
       body: s.rows.map((r) => [
-        r.job.job_date ? new Date(r.job.job_date).toLocaleDateString() : "—",
+        formatLocalDate(r.job.job_date),
         r.job.job_type || "—",
         money(Number(r.job.price || 0)),
         money(r.earned),
@@ -165,7 +165,7 @@ export function BalancesPanel() {
         startY: y,
         head: [["Date", "Note", "Amount"]],
         body: s.partsCharges.map((c) => [
-          c.charge_date ? new Date(c.charge_date).toLocaleDateString() : "—",
+          formatLocalDate(c.charge_date),
           c.description || "—",
           money(Number(c.amount || 0)),
         ]),

@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ArrowLeft, FileDown, GripVertical, Save, Plus, Trash2, Pencil, Clock } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 import { DatePickerField } from "@/components/DatePickerField";
+import { formatLocalDate } from "@/lib/utils";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -159,7 +160,7 @@ function pdfFromSpec(jobs: Job[], spec: ReportSpec, partsCharges: PartsCharge[] 
         startY: y,
         head: [["Date", "Marketer", "Note", "Amount"]],
         body: data.partsCharges.map((c) => [
-          c.charge_date ? new Date(c.charge_date).toLocaleDateString() : "—",
+          formatLocalDate(c.charge_date),
           (c.marketer || "—").trim() || "—",
           c.description || "—",
           money(Number(c.amount || 0)),

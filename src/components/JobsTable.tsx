@@ -12,6 +12,7 @@ import type { ColumnKey } from "@/components/ColumnToggle";
 import { StatusBadge } from "@/components/StatusBadge";
 import { loadCustomFields, loadStatuses, type CustomField, type StatusDef } from "@/lib/jobSchema";
 import { SendMessageDialog } from "@/components/SendMessageDialog";
+import { formatLocalDate } from "@/lib/utils";
 
 type Job = Tables<"jobs">;
 
@@ -158,7 +159,7 @@ export function JobsTable({ jobs, onJobsChanged, visibleColumns, selectedIds, on
               {show("job_date") && (
                 <TableCell className="whitespace-nowrap text-sm p-1">
                   <EditableCell jobId={job.id} field="job_date" type="date" value={job.job_date}
-                    display={<span className="px-2">{job.job_date ? new Date(job.job_date).toLocaleDateString() : "—"}</span>}
+                    display={<span className="px-2">{formatLocalDate(job.job_date)}</span>}
                     onSaved={onJobsChanged} />
                   {job.created_by && (job.created_by === "remote_link" || job.created_by.startsWith("remote_link:")) && (
                     <div

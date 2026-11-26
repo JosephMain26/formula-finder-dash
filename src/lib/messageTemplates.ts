@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { formatLocalDate } from "@/lib/utils";
 
 export type RecipientType = "technician" | "marketer" | "installer" | "client" | "custom";
 export type MessageChannel = "whatsapp" | "sms";
@@ -51,7 +52,7 @@ export const TEMPLATE_VARIABLES: { key: string; label: string }[] = [
 type Job = Tables<"jobs"> & { extra_fields?: any };
 
 export function buildJobVariables(job: Partial<Job> & Record<string, any>, extra?: { client_name?: string }) {
-  const fmtDate = (d: any) => (d ? new Date(d).toLocaleDateString() : "");
+  const fmtDate = (d: any) => (d ? formatLocalDate(String(d), "") : "");
   const fmtTime = (t: any) => (t ? String(t).slice(0, 5) : "");
   const money = (n: any) => (n != null && n !== "" ? `$${Number(n).toFixed(2)}` : "");
   return {

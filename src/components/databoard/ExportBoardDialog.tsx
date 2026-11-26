@@ -17,6 +17,7 @@ import {
 import type { Tables } from "@/integrations/supabase/types";
 import type { DateRange } from "@/components/DateRangePresets";
 import { jobMetric } from "@/lib/databoard/metrics";
+import { formatLocalDate } from "@/lib/utils";
 
 type Job = Tables<"jobs">;
 
@@ -74,7 +75,7 @@ interface Props {
 function fmtCell(val: unknown, key: ColumnKey): string {
   if (val == null || val === "") return "—";
   if (key === "paid") return val ? "Yes" : "No";
-  if (key === "job_date") return new Date(val as string).toLocaleDateString();
+  if (key === "job_date") return formatLocalDate(val as string);
   if (key === "manual_percentage") return `${val}%`;
   if (typeof val === "number") return `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return String(val);

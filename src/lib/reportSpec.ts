@@ -1,6 +1,7 @@
 import type { Tables } from "@/integrations/supabase/types";
 import { summarizeByMarketer, type MarketerBalanceSummary } from "@/lib/marketerBalance";
 import { filterChargesByRange, type PartsCharge } from "@/lib/partsCharges";
+import { formatLocalDate } from "@/lib/utils";
 
 type Job = Tables<"jobs">;
 
@@ -121,7 +122,7 @@ export function getCellValue(job: Job, key: ReportColumnKey): unknown {
 export function fmtCell(val: unknown, key: ReportColumnKey): string {
   if (val == null || val === "") return "—";
   if (key === "paid") return val ? "Yes" : "No";
-  if (key === "job_date") return new Date(val as string).toLocaleDateString();
+  if (key === "job_date") return formatLocalDate(val as string);
   if (key === "manual_percentage") return `${val}%`;
   if (typeof val === "number") return `$${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return String(val);
@@ -356,7 +357,7 @@ export function renderReportHtml(data: ReportData, spec: ReportSpec): string {
         const rows = data.partsCharges
           .map(
             (c) =>
-              `<tr><td style="padding:4px 8px;border:1px solid #ddd;">${esc(c.charge_date ? new Date(c.charge_date).toLocaleDateString() : "—")}</td>` +
+              `<tr><td style="padding:4px 8px;border:1px solid #ddd;">${esc(formatLocalDate(c.charge_date))}</td>` +
               `<td style="padding:4px 8px;border:1px solid #ddd;">${esc((c.marketer || "—").trim() || "—")}</td>` +
               `<td style="padding:4px 8px;border:1px solid #ddd;">${esc(c.description || "—")}</td>` +
               `<td style="padding:4px 8px;border:1px solid #ddd;text-align:right;">${money(num(c.amount))}</td></tr>`
