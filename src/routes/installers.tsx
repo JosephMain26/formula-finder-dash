@@ -7,8 +7,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
+import { W9Field } from "@/components/W9Field";
 
 type Installer = {
   id: string;
@@ -16,6 +18,7 @@ type Installer = {
   phone_number: string | null;
   email: string | null;
   install_types: string[];
+  w9_path: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -101,7 +104,10 @@ function InstallersPage() {
                   <TableBody>
                     {installers.map((inst) => (
                       <TableRow key={inst.id}>
-                        <TableCell className="font-medium">{inst.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <span>{inst.name}</span>
+                          {inst.w9_path && <Badge variant="secondary" className="text-[10px] ml-2">W9 on file</Badge>}
+                        </TableCell>
                         <TableCell>{inst.phone_number || "—"}</TableCell>
                         <TableCell>{inst.email || "—"}</TableCell>
                         <TableCell>{inst.install_types?.length ? inst.install_types.join(", ") : "—"}</TableCell>
@@ -135,6 +141,7 @@ function InstallerDialog({ installer, onSaved }: { installer?: Installer; onSave
     phone_number: installer?.phone_number || "",
     email: installer?.email || "",
     install_types: installer?.install_types || [],
+    w9_path: installer?.w9_path ?? null,
   });
 
   function update<K extends keyof typeof form>(field: K, value: (typeof form)[K]) {
@@ -158,12 +165,14 @@ function InstallerDialog({ installer, onSaved }: { installer?: Installer; onSave
       phone_number: form.phone_number || null,
       email: form.email || null,
       install_types: form.install_types,
+      w9_path: form.w9_path,
     };
 
     if (isEdit && installer) {
       await (supabase as any).from("installers").update(payload).eq("id", installer.id);
     } else {
       await (supabase as any).from("installers").insert(payload);
+      setForm({ name: "", phone_number: "", email: "", install_types: [], w9_path: null });
     }
 
     setLoading(false);
@@ -212,6 +221,7 @@ function InstallerDialog({ installer, onSaved }: { installer?: Installer; onSave
               })}
             </div>
           </div>
+          <W9Field entity="installer" value={form.w9_path} onChange={(next) => update("w9_path", next)} />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Pencil, Trash2, ArrowLeft, Search, X } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 import { MarketerTypeSelect } from "@/components/MarketerTypeSelect";
+import { W9Field } from "@/components/W9Field";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Company = Tables<"companies">;
@@ -160,7 +161,10 @@ function CompaniesPage() {
                   <TableBody>
                     {filtered.map((company) => (
                       <TableRow key={company.id}>
-                        <TableCell className="font-medium">{company.company_name}</TableCell>
+                        <TableCell className="font-medium">
+                          <span>{company.company_name}</span>
+                          {company.w9_path && <Badge variant="secondary" className="text-[10px] ml-2">W9 on file</Badge>}
+                        </TableCell>
                         <TableCell>{company.contact_name || "—"}</TableCell>
                         <TableCell>{company.email || "—"}</TableCell>
                         <TableCell>
@@ -206,12 +210,14 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
     email: string;
     company_type: string[];
     percentage: string;
+    w9_path: string | null;
   }>({
     company_name: company?.company_name || "",
     contact_name: company?.contact_name || "",
     email: company?.email || "",
     company_type: Array.isArray(company?.company_type) ? company!.company_type : [],
     percentage: company?.percentage?.toString() || "50",
+    w9_path: company?.w9_path ?? null,
   });
 
   function update(field: string, value: string) {
@@ -229,12 +235,14 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
       email: form.email || null,
       company_type: form.company_type,
       percentage: form.percentage ? parseFloat(form.percentage) : 50,
+      w9_path: form.w9_path,
     };
 
     if (isEdit && company) {
       await supabase.from("companies").update(payload).eq("id", company.id);
     } else {
       await supabase.from("companies").insert(payload);
+      setForm({ company_name: "", contact_name: "", email: "", company_type: [], percentage: "50", w9_path: null });
     }
 
     setLoading(false);
@@ -281,6 +289,11 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
             <Input type="number" step="0.01" min="0" max="100" value={form.percentage} onChange={(e) => update("percentage", e.target.value)} />
             <p className="text-xs text-muted-foreground mt-1">Marketer's share of job revenue</p>
           </div>
+          <W9Field
+            entity="company"
+            value={form.w9_path}
+            onChange={(next) => setForm((prev) => ({ ...prev, w9_path: next }))}
+          />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>

@@ -29,6 +29,13 @@
       "when": 1795577921684,
       "tag": "0003_restrict_check_photos_upload_policy",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795654269890,
+      "tag": "0004_add_w9_forms_support",
+      "breakpoints": true
     }
   ]
 }

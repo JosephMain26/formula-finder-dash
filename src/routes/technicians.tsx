@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, ArrowLeft, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
+import { W9Field } from "@/components/W9Field";
 import { toast } from "sonner";
 
 type Technician = {
@@ -20,6 +22,7 @@ type Technician = {
   user_id: string | null;
   pincode: string | null;
   report_email: string | null;
+  w9_path: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -123,7 +126,10 @@ function TechniciansPage() {
                   <TableBody>
                     {technicians.map((tech) => (
                       <TableRow key={tech.id}>
-                        <TableCell className="font-medium">{tech.tech_name}</TableCell>
+                        <TableCell className="font-medium">
+                          <span>{tech.tech_name}</span>
+                          {tech.w9_path && <Badge variant="secondary" className="text-[10px] ml-2">W9 on file</Badge>}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{profileLabel(tech.user_id)}</TableCell>
                         <TableCell className="font-mono text-sm">
                           {tech.pincode ? (showPins ? tech.pincode : "••••••") : <span className="text-muted-foreground">—</span>}
@@ -174,6 +180,7 @@ function TechnicianDialog({
     user_id: technician?.user_id || "",
     pincode: technician?.pincode || "",
     report_email: technician?.report_email || "",
+    w9_path: technician?.w9_path ?? null,
   });
   const [altEmail, setAltEmail] = useState(!!technician?.report_email);
 
@@ -213,6 +220,7 @@ function TechnicianDialog({
       user_id: form.user_id || null,
       pincode: form.pincode || null,
       report_email: altEmail && form.report_email.trim() ? form.report_email.trim() : null,
+      w9_path: form.w9_path,
     };
 
     const { error } = isEdit && technician
@@ -225,6 +233,10 @@ function TechnicianDialog({
       else if (error.message?.includes("technicians_user_id_unique")) toast.error("That user is already linked to another technician");
       else toast.error(error.message || "Failed to save");
       return;
+    }
+    if (!isEdit) {
+      setForm({ tech_name: "", phone_number: "", city: "", percentage: "50", user_id: "", pincode: "", report_email: "", w9_path: null });
+      setAltEmail(false);
     }
     setOpen(false);
     onSaved();
@@ -320,6 +332,11 @@ function TechnicianDialog({
             <Input type="number" step="0.01" min="0" max="100" value={form.percentage} onChange={(e) => update("percentage", e.target.value)} />
             <p className="text-xs text-muted-foreground mt-1">Revenue share % for this technician</p>
           </div>
+          <W9Field
+            entity="technician"
+            value={form.w9_path}
+            onChange={(next) => setForm((prev) => ({ ...prev, w9_path: next }))}
+          />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>
