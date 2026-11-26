@@ -36,6 +36,13 @@
       "when": 1795654269890,
       "tag": "0004_add_w9_forms_support",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795657103046,
+      "tag": "0005_private_w9_details",
+      "breakpoints": true
     }
   ]
 }

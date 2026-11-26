@@ -1861,6 +1861,42 @@ export type Database = {
         }
         Relationships: []
       }
+      w9_details: {
+        Row: {
+          address: string
+          business_name: string
+          city: string
+          entity_id: string
+          entity_type: string
+          state: string
+          tax_id: string
+          tax_id_type: string
+          zip: string
+        }
+        Insert: {
+          address?: string
+          business_name?: string
+          city?: string
+          entity_id: string
+          entity_type: string
+          state?: string
+          tax_id?: string
+          tax_id_type?: string
+          zip?: string
+        }
+        Update: {
+          address?: string
+          business_name?: string
+          city?: string
+          entity_id?: string
+          entity_type?: string
+          state?: string
+          tax_id?: string
+          tax_id_type?: string
+          zip?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

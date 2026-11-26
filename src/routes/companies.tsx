@@ -11,7 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Pencil, Trash2, ArrowLeft, Search, X } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 import { MarketerTypeSelect } from "@/components/MarketerTypeSelect";
+import { toast } from "sonner";
 import { W9Field } from "@/components/W9Field";
+import { useW9Review, W9ReviewLayout, W9DetailsFields } from "@/components/W9Review";
+import { mergeEmptyFields, type W9Parsed } from "@/lib/w9";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Company = Tables<"companies">;
@@ -203,6 +206,7 @@ function CompaniesPage() {
 function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () => void }) {
   const isEdit = !!company;
   const [open, setOpen] = useState(false);
+  const w9 = useW9Review("company", company?.id, open);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<{
     company_name: string;
@@ -215,7 +219,7 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
     company_name: company?.company_name || "",
     contact_name: company?.contact_name || "",
     email: company?.email || "",
-    company_type: Array.isArray(company?.company_type) ? company!.company_type : [],
+    company_type: Array.isArray(company?.company_type) ? company?.company_type || [] : [],
     percentage: company?.percentage?.toString() || "50",
     w9_path: company?.w9_path ?? null,
   });
@@ -224,8 +228,14 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  function applyW9(parsed: W9Parsed) {
+    w9.applyParsed(parsed);
+    setForm(prev => mergeEmptyFields(prev, { company_name: parsed.business_name || parsed.name || "", contact_name: parsed.name || "", email: parsed.email || "" }));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (w9.busy || w9.loading || w9.loadError) return;
     if (!form.company_name.trim()) return;
     setLoading(true);
 
@@ -238,12 +248,14 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
       w9_path: form.w9_path,
     };
 
-    if (isEdit && company) {
-      await supabase.from("companies").update(payload).eq("id", company.id);
-    } else {
-      await supabase.from("companies").insert(payload);
-      setForm({ company_name: "", contact_name: "", email: "", company_type: [], percentage: "50", w9_path: null });
-    }
+    const recordId = company?.id || w9.savedId;
+    const { data: saved, error } = recordId
+      ? await supabase.from("companies").update(payload).eq("id", recordId).select("id").single()
+      : await supabase.from("companies").insert(payload).select("id").single();
+    if (error || !saved) { setLoading(false); toast.error(error?.message || "Could not save contact."); return; }
+    try { await w9.saveDetails(saved.id); }
+    catch (error) { setLoading(false); toast.error(error instanceof Error ? error.message : "Could not save W9 details."); return; }
+    if (!isEdit) setForm({ company_name: "", contact_name: "", email: "", company_type: [], percentage: "50", w9_path: null });
 
     setLoading(false);
     setOpen(false);
@@ -259,11 +271,13 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
           <Button><Plus className="h-4 w-4 mr-2" /> Add Marketer</Button>
         )}
       </DialogTrigger>
-      <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
+      <DialogContent className={`w-[calc(100vw-1rem)] max-h-[90vh] overflow-y-auto ${w9.preview ? "sm:max-w-5xl" : "sm:max-w-lg"}`}>
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Marketer" : "Add Marketer"}</DialogTitle>
         </DialogHeader>
+        <W9ReviewLayout preview={w9.preview}>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <W9Field entity="company" value={form.w9_path} onChange={next => setForm(prev => ({ ...prev, w9_path: next }))} onParsed={applyW9} onPreview={w9.setPreview} onBusy={w9.setBusy} />
           <div>
             <label className="text-xs font-medium text-muted-foreground">Marketer Name *</label>
             <Input value={form.company_name} onChange={(e) => update("company_name", e.target.value)} required />
@@ -289,16 +303,14 @@ function CompanyDialog({ company, onSaved }: { company?: Company; onSaved: () =>
             <Input type="number" step="0.01" min="0" max="100" value={form.percentage} onChange={(e) => update("percentage", e.target.value)} />
             <p className="text-xs text-muted-foreground mt-1">Marketer's share of job revenue</p>
           </div>
-          <W9Field
-            entity="company"
-            value={form.w9_path}
-            onChange={(next) => setForm((prev) => ({ ...prev, w9_path: next }))}
-          />
+
+          {w9.canManage && <W9DetailsFields details={w9.details} onChange={w9.setDetails} disabled={w9.loading || w9.loadError} />}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>
+            <Button type="submit" disabled={loading || w9.busy || w9.loading || w9.loadError}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>
           </div>
         </form>
+        </W9ReviewLayout>
       </DialogContent>
     </Dialog>
   );

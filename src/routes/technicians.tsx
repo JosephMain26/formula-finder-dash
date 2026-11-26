@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Pencil, Trash2, ArrowLeft, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
 import { W9Field } from "@/components/W9Field";
+import { useW9Review, W9ReviewLayout, W9DetailsFields } from "@/components/W9Review";
+import { mergeEmptyFields, type W9Parsed } from "@/lib/w9";
 import { toast } from "sonner";
 
 type Technician = {
@@ -171,6 +173,7 @@ function TechnicianDialog({
 }) {
   const isEdit = !!technician;
   const [open, setOpen] = useState(false);
+  const w9 = useW9Review("technician", technician?.id, open);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     tech_name: technician?.tech_name || "",
@@ -203,8 +206,15 @@ function TechnicianDialog({
     [profiles],
   );
 
+  function applyW9(parsed: W9Parsed) {
+    w9.applyParsed(parsed);
+    setForm(prev => mergeEmptyFields(prev, { tech_name: parsed.name || parsed.business_name || "", phone_number: parsed.phone || "", city: parsed.city || "", report_email: parsed.email || "" }));
+    if (parsed.email && !form.report_email.trim()) setAltEmail(true);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (w9.busy || w9.loading || w9.loadError) return;
     if (!form.tech_name.trim()) return;
     if (form.pincode && !/^\d{6}$/.test(form.pincode)) {
       toast.error("Pincode must be exactly 6 digits");
@@ -223,17 +233,22 @@ function TechnicianDialog({
       w9_path: form.w9_path,
     };
 
-    const { error } = isEdit && technician
-      ? await (supabase as any).from("technicians").update(payload).eq("id", technician.id)
-      : await (supabase as any).from("technicians").insert(payload);
+    const recordId = technician?.id || w9.savedId;
+    const { data: saved, error } = recordId
+      ? await supabase.from("technicians").update(payload).eq("id", recordId).select("id").single()
+      : await supabase.from("technicians").insert(payload).select("id").single();
 
-    setLoading(false);
     if (error) {
+      setLoading(false);
       if (error.message?.includes("technicians_pincode_unique")) toast.error("That pincode is already used by another technician");
       else if (error.message?.includes("technicians_user_id_unique")) toast.error("That user is already linked to another technician");
       else toast.error(error.message || "Failed to save");
       return;
     }
+    if (!saved) { setLoading(false); toast.error("Could not save technician."); return; }
+    try { await w9.saveDetails(saved.id); }
+    catch (error) { setLoading(false); toast.error(error instanceof Error ? error.message : "Could not save W9 details."); return; }
+    setLoading(false);
     if (!isEdit) {
       setForm({ tech_name: "", phone_number: "", city: "", percentage: "50", user_id: "", pincode: "", report_email: "", w9_path: null });
       setAltEmail(false);
@@ -251,11 +266,13 @@ function TechnicianDialog({
           <Button><Plus className="h-4 w-4 mr-2" /> Add Technician</Button>
         )}
       </DialogTrigger>
-      <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
+      <DialogContent className={`w-[calc(100vw-1rem)] max-h-[90vh] overflow-y-auto ${w9.preview ? "sm:max-w-5xl" : "sm:max-w-lg"}`}>
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Technician" : "Add Technician"}</DialogTitle>
         </DialogHeader>
+        <W9ReviewLayout preview={w9.preview}>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <W9Field entity="technician" value={form.w9_path} onChange={next => setForm(prev => ({ ...prev, w9_path: next }))} onParsed={applyW9} onPreview={w9.setPreview} onBusy={w9.setBusy} />
           <div>
             <label className="text-xs font-medium text-muted-foreground">Tech Name *</label>
             <Input value={form.tech_name} onChange={(e) => update("tech_name", e.target.value)} required />
@@ -332,16 +349,14 @@ function TechnicianDialog({
             <Input type="number" step="0.01" min="0" max="100" value={form.percentage} onChange={(e) => update("percentage", e.target.value)} />
             <p className="text-xs text-muted-foreground mt-1">Revenue share % for this technician</p>
           </div>
-          <W9Field
-            entity="technician"
-            value={form.w9_path}
-            onChange={(next) => setForm((prev) => ({ ...prev, w9_path: next }))}
-          />
+
+          {w9.canManage && <W9DetailsFields details={w9.details} onChange={w9.setDetails} disabled={w9.loading || w9.loadError} />}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>
+            <Button type="submit" disabled={loading || w9.busy || w9.loading || w9.loadError}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>
           </div>
         </form>
+        </W9ReviewLayout>
       </DialogContent>
     </Dialog>
   );

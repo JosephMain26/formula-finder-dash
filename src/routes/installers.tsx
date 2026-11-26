@@ -10,7 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import { MobileNav } from "@/components/MobileNav";
+import { toast } from "sonner";
 import { W9Field } from "@/components/W9Field";
+import { useW9Review, W9ReviewLayout, W9DetailsFields } from "@/components/W9Review";
+import { mergeEmptyFields, type W9Parsed } from "@/lib/w9";
 
 type Installer = {
   id: string;
@@ -135,6 +138,7 @@ function InstallersPage() {
 function InstallerDialog({ installer, onSaved }: { installer?: Installer; onSaved: () => void }) {
   const isEdit = !!installer;
   const [open, setOpen] = useState(false);
+  const w9 = useW9Review("installer", installer?.id, open);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: installer?.name || "",
@@ -155,8 +159,14 @@ function InstallerDialog({ installer, onSaved }: { installer?: Installer; onSave
     update("install_types", next);
   }
 
+  function applyW9(parsed: W9Parsed) {
+    w9.applyParsed(parsed);
+    setForm(prev => mergeEmptyFields(prev, { name: parsed.name || parsed.business_name || "", phone_number: parsed.phone || "", email: parsed.email || "" }));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (w9.busy || w9.loading || w9.loadError) return;
     if (!form.name.trim()) return;
     setLoading(true);
 
@@ -168,12 +178,14 @@ function InstallerDialog({ installer, onSaved }: { installer?: Installer; onSave
       w9_path: form.w9_path,
     };
 
-    if (isEdit && installer) {
-      await (supabase as any).from("installers").update(payload).eq("id", installer.id);
-    } else {
-      await (supabase as any).from("installers").insert(payload);
-      setForm({ name: "", phone_number: "", email: "", install_types: [], w9_path: null });
-    }
+    const recordId = installer?.id || w9.savedId;
+    const { data: saved, error } = recordId
+      ? await supabase.from("installers").update(payload).eq("id", recordId).select("id").single()
+      : await supabase.from("installers").insert(payload).select("id").single();
+    if (error || !saved) { setLoading(false); toast.error(error?.message || "Could not save contact."); return; }
+    try { await w9.saveDetails(saved.id); }
+    catch (error) { setLoading(false); toast.error(error instanceof Error ? error.message : "Could not save W9 details."); return; }
+    if (!isEdit) setForm({ name: "", phone_number: "", email: "", install_types: [], w9_path: null });
 
     setLoading(false);
     setOpen(false);
@@ -189,11 +201,13 @@ function InstallerDialog({ installer, onSaved }: { installer?: Installer; onSave
           <Button><Plus className="h-4 w-4 mr-2" /> Add Installer</Button>
         )}
       </DialogTrigger>
-      <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100%-2rem)] max-h-[90vh] overflow-y-auto">
+      <DialogContent className={`w-[calc(100vw-1rem)] max-h-[90vh] overflow-y-auto ${w9.preview ? "sm:max-w-5xl" : "sm:max-w-lg"}`}>
         <DialogHeader>
           <DialogTitle>{isEdit ? "Edit Installer" : "Add Installer"}</DialogTitle>
         </DialogHeader>
+        <W9ReviewLayout preview={w9.preview}>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <W9Field entity="installer" value={form.w9_path} onChange={next => setForm(prev => ({ ...prev, w9_path: next }))} onParsed={applyW9} onPreview={w9.setPreview} onBusy={w9.setBusy} />
           <div>
             <label className="text-xs font-medium text-muted-foreground">Name *</label>
             <Input value={form.name} onChange={(e) => update("name", e.target.value)} required maxLength={100} />
@@ -221,12 +235,14 @@ function InstallerDialog({ installer, onSaved }: { installer?: Installer; onSave
               })}
             </div>
           </div>
-          <W9Field entity="installer" value={form.w9_path} onChange={(next) => update("w9_path", next)} />
+
+          {w9.canManage && <W9DetailsFields details={w9.details} onChange={w9.setDetails} disabled={w9.loading || w9.loadError} />}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>
+            <Button type="submit" disabled={loading || w9.busy || w9.loading || w9.loadError}>{loading ? "Saving..." : isEdit ? "Save" : "Add"}</Button>
           </div>
         </form>
+        </W9ReviewLayout>
       </DialogContent>
     </Dialog>
   );
